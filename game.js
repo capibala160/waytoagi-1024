@@ -3424,6 +3424,7 @@
       q.set('destLon', String(state.dest.lon));
     }
     if (state.target != null) q.set('target', String(Math.round(state.target)));
+    q.set('v', '20261024r');
     location.href = 'compass-widget.html?' + q.toString();
   });
 
