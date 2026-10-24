@@ -923,9 +923,15 @@
       compassDirty = smoothPending;
     }
     paintHUD();
+  }
 
-    if (perfMode && t - perf.lastAt >= 1000) {
-      const dt = t - perf.lastAt;
+  // 独立于 rAF 更新体检面板：rAF 被卡住时也能看到 FPS 掉到 0
+  if (perfMode) {
+    setInterval(() => {
+      const now = performance.now();
+      if (!perf.lastAt) { perf.lastAt = now; return; }
+      const dt = now - perf.lastAt;
+      if (dt < 900) return;
       const fps = Math.round((perf.frames * 1000) / dt);
       const hz = Math.round((perf.orient * 1000) / dt);
       const ms = perf.draws ? (perf.drawMs / perf.draws).toFixed(1) : '0';
@@ -937,8 +943,8 @@
       perf.draws = 0;
       perf.drawMs = 0;
       perf.longTasks = 0;
-      perf.lastAt = t;
-    }
+      perf.lastAt = now;
+    }, 500);
   }
 
   function paintHUD() {
