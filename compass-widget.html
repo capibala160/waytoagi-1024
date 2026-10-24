@@ -5,12 +5,33 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>罗盘</title>
 <style>
-  html, body { margin: 0; padding: 0; background: transparent; overflow: hidden; }
-  canvas { display: block; width: 100vw; height: 100vh; touch-action: none; }
+  html, body { margin: 0; padding: 0; height: 100%; background: transparent; overflow: hidden; }
+  body { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  body.solo { background: #0b0d10; }
+  .stage { position: relative; width: min(100vmin, 420px); aspect-ratio: 1; }
+  canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+  .name {
+    margin: 14px 0 0; color: #e8e6e1; letter-spacing: .08em;
+    font: 600 18px/1.4 -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+  }
+  .start {
+    position: absolute; left: 50%; top: 50%; z-index: 2;
+    min-width: 120px; min-height: 48px; padding: 0 22px;
+    transform: translate(-50%, -50%);
+    border: 1px solid #3a3020; border-radius: 999px;
+    background: radial-gradient(circle at 50% 38%, #2c2417, #14110b);
+    color: #e8b04b; font: 600 16px -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+    box-shadow: 0 0 0 8px rgba(232, 176, 75, .04), 0 10px 34px rgba(0, 0, 0, .65);
+  }
+  [hidden] { display: none !important; }
 </style>
 </head>
 <body>
-<canvas id="dial"></canvas>
+<div class="stage">
+  <canvas id="dial"></canvas>
+  <button id="start" class="start" hidden>开始</button>
+</div>
+<p id="name" class="name" hidden></p>
 <script>
 (function () {
   'use strict';
@@ -28,6 +49,38 @@
 
   function norm(h) { return ((h % 360) + 360) % 360; }
   function finite(n) { return typeof n === 'number' && isFinite(n); }
+
+  // 独立打开时是自己的一页（全屏罗盘）；嵌在游戏页里时由父页面转发数据
+  var solo = window.parent === window;
+  var startBtn = document.getElementById('start');
+  var nameEl = document.getElementById('name');
+  var query = new URLSearchParams(location.search);
+
+  if (solo) document.body.classList.add('solo');
+  if (query.has('target')) {
+    var qt = parseFloat(query.get('target'));
+    if (finite(qt)) target = norm(qt);
+  }
+  if (query.has('name')) {
+    nameEl.textContent = query.get('name');
+    nameEl.hidden = false;
+  }
+  if (solo) startBtn.hidden = false;
+
+  function begin() {
+    startBtn.hidden = true;
+  }
+
+  startBtn.addEventListener('click', function () {
+    if (typeof DeviceOrientationEvent !== 'undefined' &&
+        typeof DeviceOrientationEvent.requestPermission === 'function') {
+      DeviceOrientationEvent.requestPermission().then(function (res) {
+        if (res === 'granted') begin();
+      }).catch(function () {});
+    } else {
+      begin();
+    }
+  });
 
   function resize() {
     var rect = cv.getBoundingClientRect();
