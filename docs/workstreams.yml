@@ -7,6 +7,8 @@ project:
   docs_concept: "犟针"
   rule: "今天提交《问津》；docs/ 和 designs/ 是下一版，不要为它重写引擎。"
   repo: "https://github.com/capibala160/waytoagi-1024"
+  pages_url: "https://capibala160.github.io/waytoagi-1024/"
+  principle: "这是起点，不是定稿；所有人都可以改。ownership 是协调，不是门槛。"
   updated: "2026-10-24"
 
 deadlines:
@@ -32,16 +34,17 @@ owners:
 
 tasks:
   - id: deploy-https
-    title: "把现有 App 部署到稳定 HTTPS"
-    status: todo
+    title: "GitHub Pages 在线链接（已上线）"
+    status: done
     owner: B
     backup: C
-    due: "2026-10-25T12:00:00+08:00"
+    due: "2026-10-24T12:30:00+08:00"
+    note: "https://capibala160.github.io/waytoagi-1024/ ；电脑选「不出门」，90 秒一局。"
     files: ["index.html", "style.css", "game.js", "levels.js"]
     acceptance:
-      - "iPhone Safari 和 Android Chrome 都能打开"
-      - "index.html?demo=1 能完整玩一局"
-      - "有备用链接"
+      - "链接可打开"
+      - "「不出门」90 秒一局"
+      - "手机 HTTPS 下「出门玩」可用"
     depends_on: []
 
   - id: chengdu-levels
@@ -138,11 +141,11 @@ tasks:
 
   - id: push-docs
     title: "把 docs/ 和 designs/ 推到远端"
-    status: blocked
+    status: done
     owner: Mike
     backup: B
     due: "2026-10-24T23:59:00+08:00"
-    blocked_reason: "当前账号 mikelux1 无权推 capibala160/waytoagi-1024（403）。需要 owner 加 collaborator，或切换账号，或明确同意 fork + PR。"
+    note: "已推送 a1bb51b；后续文档随 main 自动更新。"
     files: ["docs/", "designs/", "AGENTS.md"]
     acceptance:
       - "远端能看到 AGENTS.md"
