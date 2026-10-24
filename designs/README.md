@@ -1,10 +1,14 @@
 # 设计稿 · 犟针
 
-20 个手机屏幕，4 份 HTML。深色默认，右上角可切浅色与 390 / 430 宽度。
+深色默认，右上角可切浅色与 390 / 430 宽度。
+
+**当前中心是 `00-destination-first.html`**：先输入目的地，再选怎么走，然后罗盘只指它。
+`01-04` 是旧流程和完整组件参考；其中 `01` 的“铸造 → 模式 → 目的地卡”顺序已经过时，不要按它实现首页。
 
 | 文件 | 屏幕 |
 |---|---|
-| `01-onboarding.html` | 首页、铸造、装配、角色卡、模式、目的地、出发说明 |
+| **`00-destination-first.html`** | **今天去哪 → 确认目的地 → 怎么走 → 罗盘** |
+| `01-onboarding.html` | 旧流程参考：首页、铸造、角色卡、模式、目的地卡、出发说明 |
 | `02-game.html` | 雾城、问路、日记抽屉、抵达、结果 |
 | `03-journal-share.html` | 日记全屏、抵达证明、首页广场、挑战链接 |
 | `04-real-settings.html` | 实战罗盘、设置与安全、定位失败、空状态 |
@@ -12,7 +16,7 @@
 ## 打开
 
 ```bash
-open -a "Google Chrome" designs/01-onboarding.html
+open -a "Google Chrome" designs/00-destination-first.html
 ```
 
 或起一个本地服务器：
@@ -21,7 +25,7 @@ open -a "Google Chrome" designs/01-onboarding.html
 python3 -m http.server 8000
 ```
 
-然后访问 `http://localhost:8000/designs/01-onboarding.html`。
+然后访问 `http://localhost:8000/designs/00-destination-first.html`。
 
 ## 约定
 

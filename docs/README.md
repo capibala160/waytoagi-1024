@@ -5,6 +5,8 @@
 > 黑客松提交物：《犟针 · 雾城》——同一款产品的"演练模式"，评委在桌前 5 分钟能玩一局。
 >
 > **在线试玩（当前提交物《问津》）：** https://capibala160.github.io/waytoagi-1024/
+>
+> **先读：** [PRODUCT-TRUTH.md](PRODUCT-TRUTH.md) — 产品宪法：目的地优先，不是寻宝。
 
 ---
 
