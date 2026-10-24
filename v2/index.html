@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0b0d10" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<link rel="icon" href="favicon.svg" type="image/svg+xml" />
+<title>犟针 · 只指方向，不指路</title>
+<link rel="stylesheet" href="base.css?v=2" />
+<link rel="stylesheet" href="theme.css?v=2" />
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ============================================================
+       首页 · 今天去哪
+       ============================================================ -->
+  <section id="screen-start" class="screen active">
+    <header class="topbar home-top">
+      <div class="brand-lockup">
+        <span class="brand-seal" aria-hidden="true">犟</span>
+        <span class="brand-copy">
+          <b class="brand-name">犟针</b>
+          <small class="brand-tag">只指方向，不指路</small>
+        </span>
+      </div>
+      <div class="home-tools">
+        <button id="btn-pack" class="theme-toggle pack-toggle" aria-label="切换内容包">会场</button>
+        <button id="btn-theme" class="theme-toggle" aria-label="切换明暗">☾</button>
+      </div>
+    </header>
+
+    <div class="mode-switch" role="tablist" aria-label="模式">
+      <button class="mode-tab active" data-mode-tab="explore" role="tab" aria-selected="true">探索</button>
+      <button class="mode-tab" data-mode-tab="game" role="tab" aria-selected="false">游戏</button>
+    </div>
+
+    <div class="home-hero">
+      <p class="home-eyebrow">成都 · 今天</p>
+      <h1 class="home-q">今天去哪？</h1>
+      <p class="home-sub">说一个地方。罗盘只指方向，剩下的靠你和路人。</p>
+    </div>
+
+    <div class="search">
+      <span class="search-icon" aria-hidden="true">⌕</span>
+      <input id="dest-input" type="search" placeholder="输入一个地方，比如：太古里" autocomplete="off" />
+      <button id="btn-search" class="btn primary small search-btn">搜</button>
+    </div>
+
+    <div id="dest-suggest" class="search-results" hidden></div>
+
+    <div class="suggest-head" id="suggest-head">
+      <span>附近的去处</span>
+      <button id="btn-reroll" class="text-btn">换一批</button>
+    </div>
+    <div id="dest-cards" class="dest-cards"></div>
+
+    <div id="challenge" class="challenge" hidden>
+      <span>朋友挑战：去「<b id="challenge-name"></b>」，同样的起点</span>
+      <button id="btn-challenge" class="btn primary small">接受挑战</button>
+    </div>
+
+    <div id="recent-block" class="home-block" hidden>
+      <div class="block-head">
+        <span>最近去过</span>
+      </div>
+      <div id="recent-list" class="recent-list"></div>
+    </div>
+
+    <div class="home-shortcuts">
+      <button id="btn-random" class="shortcut">
+        <span class="shortcut-mark" aria-hidden="true">↝</span>
+        <span class="shortcut-copy"><b>随便走走</b><small>从附近挑一个</small></span>
+      </button>
+      <button id="btn-forge-link" class="shortcut">
+        <span class="shortcut-mark" aria-hidden="true">针</span>
+        <span class="shortcut-copy"><b>阿针</b><small>铸造你的旅伴</small></span>
+      </button>
+      <button id="btn-journeys" class="shortcut shortcut-wide">
+        <span class="shortcut-mark" aria-hidden="true">记</span>
+        <span class="shortcut-copy"><b>旅程记录</b><small>走过的地方都在这</small></span>
+      </button>
+    </div>
+
+    <button id="btn-resume" class="btn ghost resume" hidden>继续上次</button>
+    <p id="start-message" class="start-message" role="status" aria-live="polite"></p>
+
+    <p class="fine">没有地图，没有路线，没有距离。</p>
+  </section>
+
+  <!-- ============================================================
+       游戏入口 · 会场寻宝
+       ============================================================ -->
+  <section id="screen-modes" class="screen">
+    <header class="topbar sub-topbar">
+      <button id="btn-modes-back" class="icon-btn" aria-label="返回">‹</button>
+      <span class="sub-title">游戏</span>
+      <span class="topbar-spacer"></span>
+    </header>
+
+    <div class="mode-switch" role="tablist" aria-label="模式">
+      <button class="mode-tab" data-mode-tab="explore" role="tab" aria-selected="false">探索</button>
+      <button class="mode-tab active" data-mode-tab="game" role="tab" aria-selected="true">游戏</button>
+    </div>
+
+    <div class="page-head">
+      <p class="eyebrow">会场模式</p>
+      <h2 class="page-title">会场寻宝</h2>
+      <p class="page-sub">五站故事，或三站评委局。选一个走法。</p>
+    </div>
+
+    <div class="mode-list game-list">
+      <button id="btn-start" class="mode-btn primary game-card">
+        <span class="mode-badge">出门玩</span>
+        <b>五站寻宝</b>
+        <span class="mode-line">5 站 · 约 5 分钟 · 会场周边</span>
+        <span class="mode-meta">适合有时间的玩家，跟着线索走完一条故事线。</span>
+      </button>
+      <button id="btn-start-indoor" class="mode-btn game-card">
+        <b>三站评委局</b>
+        <span class="mode-line">3 站 · 约 90 秒 · 摊位附近</span>
+        <span class="mode-meta">不出会场，给第一次接触的人一局短的。</span>
+      </button>
+    </div>
+
+    <p class="page-note">更多玩法在探索里：选一个目的地，再选「手机模拟」。</p>
+  </section>
+
+  <!-- ============================================================
+       确认目的地
+       ============================================================ -->
+  <section id="screen-confirm" class="screen">
+    <header class="topbar sub-topbar">
+      <button id="btn-confirm-back" class="icon-btn" aria-label="返回">‹</button>
+      <span class="sub-title">确认目的地</span>
+      <span class="topbar-spacer"></span>
+    </header>
+
+    <div class="confirm-wrap">
+      <p class="eyebrow">你要去</p>
+      <article class="dest-ticket">
+        <div class="ticket-top">
+          <span class="ticket-kicker">目的地</span>
+          <span class="ticket-no">成都 · 锦江</span>
+        </div>
+        <h2 id="confirm-name" class="confirm-name"></h2>
+        <p id="confirm-blurb" class="confirm-blurb"></p>
+        <div class="ticket-rule" aria-hidden="true"></div>
+        <div class="confirm-meta">
+          <span>公共场所</span>
+          <span>不显示距离</span>
+          <span>到达后自动记录</span>
+        </div>
+        <p class="confirm-note">知道了距离就没意思了。方向交给罗盘，路交给脚。</p>
+      </article>
+
+      <div class="confirm-compass" aria-hidden="true">
+        <div class="confirm-compass-dial">
+          <img src="assets/compass/plate.webp" alt="" draggable="false" />
+          <img class="confirm-markings" src="assets/compass/dial-markings.svg" alt="" draggable="false" />
+          <img class="confirm-needle" src="assets/compass/needle.webp" alt="" draggable="false" />
+        </div>
+        <p>出发后，罗盘只指它</p>
+      </div>
+    </div>
+
+    <div class="bottom-dock">
+      <button id="btn-confirm-go" class="btn primary wide">去这里</button>
+      <button id="btn-confirm-change" class="text-btn dock-secondary">换一个目的地</button>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       怎么走
+       ============================================================ -->
+  <section id="screen-how" class="screen">
+    <header class="topbar sub-topbar">
+      <button id="btn-how-back" class="icon-btn" aria-label="返回">‹</button>
+      <span class="sub-title">怎么走</span>
+      <span class="topbar-spacer"></span>
+    </header>
+
+    <div class="page-head">
+      <p class="eyebrow">目的地 · <b id="how-name"></b></p>
+      <h2 class="page-title">怎么走？</h2>
+      <p class="page-sub">同一个目的地，两种走法。</p>
+    </div>
+
+    <div class="mode-list">
+      <button id="btn-how-sim" class="mode-btn primary game-card">
+        <span class="mode-badge">推荐第一次</span>
+        <b>在这台手机上模拟</b>
+        <span class="mode-line">3–6 分钟 · 不用出门</span>
+        <span class="mode-meta">雾城 12×12 · 四向移动 · 不需要定位权限</span>
+      </button>
+      <button id="btn-how-real" class="mode-btn game-card">
+        <b>去真实城市</b>
+        <span class="mode-line">30–90 分钟 · 需要定位和方向权限</span>
+        <span class="mode-meta">罗盘只指方向，不显示路线，也不报距离。</span>
+      </button>
+    </div>
+
+    <p class="page-note">随时可以退出。没有人会扣分。</p>
+  </section>
+
+  <!-- ============================================================
+       旅伴铸造
+       ============================================================ -->
+  <section id="screen-forge" class="screen">
+    <header class="topbar sub-topbar">
+      <button id="btn-forge-back" class="icon-btn" aria-label="返回">‹</button>
+      <span class="sub-title">铸造旅伴</span>
+      <span class="topbar-spacer"></span>
+    </header>
+
+    <div class="page-head">
+      <p class="eyebrow">旅伴</p>
+      <h2 class="page-title">一句话，铸造你的旅伴</h2>
+      <p class="page-sub">比如：一个嘴硬心软、总爱叹气的铜罗盘。</p>
+    </div>
+
+    <div class="forge-examples" id="forge-examples">
+      <button type="button" class="example-chip">一个嘴硬心软的铜罗盘</button>
+      <button type="button" class="example-chip">总爱叹气的旧怀表</button>
+      <button type="button" class="example-chip">一条认死理的指南鱼</button>
+    </div>
+
+    <textarea id="forge-input" class="forge-input" rows="3" maxlength="60" placeholder="写一句话……"></textarea>
+    <button id="btn-forge" class="btn primary wide">铸造</button>
+    <div id="forge-result" class="forge-result" hidden></div>
+    <button id="btn-forge-done" class="btn primary wide" hidden>带它出发</button>
+    <button id="btn-char-save" class="btn ghost wide char-save" hidden>保存主角卡（1080×1350）</button>
+    <img id="char-preview" class="char-preview" alt="" hidden />
+  </section>
+
+  <!-- ============================================================
+       行进 · 罗盘
+       ============================================================ -->
+  <section id="screen-play" class="screen">
+    <header class="hud play-hud">
+      <span id="hud-level">自由行</span>
+      <span class="hud-right">
+        <button id="btn-book" class="hud-btn">线索册</button>
+        <span id="hud-time" class="mono">00:00</span>
+      </span>
+    </header>
+
+    <div id="clue-card" class="clue">
+      <div class="clue-tag">线索 <span id="clue-type" class="clue-type"></span></div>
+      <p id="clue-text" class="clue-text"></p>
+      <p id="arrive-clue" class="arrive-clue" hidden></p>
+      <div id="clue-meta" class="clue-meta"></div>
+    </div>
+
+    <div id="free-card" class="trip-card" hidden>
+      <div class="trip-top">
+        <div class="trip-id">
+          <div class="free-label">目的地</div>
+          <p id="free-name" class="free-name"></p>
+        </div>
+        <button id="btn-free-exit" class="trip-exit">退出</button>
+      </div>
+      <p id="free-blurb" class="free-blurb"></p>
+      <div class="trip-status">
+        <span id="free-status" class="free-status">定位中…</span>
+        <button id="btn-free-retry" class="text-btn" hidden>重新定位</button>
+      </div>
+    </div>
+
+    <div id="fog-card" class="trip-card fog-card" hidden>
+      <div class="trip-top">
+        <div class="trip-id">
+          <div class="free-label"><span class="sim-tag">模拟</span> 雾城 · 目的地</div>
+          <p id="fog-name" class="free-name"></p>
+        </div>
+        <button id="btn-fog-exit" class="trip-exit">退出</button>
+      </div>
+      <p id="fog-street" class="free-blurb"></p>
+      <div class="trip-status">
+        <span id="fog-status" class="free-status">已走 0 步</span>
+        <span id="fog-meta" class="clue-meta"></span>
+      </div>
+      <p id="fog-hint" class="fog-hint" hidden></p>
+    </div>
+
+    <div class="compass-stage">
+      <div id="compass-layer" class="compass-layer" hidden>
+        <div id="compass-rotor" class="compass-rotor">
+          <img class="compass-plate" src="assets/compass/plate.webp" alt="" draggable="false" />
+          <img class="compass-markings" src="assets/compass/dial-markings.svg" alt="" draggable="false" />
+          <img id="compass-dial" class="compass-dial" alt="" hidden />
+          <img id="compass-needle" class="compass-needle" src="assets/compass/needle.webp" alt="" draggable="false" />
+        </div>
+        <div class="compass-glass" aria-hidden="true"><img src="assets/compass/glass.webp" alt="" draggable="false" /></div>
+        <div class="compass-sheen sheen-a" aria-hidden="true"><img src="assets/compass/sheen-window.webp" alt="" draggable="false" /></div>
+        <div class="compass-sheen sheen-b" aria-hidden="true"><img src="assets/compass/sheen-soft.webp" alt="" draggable="false" /></div>
+        <div id="compass-lubber" class="compass-lubber" aria-hidden="true"></div>
+        <div class="compass-cap" aria-hidden="true"></div>
+        <div id="compass-halo" class="compass-halo" aria-hidden="true"></div>
+      </div>
+      <canvas id="compass" aria-hidden="true"></canvas>
+      <div class="bearing"><span id="bearing-num">--</span><i>°</i></div>
+      <div id="halo-text" class="halo-text"></div>
+      <div id="align-badge" class="align-badge">已对准</div>
+    </div>
+
+    <div id="sim-tip" class="sim-tip" hidden>没检测到罗盘：拖动表盘模拟</div>
+
+    <div class="actions play-actions">
+      <button id="btn-hint" class="btn ghost">要提示</button>
+      <button id="btn-ask" class="btn ghost ask">问了个人</button>
+      <button id="btn-forward" class="btn primary" hidden>前进</button>
+      <button id="btn-arrive" class="btn primary">我到了</button>
+    </div>
+
+    <div id="hint-box" class="hint-box" hidden></div>
+
+    <p class="fog-tutorial">点方向键走一步。撞墙会停。</p>
+
+    <div id="dpad" class="dpad" hidden>
+      <button class="dpad-btn n" data-dir="n">北 ↑</button>
+      <button class="dpad-btn w" data-dir="w">西 ←</button>
+      <button class="dpad-btn e" data-dir="e">东 →</button>
+      <button class="dpad-btn s" data-dir="s">南 ↓</button>
+    </div>
+    <button id="btn-fog-ask" class="btn ghost fog-ask" hidden>问路</button>
+  </section>
+
+  <!-- ============================================================
+       输码
+       ============================================================ -->
+  <section id="screen-code" class="screen">
+    <header class="topbar sub-topbar">
+      <button id="btn-code-back" class="icon-btn" aria-label="返回">‹</button>
+      <span class="sub-title">输入站点码</span>
+      <span class="topbar-spacer"></span>
+    </header>
+    <div class="code-head">
+      <div id="code-title" class="code-title">输入纸上的四位码</div>
+      <div id="code-display" class="code-display" aria-live="polite"></div>
+      <div id="code-msg" class="code-msg"></div>
+      <button id="btn-bonus" class="link" hidden>加试一题（可选）</button>
+    </div>
+
+    <div class="keypad">
+      <button class="key" data-k="1">1</button>
+      <button class="key" data-k="2">2</button>
+      <button class="key" data-k="3">3</button>
+      <button class="key" data-k="4">4</button>
+      <button class="key" data-k="5">5</button>
+      <button class="key" data-k="6">6</button>
+      <button class="key" data-k="7">7</button>
+      <button class="key" data-k="8">8</button>
+      <button class="key" data-k="9">9</button>
+      <button class="key fn" data-k="clear">清除</button>
+      <button class="key" data-k="0">0</button>
+      <button class="key fn" data-k="back">返回</button>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       结算
+       ============================================================ -->
+  <section id="screen-end" class="screen">
+    <div class="end-head">
+      <p class="eyebrow">抵达</p>
+      <div class="end-title">到了</div>
+      <div class="end-sub">没有导航，你也到了</div>
+      <p id="end-dest" class="end-dest"></p>
+    </div>
+
+    <div id="stats-main" class="stats">
+      <div><b id="end-time">00:00</b><span>用时</span></div>
+      <div id="stat-hints"><b id="end-hints">0</b><span>提示</span></div>
+      <div><b id="end-asks">0</b><span>问路</span></div>
+      <div><b id="end-score">0</b><span>得分</span></div>
+    </div>
+
+    <div id="fog-stats" class="stats" hidden>
+      <div><b id="fog-time">00:00</b><span>用时</span></div>
+      <div><b id="fog-steps">0</b><span>步数</span></div>
+      <div><b id="fog-asks">0</b><span>问路</span></div>
+      <div><b id="fog-lost">—</b><span>迷路</span></div>
+      <div><b id="fog-stars">—</b><span>星级</span></div>
+    </div>
+
+    <div id="end-rating" class="rating"></div>
+    <div id="end-pieces" class="end-pieces"></div>
+    <div id="end-badges" class="end-badges"></div>
+    <div id="end-story" class="end-story"></div>
+    <div id="end-debug" class="end-debug" hidden></div>
+
+    <canvas id="card" class="card"></canvas>
+
+    <div class="actions end-actions">
+      <a id="btn-save" class="btn primary" download="犟针-旅程卡.png">保存旅程卡</a>
+      <button id="btn-again" class="btn ghost">再走一次</button>
+    </div>
+    <button id="btn-diary" class="btn ghost diary-btn">写日记 →</button>
+    <p id="end-note" class="end-note" hidden>轻量验码 · 不作为到访证明</p>
+    <button id="btn-home" class="link">换一个目的地</button>
+  </section>
+
+  <!-- ============================================================
+       线索册
+       ============================================================ -->
+  <section id="screen-book" class="screen">
+    <header class="topbar sub-topbar">
+      <button id="btn-book-back" class="icon-btn" aria-label="返回">‹</button>
+      <span class="sub-title">线索册</span>
+      <span class="topbar-spacer"></span>
+    </header>
+    <div id="book-list" class="book-list"></div>
+  </section>
+
+  <!-- ============================================================
+       旅程记录
+       ============================================================ -->
+  <section id="screen-journeys" class="screen">
+    <header class="topbar sub-topbar">
+      <button id="btn-journeys-back" class="icon-btn" aria-label="返回">‹</button>
+      <span class="sub-title">旅程记录</span>
+      <span class="topbar-spacer"></span>
+    </header>
+    <div id="journey-list" class="journey-list"></div>
+  </section>
+
+  <!-- ============================================================
+       日记
+       ============================================================ -->
+  <section id="screen-diary" class="screen">
+    <header class="topbar sub-topbar">
+      <button id="btn-diary-back" class="icon-btn" aria-label="返回">‹</button>
+      <span class="sub-title">日记</span>
+      <span class="topbar-spacer"></span>
+    </header>
+    <div class="page-head">
+      <p class="eyebrow">这一路</p>
+      <h2 class="diary-title">写进日记</h2>
+    </div>
+    <div id="diary-timeline" class="diary-timeline"></div>
+    <div class="diary-photos">
+      <label class="photo-slot">
+        <input type="file" accept="image/*" data-photo="0" hidden />
+        <span class="photo-plus">＋</span>
+        <img class="photo-img" alt="" hidden />
+        <button type="button" class="photo-remove" aria-label="删除照片" hidden>×</button>
+      </label>
+      <label class="photo-slot">
+        <input type="file" accept="image/*" data-photo="1" hidden />
+        <span class="photo-plus">＋</span>
+        <img class="photo-img" alt="" hidden />
+        <button type="button" class="photo-remove" aria-label="删除照片" hidden>×</button>
+      </label>
+      <label class="photo-slot">
+        <input type="file" accept="image/*" data-photo="2" hidden />
+        <span class="photo-plus">＋</span>
+        <img class="photo-img" alt="" hidden />
+        <button type="button" class="photo-remove" aria-label="删除照片" hidden>×</button>
+      </label>
+    </div>
+    <textarea id="diary-note" class="forge-input" rows="3" maxlength="80" placeholder="今天这一路，记一句……"></textarea>
+    <p class="diary-save-note">文字自动保存 · 只在这台手机上</p>
+    <button id="btn-diary-gen" class="btn primary wide">生成日记</button>
+    <div id="diary-text" class="diary-text" hidden></div>
+    <button id="btn-diary-cert" class="btn primary wide" hidden>生成抵达证明</button>
+    <canvas id="cert" width="1080" height="1920" hidden></canvas>
+    <a id="btn-cert-save" class="btn primary wide" download="犟针-抵达证明.png" hidden>保存抵达证明</a>
+    <button id="btn-cert-share" class="btn ghost wide" hidden>分享抵达证明</button>
+  </section>
+
+  <div id="stamp" class="stamp" aria-live="polite">
+    <div id="stamp-station" class="stamp-station"></div>
+    <div class="stamp-seal"><span id="stamp-mark"></span></div>
+    <p id="stamp-story"></p>
+    <div id="stamp-piece" class="stamp-piece"></div>
+    <button id="stamp-next" class="btn primary">继续前进</button>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <div id="azhen" class="azhen">
+    <div id="azhen-bubble" class="azhen-bubble" hidden>
+      <span id="azhen-line"></span>
+      <button id="azhen-close" class="azhen-x" aria-label="关闭">✕</button>
+    </div>
+    <button id="azhen-avatar" class="azhen-avatar" aria-label="阿针">
+      <span class="azhen-needle"></span>
+    </button>
+  </div>
+
+</div>
+
+<script src="destinations.js?v=2"></script>
+<script src="destinations-city.js?v=2"></script>
+<script src="levels.js?v=2"></script>
+<script src="packs.js?v=2"></script>
+<script src="game.js?v=2"></script>
+<script src="companion.js?v=2"></script>
+</body>
+</html>
