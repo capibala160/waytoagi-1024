@@ -1,17 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" role="img" aria-label="Compass dial markings: N, E, S, W and 30-degree numerals">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" role="img" aria-label="Compass bearing ring: 30-degree numerals, fixed dial">
   <defs>
     <filter id="ink" x="-20%" y="-20%" width="140%" height="140%">
       <feDropShadow dx="0" dy="1.2" stdDeviation="0.45" flood-color="#fff4d6" flood-opacity="0.45"/>
     </filter>
   </defs>
   <g filter="url(#ink)" fill="#2b2116" text-anchor="middle" dominant-baseline="central">
-    <g font-family="Georgia, 'Times New Roman', serif" font-weight="700" font-size="74">
-      <text x="500.0" y="279.6">N</text>
-      <text x="720.4" y="500.0">E</text>
-      <text x="500.0" y="720.4">S</text>
-      <text x="279.6" y="500.0">W</text>
-    </g>
     <g font-family="'Helvetica Neue', Arial, sans-serif" font-weight="600" font-size="48" letter-spacing="0.5">
       <text x="610.2" y="309.1">30°</text>
       <text x="690.9" y="389.8">60°</text>
