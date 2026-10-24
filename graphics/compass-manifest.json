@@ -1,0 +1,23 @@
+{
+  "outputDir": "/Users/mike/event/hackathon/graphics",
+  "assets": [
+    {
+      "name": "plate-v1",
+      "width": 1024,
+      "height": 1024,
+      "prompt": "Professional top-down product photograph of an antique brass compass dial plate, perfectly circular and exactly centered, occupying 92% of the square frame, isolated on a pure black background. The outer edge is a wide polished brass bezel with concentric turned grooves, warm honey-gold highlights, dark oxidized patina in the recesses, and fine hand-engraved scrollwork. Inside the bezel is an aged ivory enamel dial with subtle hairline crazing and warm tea staining. Crisp black markings printed on the dial: a full 360-degree scale on the outer track with a fine tick every 5 degrees, a longer tick every 10 degrees, and bold condensed numerals every 30 degrees reading 0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330 correctly spaced clockwise. Large bold black cardinal letters N at the top, E at the right, S at the bottom, W at the left, and smaller NE, SE, SW, NW between them. In the center, an ornate engraved eight-point compass rose in dark brass and black etching, with a raised circular brass hub at the exact center. The plate contains no magnetic needle, no pointer, no hands, no glass, no reflections. Soft warm studio key light from the upper left, gentle shadow inside the engraving, even illumination, no glare, no watermark, no extra text. Extremely sharp focus, realistic metal and enamel textures, symmetrical, orthographic top-down view, high resolution, clean edges."
+    },
+    {
+      "name": "needle-v1",
+      "width": 1024,
+      "height": 1024,
+      "prompt": "Professional top-down product photograph of a single antique compass magnetic needle, isolated on a pure black background, perfectly vertical, pointing straight up, centered exactly in the square frame. The needle is an elegant elongated double-ended pointer, about 78% of the frame height and 12% of the frame width, with a sharp north spear tip at the top and a matching south tail at the bottom. The north half is deep oxblood-red enamel with a polished brass outline and a bright specular highlight; the south half is polished aged brass with a subtle engraved line. A small polished brass pivot collar at the exact center. Warm studio lighting from the upper left, crisp metallic reflections, dark patina in the grooves, high contrast against the black background, clean sharp silhouette, no dial, no compass case, no glass, no text, no numbers, no shadow, no watermark. Photorealistic, macro detail, symmetrical, orthographic top-down view."
+    },
+    {
+      "name": "glass-v1",
+      "width": 1024,
+      "height": 1024,
+      "prompt": "Photorealistic optical glass reflection overlay for an antique compass crystal, perfectly circular and centered, filling 94% of the square frame, isolated on a pure black background. The glass is almost entirely clear: 85% of the circle is pure black. Faint natural reflections across the surface: a soft diagonal window reflection in the upper left, a subtle cool blue-green anti-reflective tint, a thin bright specular crescent along the upper rim, a dim warm rim light along the lower right, a few tiny dust specks and faint fingerprint smudges near the edge. The center of the glass is clean and undistorted so the dial beneath stays readable. No compass dial, no markings, no needle, no case, no text, no watermark. Realistic optical physics, soft gradients, subtle reflections, not glossy or milky. Top-down orthographic view, high resolution."
+    }
+  ]
+}

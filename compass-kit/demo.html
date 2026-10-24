@@ -1,0 +1,1121 @@
+<!doctype html>
+<html lang="en" data-theme="dark" data-frame="full">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0d10" id="theme-color">
+<meta name="description" content="Layered compass render: generated plate, needle and glass, with vector markings and a heading-driven glass reflection.">
+<title>Compass kit · 犟针</title>
+<style>
+/* ============================================================ tokens */
+:root {
+  --bg: #0b0d10;
+  --panel: #12161b;
+  --panel-2: #171c22;
+  --line: #242a31;
+  --text: #e8e6e1;
+  --dim: #8a8578;
+  --amber: #e8b04b;
+  --on-amber: #171006;
+  --green: #79b473;
+  --red: #d9534f;
+  --shadow: rgba(0, 0, 0, .55);
+  --stage-size: 330px;
+  --dial-inset: 22.4%;    /* (1 - dialDiameterRatio) / 2; see assets/geometry.json */
+  --needle-inset: 18.1%;  /* needle length ≈ 0.95 × dial diameter */
+  --radius: 16px;
+  --radius-ctl: 12px;
+  --tap: 44px;
+  --ease: cubic-bezier(.2, .7, .2, 1);
+}
+
+html[data-theme="light"] {
+  --bg: #ece7dc;
+  --panel: #f8f3e8;
+  --panel-2: #f1ebde;
+  --line: #d8cdbb;
+  --text: #26221c;
+  --dim: #6f675b;
+  --amber: #a9791f;
+  --on-amber: #fffaf0;
+  --green: #4f7a49;
+  --red: #b6403c;
+  --shadow: rgba(70, 55, 30, .28);
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+[hidden] { display: none !important; }
+
+html, body { margin: 0; padding: 0; background: var(--bg); }
+body {
+  min-height: 100dvh;
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  transition: background .25s var(--ease), color .25s var(--ease);
+}
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+.shell {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: max(16px, env(safe-area-inset-top)) 20px calc(24px + env(safe-area-inset-bottom));
+}
+html[data-frame="390"] .shell { max-width: 390px; }
+html[data-frame="430"] .shell { max-width: 430px; }
+
+/* ============================================================ header */
+.top { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 18px; }
+.brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+
+.seal {
+  width: 40px; height: 40px; flex: none;
+  display: grid; place-items: center;
+  border: 1px solid var(--amber);
+  border-radius: 6px;
+  color: var(--amber);
+  font-family: "Songti SC", "SimSun", serif;
+  font-size: 22px;
+  line-height: 1;
+  padding-bottom: 2px;
+}
+
+h1 {
+  margin: 0;
+  font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  font-size: 27px;
+  font-weight: 600;
+  letter-spacing: .005em;
+  line-height: 1.15;
+}
+.sub { margin: 4px 0 0; font-size: 13px; color: var(--dim); letter-spacing: .01em; }
+
+.icon-btn {
+  margin-left: auto;
+  width: var(--tap); height: var(--tap); flex: none;
+  display: grid; place-items: center;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-ctl);
+  background: var(--panel);
+  color: var(--text);
+  cursor: pointer;
+}
+.icon-btn svg { width: 19px; height: 19px; }
+html[data-theme="dark"] .icon-moon { display: none; }
+html[data-theme="light"] .icon-sun { display: none; }
+
+/* ============================================================ toolbar */
+.toolbar {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 14px;
+}
+.toolbar-label {
+  font-size: 12px; font-weight: 600; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--dim);
+}
+.seg {
+  margin-left: auto;
+  display: flex; gap: 2px; padding: 2px;
+  border: 1px solid var(--line); border-radius: var(--radius-ctl);
+  background: var(--panel);
+}
+.seg button {
+  min-height: var(--tap); padding: 0 12px;
+  border: 0; border-radius: 9px;
+  background: transparent; color: var(--dim);
+  font: inherit; font-size: 13px; font-weight: 600;
+  cursor: pointer;
+}
+.seg button[aria-pressed="true"] { background: var(--panel-2); color: var(--text); }
+.seg button:focus-visible,
+.icon-btn:focus-visible,
+.btn:focus-visible {
+  outline: 2px solid var(--amber); outline-offset: 2px;
+}
+
+/* ============================================================ panel */
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 14px;
+}
+.panel h2 {
+  margin: 0 0 12px;
+  font-size: 20px; font-weight: 600; letter-spacing: -.01em;
+}
+
+/* ============================================================ compass */
+.compass {
+  position: relative;
+  z-index: 0;
+  width: min(100%, var(--stage-size));
+  margin: 4px auto 0;
+}
+.compass::before,
+.compass::after {
+  content: ""; position: absolute; pointer-events: none;
+  border-radius: 50%;
+}
+.compass::before {
+  inset: 0;
+  background: radial-gradient(circle at 50% 42%, #171b20 0%, #0b0d10 58%, #0b0d10 100%);
+  box-shadow: 0 0 0 1px rgba(232, 176, 75, .06), 0 16px 34px var(--shadow);
+}
+.compass::after {
+  inset: 10% 8% -2% 8%;
+  background: radial-gradient(ellipse at 50% 62%, var(--shadow) 0%, transparent 66%);
+  filter: blur(10px);
+  z-index: -1;
+}
+
+.stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  isolation: isolate;
+  user-select: none;
+  -webkit-user-select: none;
+  opacity: 0;
+  transition: opacity .3s var(--ease);
+}
+.stage.is-ready { opacity: 1; }
+
+.layer { position: absolute; inset: 0; }
+.layer img,
+.layer picture {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  display: block;
+}
+.layer img { object-fit: contain; }
+.layer img { -webkit-user-drag: none; user-select: none; }
+
+.dial {
+  z-index: 1;
+  transform: rotate(var(--dial-rot, 0deg));
+  transform-origin: 50% 50%;
+}
+
+.needle {
+  z-index: 2;
+  inset: var(--needle-inset);
+  transform: rotate(var(--needle-rot, 0deg));
+  transform-origin: 50% 50%;
+}
+.needle img {
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, .45))
+          drop-shadow(0 4px 5px rgba(0, 0, 0, .22));
+}
+html[data-theme="light"] .needle img {
+  filter: drop-shadow(0 1px 1px rgba(60, 40, 15, .35))
+          drop-shadow(0 4px 6px rgba(60, 40, 15, .18));
+}
+
+.glass { z-index: 3; inset: var(--dial-inset); mix-blend-mode: screen; opacity: .62; }
+.glass .art {
+  transform: rotate(var(--glass-rot, 0deg)) scale(1.02);
+  transform-origin: 50% 50%;
+}
+
+.sheen {
+  z-index: 4;
+  inset: var(--dial-inset);
+  border-radius: 50%;
+  overflow: hidden;
+  mix-blend-mode: screen;
+}
+.sheen-window { opacity: var(--sheen-a, .12); }
+.sheen-soft { opacity: var(--sheen-b, .07); }
+.sheen .art { transform-origin: 50% 50%; }
+.sheen-window .art {
+  transform: translate(var(--sheen-x, 0%), var(--sheen-y, 0%))
+             rotate(var(--sheen-rot, 0deg)) scale(1.14);
+}
+.sheen-soft .art {
+  transform: translate(var(--sheen-x2, 0%), var(--sheen-y2, 0%))
+             rotate(var(--sheen-rot2, 0deg)) scale(1.20);
+}
+
+.glints {
+  z-index: 5;
+  inset: var(--dial-inset);
+  mix-blend-mode: screen;
+  transform: rotate(var(--glass-rot, 0deg));
+  transform-origin: 50% 50%;
+}
+.glints i {
+  position: absolute; display: block; border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, rgba(255, 255, 255, .55) 17%, transparent 68%);
+}
+.glint-a { width: 11%; aspect-ratio: 1; left: 23%; top: 20%; opacity: .22; filter: blur(.6px); }
+.glint-b { width: 5.5%; aspect-ratio: 1; left: 69%; top: 69%; opacity: .12; filter: blur(.8px); }
+
+.lubber {
+  position: absolute;
+  top: 2.2%; left: 50%;
+  width: 5.8%;
+  transform: translateX(-50%);
+  z-index: 6;
+  color: var(--amber);
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, .5));
+  transition: color .2s var(--ease);
+  pointer-events: none;
+}
+.lubber svg { display: block; width: 100%; height: auto; }
+.stage.is-aligned .lubber { color: var(--green); }
+
+.align-ring {
+  position: absolute; inset: 1%;
+  z-index: 7;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 2px var(--green),
+              inset 0 0 22px rgba(121, 180, 115, .35),
+              0 0 18px rgba(121, 180, 115, .28);
+  opacity: 0;
+  transition: opacity .18s var(--ease);
+  pointer-events: none;
+}
+.stage.is-aligned .align-ring { opacity: .9; }
+
+/* ============================================================ verdict + readout */
+.verdict {
+  min-height: 24px;
+  margin: 12px 0 0;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--dim);
+  letter-spacing: .01em;
+}
+.verdict.is-aligned { color: var(--green); }
+
+.readout {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin: 10px 0 14px;
+  padding: 9px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.readout > div { padding: 0 12px; min-width: 0; }
+.readout > div + div { border-left: 1px solid var(--line); }
+.readout span {
+  display: block;
+  font-size: 11px; font-weight: 600; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--dim);
+  margin-bottom: 2px;
+}
+.readout b {
+  display: block;
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 20px; font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.02em;
+}
+
+/* ============================================================ sliders */
+.slider-row { display: block; margin-top: 10px; }
+.slider-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  font-size: 14px; font-weight: 600;
+}
+.slider-head .hint { font-size: 13px; font-weight: 400; color: var(--dim); }
+
+input[type="range"] {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: var(--tap);
+  margin: 0; padding: 0;
+  background: transparent;
+  cursor: pointer;
+  touch-action: pan-y;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px; border-radius: 2px;
+  background: linear-gradient(90deg, var(--amber) 0 var(--fill, 0%), var(--line) var(--fill, 0%) 100%);
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 24px; height: 24px; margin-top: -10px;
+  border-radius: 50%;
+  background: var(--amber);
+  border: 2px solid var(--panel);
+  box-shadow: 0 0 0 1px var(--line), 0 2px 6px rgba(0, 0, 0, .28);
+}
+input[type="range"]::-moz-range-track {
+  height: 4px; border-radius: 2px; background: var(--line);
+}
+input[type="range"]::-moz-range-progress {
+  height: 4px; border-radius: 2px; background: var(--amber);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--amber); border: 2px solid var(--panel);
+  box-shadow: 0 0 0 1px var(--line);
+}
+input[type="range"]:focus-visible { outline: none; }
+input[type="range"]:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 2px var(--amber), 0 0 0 5px var(--panel);
+}
+input[type="range"]:focus-visible::-moz-range-thumb {
+  box-shadow: 0 0 0 2px var(--amber);
+}
+
+/* ============================================================ actions */
+.actions {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  margin-top: 14px;
+}
+.btn {
+  min-height: var(--tap);
+  padding: 0 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-ctl);
+  background: var(--panel-2);
+  color: var(--text);
+  font: inherit; font-size: 15px; font-weight: 600;
+  cursor: pointer;
+}
+.btn:active { transform: translateY(1px); }
+.btn-primary {
+  width: 100%; margin-top: 8px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  background: var(--amber); color: var(--on-amber);
+  border-color: transparent;
+}
+.btn-primary svg { width: 18px; height: 18px; }
+.btn-primary[data-on="true"] {
+  background: transparent; color: var(--text);
+  border-color: var(--amber);
+}
+
+.sensor-note {
+  min-height: 20px;
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--dim);
+  line-height: 1.45;
+}
+
+/* ============================================================ layers */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  position: relative;
+  display: inline-flex; align-items: center; gap: 8px;
+  min-height: var(--tap);
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel-2);
+  font-size: 14px; font-weight: 500;
+  cursor: pointer;
+}
+.chip input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--line);
+  transition: background .15s var(--ease);
+}
+.chip input:checked + .dot { background: var(--amber); }
+.chip:has(input:checked) { border-color: var(--amber); }
+.chip:has(input:focus-visible) { outline: 2px solid var(--amber); outline-offset: 2px; }
+
+.switch-row {
+  position: relative;
+  display: flex; align-items: center; gap: 14px;
+  min-height: 56px;
+  margin-top: 12px; padding-top: 12px;
+  border-top: 1px solid var(--line);
+  cursor: pointer;
+}
+.switch-copy { flex: 1; min-width: 0; }
+.switch-copy b { display: block; font-size: 15px; font-weight: 600; }
+.switch-copy small { display: block; margin-top: 2px; font-size: 13px; color: var(--dim); line-height: 1.4; }
+.switch-row input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.switch {
+  position: relative; flex: none;
+  width: 46px; height: 28px;
+  border-radius: 999px;
+  background: var(--line);
+  transition: background .18s var(--ease);
+}
+.switch::after {
+  content: ""; position: absolute; top: 3px; left: 3px;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--panel);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .3);
+  transition: transform .18s var(--ease);
+}
+.switch-row input:checked + .switch { background: var(--amber); }
+.switch-row input:checked + .switch::after { transform: translateX(18px); }
+.switch-row input:focus-visible + .switch {
+  outline: 2px solid var(--amber); outline-offset: 3px;
+}
+
+/* ============================================================ size check */
+.mini-frame {
+  width: min(250px, 100%);
+  margin: 2px auto 10px;
+}
+.mini-frame .stage { pointer-events: none; }
+.panel-note {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--dim);
+}
+.panel-note code {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 12px;
+  background: var(--panel-2);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+/* ============================================================ footer */
+footer {
+  margin-top: 22px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--dim);
+}
+footer p { margin: 0; }
+footer a { color: var(--amber); text-decoration: none; }
+footer a:hover { text-decoration: underline; }
+
+/* ============================================================ clean view */
+body.is-clean { display: grid; place-items: center; }
+body.is-clean .shell { max-width: none; padding: 0; }
+body.is-clean .top,
+body.is-clean .toolbar,
+body.is-clean main > .panel:not(.compass-panel),
+body.is-clean .compass-panel > :not(.compass),
+body.is-clean footer { display: none; }
+body.is-clean .compass-panel {
+  border: 0; background: transparent; padding: 0; margin: 0;
+}
+body.is-clean .compass { margin: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="top">
+    <div class="brand">
+      <span class="seal" aria-hidden="true">犟</span>
+      <div>
+        <h1>Compass kit</h1>
+        <p class="sub">Plate, needle, glass · Draw Things</p>
+      </div>
+    </div>
+    <button class="icon-btn" id="theme-btn" type="button" aria-label="Switch to light theme" aria-pressed="false">
+      <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="4.2"/>
+        <path d="M12 2.4v2.2M12 19.4v2.2M2.4 12h2.2M19.4 12h2.2M5.2 5.2l1.6 1.6M17.2 17.2l1.6 1.6M18.8 5.2l-1.6 1.6M6.8 17.2l-1.6 1.6"/>
+      </svg>
+      <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M20 14.4A8.2 8.2 0 0 1 9.6 4a8.4 8.4 0 1 0 10.4 10.4Z"/>
+      </svg>
+    </button>
+  </header>
+
+  <div class="toolbar">
+    <span class="toolbar-label">Width</span>
+    <div class="seg" role="group" aria-label="Preview width">
+      <button type="button" data-frame="390" aria-pressed="false">390px</button>
+      <button type="button" data-frame="430" aria-pressed="false">430px</button>
+      <button type="button" data-frame="full" aria-pressed="true">Full</button>
+    </div>
+  </div>
+
+  <main>
+    <section class="panel compass-panel" aria-labelledby="demo-title">
+      <h2 class="sr-only" id="demo-title">Interactive compass</h2>
+
+      <div class="compass" id="compass">
+        <div class="stage" id="stage">
+          <div class="layer dial">
+            <picture data-layer-el="plate">
+              <source srcset="assets/web/plate.webp" type="image/webp">
+              <img class="art" src="assets/plate.png" alt="" draggable="false">
+            </picture>
+            <img class="art markings" data-layer-el="markings" src="assets/dial-markings.svg" alt="" draggable="false">
+          </div>
+
+          <div class="layer needle" data-layer-el="needle">
+            <picture>
+              <source srcset="assets/web/needle.webp" type="image/webp">
+              <img class="art" src="assets/needle.png" alt="" draggable="false">
+            </picture>
+          </div>
+
+          <div class="layer glass" data-layer-el="glass">
+            <picture>
+              <source srcset="assets/web/glass.webp" type="image/webp">
+              <img class="art" src="assets/glass.png" alt="" draggable="false">
+            </picture>
+          </div>
+
+          <div class="layer sheen sheen-window" data-layer-el="sheen">
+            <picture>
+              <source srcset="assets/web/sheen-window.webp" type="image/webp">
+              <img class="art" data-layer-el="sheen" src="assets/sheen-window.png" alt="" draggable="false">
+            </picture>
+          </div>
+          <div class="layer sheen sheen-soft" data-layer-el="sheen">
+            <picture>
+              <source srcset="assets/web/sheen-soft.webp" type="image/webp">
+              <img class="art" data-layer-el="sheen" src="assets/sheen-soft.png" alt="" draggable="false">
+            </picture>
+          </div>
+
+          <div class="layer glints" data-layer-el="glints" aria-hidden="true">
+            <i class="glint-a"></i>
+            <i class="glint-b"></i>
+          </div>
+
+          <div class="lubber" aria-hidden="true">
+            <svg viewBox="0 0 24 20" fill="#17120a" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
+              <path d="M12 19.2 2.4 2.4h19.2Z"/>
+            </svg>
+          </div>
+
+          <div class="align-ring" aria-hidden="true"></div>
+        </div>
+      </div>
+
+      <p class="verdict" id="verdict">Turn right 45°</p>
+
+      <div class="readout" aria-label="Compass readings">
+        <div><span>Heading</span><b id="out-heading">000°</b></div>
+        <div><span>Target</span><b id="out-target">045°</b></div>
+        <div><span>Needle</span><b id="out-needle">+45°</b></div>
+      </div>
+
+      <div class="controls">
+        <label class="slider-row">
+          <span class="slider-head"><span>Heading</span><span class="hint">where the phone points</span></span>
+          <input id="heading-range" type="range" min="0" max="359" step="1" value="0" aria-label="Heading">
+        </label>
+        <label class="slider-row">
+          <span class="slider-head"><span>Target</span><span class="hint">bearing to the destination</span></span>
+          <input id="target-range" type="range" min="0" max="359" step="1" value="45" aria-label="Target bearing">
+        </label>
+      </div>
+
+      <div class="actions">
+        <button class="btn" id="spin-btn" type="button">Spin</button>
+        <button class="btn" id="face-btn" type="button">Face target</button>
+      </div>
+      <button class="btn btn-primary" id="sensor-btn" type="button" data-on="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="7.4"/>
+          <path d="m15.4 8.6-2.1 4.7-4.7 2.1 2.1-4.7Z" fill="currentColor" stroke="none"/>
+        </svg>
+        <span id="sensor-label">Use phone compass</span>
+      </button>
+      <p class="sensor-note" id="sensor-note" aria-live="polite">Manual control. Drag a slider.</p>
+    </section>
+
+    <section class="panel" aria-labelledby="layers-title">
+      <h2 id="layers-title">Layers</h2>
+      <div class="chips" role="group" aria-label="Toggle compass layers">
+        <label class="chip"><input type="checkbox" data-layer="plate" checked><span class="dot"></span>Plate</label>
+        <label class="chip"><input type="checkbox" data-layer="markings" checked><span class="dot"></span>Markings</label>
+        <label class="chip"><input type="checkbox" data-layer="needle" checked><span class="dot"></span>Needle</label>
+        <label class="chip"><input type="checkbox" data-layer="glass" checked><span class="dot"></span>Glass</label>
+        <label class="chip"><input type="checkbox" data-layer="sheen" checked><span class="dot"></span>Sheen</label>
+      </div>
+      <label class="switch-row">
+        <span class="switch-copy">
+          <b>Reflection follows heading</b>
+          <small>Glass turns against the dial; two sheen layers add parallax.</small>
+        </span>
+        <input type="checkbox" id="reflection-toggle" checked>
+        <span class="switch" aria-hidden="true"></span>
+      </label>
+    </section>
+
+    <section class="panel" aria-labelledby="size-title">
+      <h2 id="size-title">At game size</h2>
+      <div class="mini-frame" id="mini-frame" aria-hidden="true"></div>
+      <p class="panel-note">
+        250px — today's <code>min(64vw, 290px)</code> on a 390px phone.
+        The 30° numerals land near 12px here. At 290px they reach 14px.
+      </p>
+    </section>
+  </main>
+
+  <footer>
+    <p>Plate: FLUX.2 Klein 4B · 4 steps · guidance 1</p>
+    <p>Needle and glass: Z-Image Turbo · 8 steps · CFG 1</p>
+    <p><a href="TECH.md">TECH.md</a> · <a href="assets/geometry.json">geometry.json</a> · raw renders in <code>../graphics/</code></p>
+  </footer>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  /* ------------------------------------------------ constants */
+  const ANGLE = { full: 360, half: 180, alignDeg: 3 };
+  const SPIN = { ms: 3600 };
+  const SMOOTH = { tauMs: 90, snapDeg: 0.03 };
+  const SENSOR = { timeoutMs: 2400, uiMs: 120 };
+  const REFLECT = { windowTurn: 0.58, softTurn: 1.22, travelPct: 3.2, softTravelPct: 2.1 };
+  const STORAGE = { theme: 'compass-kit-theme' };
+
+  const root = document.documentElement;
+  const stage = document.getElementById('stage');
+  const verdict = document.getElementById('verdict');
+  const outHeading = document.getElementById('out-heading');
+  const outTarget = document.getElementById('out-target');
+  const outNeedle = document.getElementById('out-needle');
+  const headingInput = document.getElementById('heading-range');
+  const targetInput = document.getElementById('target-range');
+  const spinBtn = document.getElementById('spin-btn');
+  const faceBtn = document.getElementById('face-btn');
+  const sensorBtn = document.getElementById('sensor-btn');
+  const sensorLabel = document.getElementById('sensor-label');
+  const sensorNote = document.getElementById('sensor-note');
+  const reflectionToggle = document.getElementById('reflection-toggle');
+  const themeBtn = document.getElementById('theme-btn');
+  const themeColor = document.getElementById('theme-color');
+
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const tau = reducedMotion ? 1 : SMOOTH.tauMs;
+
+  const state = {
+    heading: 0,
+    target: 45,
+    headingSmooth: 0,
+    targetSmooth: 45,
+    needleSmooth: 45,
+    spinning: false,
+    spinFrom: 0,
+    spinStart: 0,
+    sensorOn: false,
+    sensorGotReading: false,
+    lastSensorUi: 0,
+    verdictText: '',
+    lastHeadingUi: -1,
+    lastTargetUi: -1,
+    lastNeedleUi: -999,
+    reflection: true,
+  };
+
+  /* ------------------------------------------------ helpers */
+  const norm360 = (deg) => ((deg % ANGLE.full) + ANGLE.full) % ANGLE.full;
+  const signedDeg = (from, to) => ((to - from + ANGLE.half + ANGLE.full) % ANGLE.full) - ANGLE.half;
+  const pad3 = (deg) => String(Math.round(norm360(deg)) % ANGLE.full).padStart(3, '0');
+
+  function formatSigned(deg) {
+    const r = Math.round(signedDeg(0, deg));
+    if (r === 0) return '0°';
+    return (r > 0 ? '+' : '−') + Math.abs(r) + '°';
+  }
+
+  function setRangeFill(input) {
+    const min = Number(input.min) || 0;
+    const max = Number(input.max) || 100;
+    const pct = ((Number(input.value) - min) / (max - min)) * 100;
+    input.style.setProperty('--fill', pct + '%');
+  }
+
+  function setHeadingUI(value) {
+    const v = Math.round(norm360(value));
+    if (v !== state.lastHeadingUi) {
+      state.lastHeadingUi = v;
+      headingInput.value = String(v);
+      setRangeFill(headingInput);
+      outHeading.textContent = pad3(v) + '°';
+    }
+  }
+
+  function setTargetUI(value) {
+    const v = Math.round(norm360(value));
+    if (v !== state.lastTargetUi) {
+      state.lastTargetUi = v;
+      targetInput.value = String(v);
+      setRangeFill(targetInput);
+      outTarget.textContent = pad3(v) + '°';
+    }
+  }
+
+  function setNeedleUI(value) {
+    const r = Math.round(signedDeg(0, value));
+    if (r !== state.lastNeedleUi) {
+      state.lastNeedleUi = r;
+      outNeedle.textContent = formatSigned(r);
+    }
+  }
+
+  function setVerdict(text, aligned) {
+    if (text !== state.verdictText) {
+      state.verdictText = text;
+      verdict.textContent = text;
+    }
+    verdict.classList.toggle('is-aligned', aligned);
+    stage.classList.toggle('is-aligned', aligned);
+  }
+
+  /* ------------------------------------------------ rotation + glass */
+  function applyTransforms(now) {
+    const h = state.headingSmooth;
+    const needle = state.needleSmooth;
+    const rad = (norm360(h) * Math.PI) / ANGLE.half;
+
+    stage.style.setProperty('--dial-rot', (-h).toFixed(2) + 'deg');
+    stage.style.setProperty('--needle-rot', needle.toFixed(2) + 'deg');
+
+    if (state.reflection) {
+      stage.style.setProperty('--glass-rot', (-h).toFixed(2) + 'deg');
+      stage.style.setProperty('--sheen-rot', (-h * REFLECT.windowTurn).toFixed(2) + 'deg');
+      stage.style.setProperty('--sheen-rot2', (-h * REFLECT.softTurn).toFixed(2) + 'deg');
+      stage.style.setProperty('--sheen-x', (Math.sin(rad) * REFLECT.travelPct).toFixed(2) + '%');
+      stage.style.setProperty('--sheen-y', (-Math.cos(rad) * REFLECT.travelPct * .7).toFixed(2) + '%');
+      stage.style.setProperty('--sheen-x2', (Math.sin(rad + .6) * REFLECT.softTravelPct).toFixed(2) + '%');
+      stage.style.setProperty('--sheen-y2', (-Math.cos(rad + .6) * REFLECT.softTravelPct).toFixed(2) + '%');
+      stage.style.setProperty('--sheen-a', (.10 + .025 * Math.cos(rad)).toFixed(3));
+      stage.style.setProperty('--sheen-b', (.07 - .015 * Math.cos(rad)).toFixed(3));
+    } else {
+      stage.style.setProperty('--glass-rot', '0deg');
+      stage.style.setProperty('--sheen-rot', '0deg');
+      stage.style.setProperty('--sheen-rot2', '0deg');
+      stage.style.setProperty('--sheen-x', '0%');
+      stage.style.setProperty('--sheen-y', '0%');
+      stage.style.setProperty('--sheen-x2', '0%');
+      stage.style.setProperty('--sheen-y2', '0%');
+      stage.style.setProperty('--sheen-a', '.10');
+      stage.style.setProperty('--sheen-b', '.07');
+    }
+  }
+
+  /* ------------------------------------------------ frame loop */
+  let lastFrame = performance.now();
+
+  function tick(now) {
+    requestAnimationFrame(tick);
+    stepFrame(now);
+  }
+
+  function stepFrame(now) {
+    const dt = Math.min(60, Math.max(0, now - lastFrame));
+    lastFrame = now;
+
+    if (state.spinning) {
+      const t = (now - state.spinStart) / SPIN.ms;
+      if (t >= 1) {
+        stopSpin();
+      } else {
+        state.heading = norm360(state.spinFrom + t * ANGLE.full);
+        setHeadingUI(state.heading);
+      }
+    }
+
+    const k = reducedMotion ? 1 : 1 - Math.exp(-dt / tau);
+    state.headingSmooth += signedDeg(state.headingSmooth, state.heading) * k;
+    if (Math.abs(signedDeg(state.headingSmooth, state.heading)) < SMOOTH.snapDeg) {
+      state.headingSmooth = state.headingSmooth + signedDeg(state.headingSmooth, state.heading);
+    }
+    state.targetSmooth += signedDeg(state.targetSmooth, state.target) * k;
+
+    const desiredNeedle = signedDeg(state.headingSmooth, state.targetSmooth);
+    state.needleSmooth += signedDeg(state.needleSmooth, desiredNeedle) * k;
+    if (Math.abs(signedDeg(state.needleSmooth, desiredNeedle)) < SMOOTH.snapDeg) {
+      state.needleSmooth = state.needleSmooth + signedDeg(state.needleSmooth, desiredNeedle);
+    }
+
+    applyTransforms(now);
+
+    const rel = signedDeg(state.headingSmooth, state.targetSmooth);
+    const aligned = Math.abs(rel) <= ANGLE.alignDeg;
+    if (aligned) {
+      setVerdict('On target', true);
+    } else if (rel > 0) {
+      setVerdict('Turn right ' + Math.round(rel) + '°', false);
+    } else {
+      setVerdict('Turn left ' + Math.round(-rel) + '°', false);
+    }
+
+    const needleWrapped = signedDeg(0, state.needleSmooth);
+    setNeedleUI(needleWrapped);
+    setTargetUI(state.target);
+    if (state.sensorOn) setHeadingUI(state.heading);
+  }
+
+  /* ------------------------------------------------ spin */
+  function startSpin() {
+    stopSensor('Manual control. Drag a slider.');
+    state.spinning = true;
+    state.spinFrom = norm360(state.headingSmooth);
+    state.spinStart = performance.now();
+    state.heading = state.spinFrom;
+    spinBtn.textContent = 'Stop';
+  }
+
+  function stopSpin() {
+    if (!state.spinning) return;
+    state.spinning = false;
+    state.heading = norm360(state.headingSmooth);
+    setHeadingUI(state.heading);
+    spinBtn.textContent = 'Spin';
+  }
+
+  spinBtn.addEventListener('click', () => {
+    if (state.spinning) stopSpin();
+    else startSpin();
+  });
+
+  faceBtn.addEventListener('click', () => {
+    stopSpin();
+    stopSensor('Manual control. Drag a slider.');
+    state.heading = norm360(state.target);
+    setHeadingUI(state.heading);
+  });
+
+  /* ------------------------------------------------ sliders */
+  headingInput.addEventListener('input', () => {
+    stopSpin();
+    stopSensor('Manual control. Drag a slider.');
+    state.heading = Number(headingInput.value);
+    setHeadingUI(state.heading);
+    setRangeFill(headingInput);
+  });
+
+  targetInput.addEventListener('input', () => {
+    state.target = Number(targetInput.value);
+    setTargetUI(state.target);
+    setRangeFill(targetInput);
+  });
+
+  /* ------------------------------------------------ phone compass */
+  const sensorHandlers = {
+    absolute: (e) => onOrient(e, true),
+    relative: (e) => onOrient(e, false),
+  };
+
+  function onOrient(e, absoluteEvent) {
+    let h = null;
+    if (typeof e.webkitCompassHeading === 'number' && isFinite(e.webkitCompassHeading)) {
+      h = e.webkitCompassHeading;
+    } else if (typeof e.alpha === 'number' && isFinite(e.alpha)) {
+      const absolute = absoluteEvent || e.absolute === true;
+      if (!absolute) return;
+      h = ANGLE.full - e.alpha;
+    }
+    if (h === null) return;
+
+    state.sensorGotReading = true;
+    state.heading = norm360(h);
+
+    const now = performance.now();
+    if (now - state.lastSensorUi > SENSOR.uiMs) {
+      state.lastSensorUi = now;
+      setHeadingUI(state.heading);
+      sensorNote.textContent = 'Phone compass: live.';
+    }
+  }
+
+  async function startSensor() {
+    const DOE = window.DeviceOrientationEvent;
+    if (!DOE) {
+      sensorNote.textContent = 'No motion sensor on this device. Use the slider.';
+      return;
+    }
+    if (typeof DOE.requestPermission === 'function') {
+      try {
+        const result = await DOE.requestPermission();
+        if (result !== 'granted') {
+          sensorNote.textContent = 'Motion access blocked. Use the slider.';
+          return;
+        }
+      } catch (err) {
+        sensorNote.textContent = 'Motion access unavailable. Use the slider.';
+        return;
+      }
+    }
+
+    window.addEventListener('deviceorientationabsolute', sensorHandlers.absolute, true);
+    window.addEventListener('deviceorientation', sensorHandlers.relative, true);
+    state.sensorOn = true;
+    state.sensorGotReading = false;
+    sensorBtn.dataset.on = 'true';
+    sensorLabel.textContent = 'Stop compass';
+    sensorNote.textContent = 'Waiting for a compass reading…';
+
+    window.setTimeout(() => {
+      if (state.sensorOn && !state.sensorGotReading) {
+        sensorNote.textContent = 'No compass reading. Use the slider.';
+      }
+    }, SENSOR.timeoutMs);
+  }
+
+  function stopSensor(note) {
+    if (!state.sensorOn) return;
+    window.removeEventListener('deviceorientationabsolute', sensorHandlers.absolute, true);
+    window.removeEventListener('deviceorientation', sensorHandlers.relative, true);
+    state.sensorOn = false;
+    sensorBtn.dataset.on = 'false';
+    sensorLabel.textContent = 'Use phone compass';
+    if (note) sensorNote.textContent = note;
+  }
+
+  sensorBtn.addEventListener('click', () => {
+    if (state.sensorOn) stopSensor('Manual control. Drag a slider.');
+    else startSensor();
+  });
+
+  /* ------------------------------------------------ layers */
+  const LAYER_GROUPS = {
+    plate: ['plate'],
+    markings: ['markings'],
+    needle: ['needle'],
+    glass: ['glass', 'glints'],
+    sheen: ['sheen'],
+  };
+
+  function applyLayer(name, on) {
+    const keys = LAYER_GROUPS[name] || [];
+    for (const key of keys) {
+      for (const el of stage.querySelectorAll(`[data-layer-el="${key}"]`)) {
+        el.hidden = !on;
+      }
+    }
+  }
+
+  for (const box of document.querySelectorAll('.chip input[data-layer]')) {
+    box.addEventListener('change', () => applyLayer(box.dataset.layer, box.checked));
+  }
+
+  reflectionToggle.addEventListener('change', () => {
+    state.reflection = reflectionToggle.checked;
+    applyTransforms(performance.now());
+  });
+
+  /* ------------------------------------------------ theme + frame */
+  function setTheme(theme, persist) {
+    root.dataset.theme = theme;
+    themeBtn.setAttribute('aria-pressed', String(theme === 'light'));
+    themeBtn.setAttribute('aria-label', theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme');
+    themeColor.setAttribute('content', theme === 'light' ? '#ece7dc' : '#0b0d10');
+    if (persist) {
+      try { localStorage.setItem(STORAGE.theme, theme); } catch (err) { /* private mode */ }
+    }
+  }
+
+  themeBtn.addEventListener('click', () => {
+    setTheme(root.dataset.theme === 'light' ? 'dark' : 'light', true);
+  });
+
+  function setFrame(frame) {
+    root.dataset.frame = frame;
+    for (const btn of document.querySelectorAll('[data-frame]')) {
+      btn.setAttribute('aria-pressed', String(btn.dataset.frame === frame));
+    }
+  }
+
+  for (const btn of document.querySelectorAll('[data-frame]')) {
+    btn.addEventListener('click', () => setFrame(btn.dataset.frame));
+  }
+
+  /* ------------------------------------------------ size check clone */
+  function buildMini() {
+    const frame = document.getElementById('mini-frame');
+    if (!frame) return;
+    const clone = stage.cloneNode(true);
+    clone.removeAttribute('id');
+    clone.classList.add('is-ready');
+    clone.classList.remove('is-aligned');
+    clone.style.setProperty('--dial-rot', '-25deg');
+    clone.style.setProperty('--needle-rot', '85deg');
+    clone.style.setProperty('--glass-rot', '-25deg');
+    clone.style.setProperty('--sheen-rot', String(-25 * REFLECT.windowTurn) + 'deg');
+    clone.style.setProperty('--sheen-rot2', String(-25 * REFLECT.softTurn) + 'deg');
+    clone.style.setProperty('--sheen-x', '1.4%');
+    clone.style.setProperty('--sheen-y', '-2.2%');
+    clone.style.setProperty('--sheen-x2', '-1.1%');
+    clone.style.setProperty('--sheen-y2', '-1.5%');
+    clone.style.setProperty('--sheen-a', '.12');
+    clone.style.setProperty('--sheen-b', '.07');
+    frame.replaceChildren(clone);
+  }
+
+  /* ------------------------------------------------ URL parameters */
+  function readParams() {
+    const params = new URLSearchParams(location.search);
+    const num = (key, fallback) => {
+      const raw = Number(params.get(key));
+      return Number.isFinite(raw) && params.has(key) ? norm360(raw) : fallback;
+    };
+
+    state.heading = num('h', state.heading);
+    state.target = num('t', state.target);
+    state.headingSmooth = state.heading;
+    state.targetSmooth = state.target;
+    state.needleSmooth = signedDeg(state.heading, state.target);
+
+    const theme = params.get('theme');
+    const stored = (() => {
+      try { return localStorage.getItem(STORAGE.theme); } catch (err) { return null; }
+    })();
+    setTheme(theme === 'light' || theme === 'dark' ? theme : (stored === 'light' ? 'light' : 'dark'), false);
+
+    const frame = params.get('frame');
+    if (frame === '390' || frame === '430' || frame === 'full') setFrame(frame);
+
+    if (params.get('reflection') === '0') {
+      state.reflection = false;
+      reflectionToggle.checked = false;
+    }
+
+    const layers = params.get('layers');
+    if (layers) {
+      const wanted = new Set(layers.split(',').map((s) => s.trim()).filter(Boolean));
+      for (const box of document.querySelectorAll('.chip input[data-layer]')) {
+        box.checked = wanted.has(box.dataset.layer);
+        applyLayer(box.dataset.layer, box.checked);
+      }
+    }
+
+    const stageSize = Number(params.get('stage'));
+    if (Number.isFinite(stageSize) && stageSize >= 120) {
+      root.style.setProperty('--stage-size', Math.round(stageSize) + 'px');
+    }
+
+    if (params.get('view') === 'clean') {
+      document.body.classList.add('is-clean');
+    }
+  }
+
+  /* ------------------------------------------------ boot */
+  setRangeFill(headingInput);
+  setRangeFill(targetInput);
+  readParams();
+  setHeadingUI(state.heading);
+  setTargetUI(state.target);
+  setNeedleUI(state.needleSmooth);
+  applyTransforms(performance.now());
+
+  const images = Array.from(document.querySelectorAll('#stage img'));
+  Promise.all(images.map((img) => img.decode().catch(() => {}))).then(() => {
+    stage.classList.add('is-ready');
+    buildMini();
+  });
+
+  requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>

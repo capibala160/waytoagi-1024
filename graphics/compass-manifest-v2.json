@@ -1,0 +1,29 @@
+{
+  "outputDir": "/Users/mike/event/hackathon/graphics",
+  "assets": [
+    {
+      "name": "plate-v2",
+      "width": 1536,
+      "height": 1536,
+      "prompt": "Professional top-down product photograph of an antique brass compass dial plate with a flat matte surface, perfectly circular and exactly centered, filling 90% of the square frame, isolated on a pure black background. A wide polished brass bezel with concentric turned grooves and warm honey highlights surrounds a recessed dial face of aged ivory enamel with fine hairline crazing and light tea staining. The outer margin of the dial face is completely blank: no numbers, no tick marks, no letters, an empty ring reserved for markings. In the center, a large ornate engraved eight-point compass rose in dark oxidized brass and black etching, with a small raised brass hub. The dial is flat and matte, with no magnetic needle, no pointer, no hands, no glass dome, no glass cover, no reflections, no glare, no text, no lettering, no numbers, no watermark. Soft warm studio key light from the upper left, even illumination, crisp macro detail, realistic brass and enamel texture, symmetrical, orthographic top-down view, high resolution, clean circular edge."
+    },
+    {
+      "name": "needle-v2",
+      "width": 1024,
+      "height": 1024,
+      "prompt": "Professional top-down product photograph of a single antique compass magnetic needle, isolated on a pure white seamless background, perfectly vertical, pointing straight up, centered exactly in the square frame. An elegant elongated double-ended pointer, about 80% of the frame height and 11% of the frame width, with a sharp north spear tip at the top and a matching south tail at the bottom. The north half is deep oxblood-red enamel with a polished brass outline and a narrow specular highlight; the south half is polished aged brass with a subtle engraved center line. A small polished brass pivot dome at the exact center. Crisp metallic reflections, dark patina in the recesses, clean sharp silhouette, flat even studio lighting from above, no shadow, no dial, no compass case, no glass, no text, no numbers, no watermark. Photorealistic macro detail, symmetrical, orthographic top-down view."
+    },
+    {
+      "name": "glass-v2",
+      "width": 1024,
+      "height": 1024,
+      "prompt": "Abstract photorealistic optical reflection texture of a clear circular glass disc, perfectly circular and centered, filling the square frame, isolated on a pure black background. Nothing exists behind the glass: no compass, no dial, no markings, no case, no objects. Only faint natural reflections on the glass surface: a soft diagonal window reflection with two blurred rectangular panes in the upper left, a subtle cool blue-green anti-reflective tint, a thin bright specular crescent along the upper rim, a dim warm rim light on the lower right, a few tiny dust specks and faint fingerprint smudges near the edge. Mostly transparent black. The center is clean. No text, no watermark. Realistic optical physics, soft gradients, subtle, not milky, high resolution."
+    },
+    {
+      "name": "sheen-v1",
+      "width": 1024,
+      "height": 1024,
+      "prompt": "Photorealistic soft reflection of a bright window on a sheet of glass, a broad diagonal highlight streak with two soft rectangular panes, cool white daylight, edges softly blurred, isolated on a pure black background, abstract light only, no objects, no compass, no text, no watermark, high resolution, subtle and natural."
+    }
+  ]
+}
