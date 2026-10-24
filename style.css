@@ -2087,3 +2087,147 @@ body::after {
 #btn-arrive-next { width: 100%; margin-top: 14px; }
 :root[data-theme="light"] .arrive-feedback.bad { color: #9c3b2a; }
 :root[data-theme="light"] .arrive-hint { color: #6b5b3e; }
+
+/* ---------- UI 优化 · 第一批：首页 / 搜索 / 确认 / 怎么走 ---------- */
+
+.home-brand {
+  margin: 0;
+  padding-left: .24em;
+  font-size: 30px;
+  letter-spacing: .24em;
+}
+.home-brand::after {
+  width: 34px;
+  margin-top: 7px;
+}
+.home-tag {
+  margin: 0 0 10px;
+  font-size: 10.5px;
+  letter-spacing: .16em;
+}
+.home-q {
+  margin: 0 0 6px;
+  font-size: 34px;
+}
+.home-sub {
+  margin: 0 0 12px;
+  font-size: 16px;
+  line-height: 1.65;
+}
+.dest-cards {
+  gap: 8px;
+  margin-top: 10px;
+}
+.dest-item {
+  padding: 13px 16px;
+}
+.dest-item b { font-size: 16px; }
+.dest-item span { font-size: 12.5px; }
+#btn-reroll { margin-top: 6px; }
+
+.chips.list {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 8px;
+}
+.suggest-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+  min-height: 52px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line-soft);
+  background: var(--surface-1);
+  color: var(--text);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.suggest-item b {
+  color: var(--amber);
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: .04em;
+}
+.suggest-item span {
+  color: var(--text-3);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.suggest-note {
+  width: 100%;
+  margin: 2px 0 0;
+  color: var(--text-3);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+#screen-confirm {
+  justify-content: flex-start;
+  overflow-y: auto;
+}
+.confirm-card {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+  min-height: 260px;
+  padding: 24px 20px;
+  border-radius: 20px;
+  border: 1px solid var(--line-soft);
+  background:
+    linear-gradient(150deg, rgba(232, 176, 75, .08), transparent 55%),
+    linear-gradient(180deg, var(--surface-2), var(--surface-1));
+  box-shadow: var(--shadow-1);
+  overflow: hidden;
+}
+.confirm-card::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: -72px;
+  width: 240px;
+  height: 240px;
+  transform: translateY(-50%);
+  border: 1px solid rgba(232, 176, 75, .14);
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1px rgba(232, 176, 75, .06);
+  pointer-events: none;
+}
+.confirm-card > * {
+  position: relative;
+  z-index: 1;
+}
+.confirm-name {
+  font-size: 42px;
+  margin-bottom: 8px;
+}
+.confirm-blurb { font-size: 15px; }
+.confirm-meta { margin-bottom: 0; }
+.confirm-note { margin: 14px 0 12px; text-align: center; }
+.confirm-go {
+  width: 100%;
+  margin-top: auto;
+}
+
+.mode-badge {
+  align-self: flex-start;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(232, 176, 75, .4);
+  color: var(--amber);
+  font-size: 10px;
+  font-style: normal;
+  letter-spacing: .08em;
+}
+.how-sub { font-size: 15px; }
+.mode-btn span { font-size: 13px; }
+.brief-body { font-size: 16px; }
+.arrive-option { font-size: 16px; }
+.free-status { font-size: 12.5px; }
+.fog-tip { font-size: 12px; }

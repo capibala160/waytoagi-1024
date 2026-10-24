@@ -1377,22 +1377,32 @@
       .slice(0, 6);
     const box = $('dest-suggest');
     box.replaceChildren();
-    const addChip = (d) => {
-      const chip = document.createElement('button');
-      chip.className = 'chip';
-      chip.textContent = d.name;
-      chip.addEventListener('click', () => showConfirm(d));
-      box.appendChild(chip);
+    box.classList.add('list');
+    const addItem = (d) => {
+      const item = document.createElement('button');
+      item.className = 'suggest-item';
+      const name = document.createElement('b');
+      name.textContent = d.name;
+      const blurb = document.createElement('span');
+      blurb.textContent = d.blurb || '';
+      item.appendChild(name);
+      item.appendChild(blurb);
+      item.addEventListener('click', () => showConfirm(d));
+      box.appendChild(item);
     };
     if (list.length) {
-      list.forEach(addChip);
+      list.forEach(addItem);
     } else {
       const empty = document.createElement('p');
       empty.className = 'suggest-empty';
       empty.textContent = `暂未收录「${q}」。目前只支持预置地点，试试这些：`;
       box.appendChild(empty);
-      (window.DESTINATIONS || []).slice(0, 3).forEach(addChip);
+      (window.DESTINATIONS || []).slice(0, 3).forEach(addItem);
     }
+    const note = document.createElement('p');
+    note.className = 'suggest-note';
+    note.textContent = `目前只支持预置地点，共 ${(window.DESTINATIONS || []).length} 个。`;
+    box.appendChild(note);
 
     $('dest-cards').hidden = true;
     $('btn-reroll').hidden = true;
@@ -2329,7 +2339,7 @@
 
   function renderFree() {
     resetFogUI();
-    $('hud-level').textContent = '自由行';
+    $('hud-level').textContent = '真实出行';
     $('hud-stamps').hidden = true;
     $('clue-card').hidden = true;
     $('free-card').hidden = false;
@@ -2747,7 +2757,7 @@
 
   function renderFog() {
     $('screen-play').classList.add('fog-mode');
-    $('hud-level').textContent = '雾城';
+    $('hud-level').textContent = '雾城 · 模拟';
     $('hud-stamps').hidden = true;
     $('clue-card').hidden = true;
     $('free-card').hidden = true;
@@ -3483,7 +3493,7 @@
     }
 
     const last = state.level >= state.levels.length - 1;
-    $('stamp-next').textContent = last ? '揭晓结局' : '继续前进';
+    $('stamp-next').textContent = last ? '查看成果' : '前往下一站';
     $('stamp-progress').textContent =
       `已集 ${state.stamps.length} / ${state.levels.length} 枚`;
     const next = state.levels[state.level + 1];

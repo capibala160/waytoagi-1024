@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <link rel="icon" href="favicon.svg" type="image/svg+xml" />
 <title>犟针 · 只指方向，不指路</title>
-<link rel="stylesheet" href="style.css?v=20261024r" />
+<link rel="stylesheet" href="style.css?v=20261024s" />
 </head>
 <body>
 
@@ -126,12 +126,14 @@
       <span>确认目的地</span>
       <span></span>
     </div>
-    <p class="confirm-label">你要去</p>
-    <h2 id="confirm-name" class="confirm-name"></h2>
-    <p id="confirm-blurb" class="confirm-blurb"></p>
-    <div class="confirm-meta"><span>步行可达</span><span>公共场所</span></div>
-    <p class="confirm-note">不显示距离。知道了就没意思了。</p>
-    <button id="btn-confirm-go" class="btn primary">出发</button>
+    <div class="confirm-card">
+      <p class="confirm-label">目的地</p>
+      <h2 id="confirm-name" class="confirm-name"></h2>
+      <p id="confirm-blurb" class="confirm-blurb"></p>
+      <div class="confirm-meta"><span>公共场所</span><span>按方向找</span></div>
+    </div>
+    <p class="confirm-note">不显示距离，到了附近再判断。</p>
+    <button id="btn-confirm-go" class="btn primary confirm-go">去这里</button>
   </section>
 
   <!-- 怎么走 -->
@@ -145,11 +147,12 @@
     <h2 class="how-title">怎么走？</h2>
     <p class="how-sub">同一个目的地，两种走法。</p>
     <div class="mode-list">
-      <button id="btn-how-sim" class="mode-btn">
+      <button id="btn-how-sim" class="mode-btn primary">
         <b>雾城模拟 · 无需出门</b>
+        <em class="mode-badge">推荐首次体验</em>
         <span>3–6 分钟 · 方向键在网格里走，不用真的出门</span>
       </button>
-      <button id="btn-how-real" class="mode-btn primary">
+      <button id="btn-how-real" class="mode-btn">
         <b>去真实城市</b>
         <span>需要定位和方向权限</span>
       </button>
@@ -264,7 +267,7 @@
         <div class="compass-cap"></div>
         <div id="compass-halo" class="compass-halo"></div>
       </div>
-      <iframe id="compass-frame" class="compass-frame" src="compass-widget.html?v=20261024r" title="罗盘" scrolling="no"></iframe>
+      <iframe id="compass-frame" class="compass-frame" src="compass-widget.html?v=20261024s" title="罗盘" scrolling="no"></iframe>
       <div class="bearing"><span id="bearing-num">--</span><i>°</i></div>
       <div id="halo-text" class="halo-text"></div>
       <div id="align-badge" class="align-badge">已对准</div>
@@ -420,7 +423,7 @@
     <div id="stamp-piece" class="stamp-piece"></div>
     <p id="stamp-progress" class="stamp-progress"></p>
     <p id="stamp-next-hint" class="stamp-next-hint"></p>
-    <button id="stamp-next" class="btn primary">继续前进</button>
+    <button id="stamp-next" class="btn primary">前往下一站</button>
   </div>
 
   <div id="pause" class="pause" aria-live="polite" inert>
@@ -447,11 +450,11 @@
 
 </div>
 
-<script src="destinations.js?v=20261024r"></script>
-<script src="destinations-city.js?v=20261024r"></script>
-<script src="levels.js?v=20261024r"></script>
-<script src="packs.js?v=20261024r"></script>
-<script src="game.js?v=20261024r"></script>
-<script src="companion.js?v=20261024r"></script>
+<script src="destinations.js?v=20261024s"></script>
+<script src="destinations-city.js?v=20261024s"></script>
+<script src="levels.js?v=20261024s"></script>
+<script src="packs.js?v=20261024s"></script>
+<script src="game.js?v=20261024s"></script>
+<script src="companion.js?v=20261024s"></script>
 </body>
 </html>
