@@ -3200,23 +3200,27 @@
 
   let dragX = null;
 
-  cv.addEventListener('pointerdown', (e) => {
-    if (!state.simulating) return;
-    dragX = e.clientX;
-    try { cv.setPointerCapture(e.pointerId); } catch (err) {}
-  });
+  function bindSimDrag(el) {
+    if (!el) return;
+    el.addEventListener('pointerdown', (e) => {
+      if (!state.simulating) return;
+      dragX = e.clientX;
+      try { el.setPointerCapture(e.pointerId); } catch (err) {}
+    });
+    el.addEventListener('pointermove', (e) => {
+      if (!state.simulating || dragX === null) return;
+      const dx = e.clientX - dragX;
+      dragX = e.clientX;
+      state.heading = norm((state.heading == null ? 0 : state.heading) + dx * 0.7);
+      state.headingAbsolute = true;
+      compassDirty = true;
+    });
+    el.addEventListener('pointerup', () => { dragX = null; });
+    el.addEventListener('pointercancel', () => { dragX = null; });
+  }
 
-  cv.addEventListener('pointermove', (e) => {
-    if (!state.simulating || dragX === null) return;
-    const dx = e.clientX - dragX;
-    dragX = e.clientX;
-    state.heading = norm((state.heading == null ? 0 : state.heading) + dx * 0.7);
-    state.headingAbsolute = true;
-    compassDirty = true;
-  });
-
-  cv.addEventListener('pointerup', () => { dragX = null; });
-  cv.addEventListener('pointercancel', () => { dragX = null; });
+  bindSimDrag(cv);
+  bindSimDrag(layerEl);
 
   window.addEventListener('keydown', (e) => {
     if (!state.simulating) return;
@@ -3750,8 +3754,11 @@
     refreshResume();
   });
 
-  window.addEventListener('resize', fitCompass);
-  window.addEventListener('orientationchange', () => setTimeout(fitCompass, 150));
+  // 图层模式只靠 CSS 尺寸，地址栏伸缩/转屏不需要重建 900px 盘面
+  window.addEventListener('resize', () => { if (!layerMode) fitCompass(); });
+  window.addEventListener('orientationchange', () => {
+    if (!layerMode) setTimeout(fitCompass, 150);
+  });
 
   loadTheme();
   loadVariant();

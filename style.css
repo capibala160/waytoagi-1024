@@ -853,6 +853,7 @@ body {
   width: min(64vw, 290px);
   aspect-ratio: 1;
   display: none;
+  touch-action: none;
 }
 .compass-stage.layer-mode #compass { display: none; }
 .compass-stage.layer-mode .compass-layer { display: block; }
