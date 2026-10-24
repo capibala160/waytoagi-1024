@@ -4,6 +4,13 @@
    Loaded after theme.css.
    ============================================================ */
 
+.confirm-place {
+  margin: 10px 0 0;
+  color: var(--text-3);
+  font-size: 11.5px;
+  line-height: 1.6;
+}
+
 .hud-left {
   display: flex;
   flex-direction: column;

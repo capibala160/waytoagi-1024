@@ -57,6 +57,8 @@
     gpsAccuracy: null,
     gpsError: '',
     arriveStreak: 0,
+    arriveReady: false,
+    gpsPaused: false,
     dist: null,
     path: [],
     lastPathAt: 0,
@@ -1201,6 +1203,55 @@
     return norm(Math.atan2(y, x) * 180 / Math.PI);
   }
 
+  // 目的地坐标若来自高德/腾讯（GCJ-02），先转成浏览器 GPS 的 WGS-84 再算距离/方位。
+  const GCJ_A = 6378245.0;
+  const GCJ_EE = 0.00669342162296594323;
+  function outOfChina(lat, lon) {
+    return lon < 72.004 || lon > 137.8347 || lat < 0.8293 || lat > 55.8271;
+  }
+  function transformLat(x, y) {
+    let ret = -100.0 + 2.0 * x + 3.0 * y + 0.2 * y * y + 0.1 * x * y + 0.2 * Math.sqrt(Math.abs(x));
+    ret += (20.0 * Math.sin(6.0 * x * Math.PI) + 20.0 * Math.sin(2.0 * x * Math.PI)) * 2.0 / 3.0;
+    ret += (20.0 * Math.sin(y * Math.PI) + 40.0 * Math.sin(y / 3.0 * Math.PI)) * 2.0 / 3.0;
+    ret += (160.0 * Math.sin(y / 12.0 * Math.PI) + 320 * Math.sin(y * Math.PI / 30.0)) * 2.0 / 3.0;
+    return ret;
+  }
+  function transformLon(x, y) {
+    let ret = 300.0 + x + 2.0 * y + 0.1 * x * x + 0.1 * x * y + 0.1 * Math.sqrt(Math.abs(x));
+    ret += (20.0 * Math.sin(6.0 * x * Math.PI) + 20.0 * Math.sin(2.0 * x * Math.PI)) * 2.0 / 3.0;
+    ret += (20.0 * Math.sin(x * Math.PI) + 40.0 * Math.sin(x / 3.0 * Math.PI)) * 2.0 / 3.0;
+    ret += (150.0 * Math.sin(x / 12.0 * Math.PI) + 300.0 * Math.sin(x / 30.0 * Math.PI)) * 2.0 / 3.0;
+    return ret;
+  }
+  function wgs84ToGcj02(lat, lon) {
+    if (outOfChina(lat, lon)) return { lat, lon };
+    let dLat = transformLat(lon - 105.0, lat - 35.0);
+    let dLon = transformLon(lon - 105.0, lat - 35.0);
+    const radLat = lat / 180.0 * Math.PI;
+    let magic = Math.sin(radLat);
+    magic = 1 - GCJ_EE * magic * magic;
+    const sqrtMagic = Math.sqrt(magic);
+    dLat = (dLat * 180.0) / ((GCJ_A * (1 - GCJ_EE)) / (magic * sqrtMagic) * Math.PI);
+    dLon = (dLon * 180.0) / (GCJ_A / sqrtMagic * Math.cos(radLat) * Math.PI);
+    return { lat: lat + dLat, lon: lon + dLon };
+  }
+  function gcj02ToWgs84(lat, lon) {
+    if (outOfChina(lat, lon)) return { lat, lon };
+    let wgsLat = lat;
+    let wgsLon = lon;
+    for (let i = 0; i < 3; i++) {
+      const g = wgs84ToGcj02(wgsLat, wgsLon);
+      wgsLat += lat - g.lat;
+      wgsLon += lon - g.lon;
+    }
+    return { lat: wgsLat, lon: wgsLon };
+  }
+  function destLatLon(dest) {
+    if (!dest) return { lat: NaN, lon: NaN };
+    if (dest.datum === 'gcj02') return gcj02ToWgs84(dest.lat, dest.lon);
+    return { lat: dest.lat, lon: dest.lon };
+  }
+
   function validateDestinations() {
     const list = window.DESTINATIONS || [];
     const errors = [];
@@ -1227,9 +1278,13 @@
     } else {
       text = state.gpsStatus || '定位中…';
       if (state.gps && state.dist != null && state.gpsStatus === '已定位') {
-        if (state.dist <= ARRIVE_METERS) text = '到了';
-        else if (state.dist <= 80) text = '很近了';
-        else text = '跟着指针走';
+        if (state.dist <= ARRIVE_METERS) {
+          text = state.arriveReady ? '到了 · 点「我到了」' : '到了附近，确认定位…';
+        } else if (state.dist <= 80) {
+          text = '已到附近，请找入口';
+        } else {
+          text = '跟着指针走';
+        }
       }
     }
     const el = $('free-status');
@@ -1258,6 +1313,8 @@
     state.gpsAt = 0;
     state.gpsAccuracy = null;
     state.arriveStreak = 0;
+    state.arriveReady = false;
+    state.gpsPaused = false;
     paintFreeStatus();
     state.watchId = navigator.geolocation.watchPosition(onPos, onGpsErr, {
       enableHighAccuracy: true,
@@ -1274,6 +1331,8 @@
     // 过期采样不参与导航，也不刷新位置
     if (age > GPS_SAMPLE_MAX_AGE) {
       state.gpsStatus = '定位数据过期，正在重试…';
+      state.arriveStreak = 0;
+      state.arriveReady = false;
       paintFreeStatus();
       return;
     }
@@ -1282,16 +1341,22 @@
     state.gpsAt = Date.now();
     state.gpsAccuracy = Number.isFinite(c.accuracy) ? c.accuracy : null;
     state.gps = { lat: c.latitude, lon: c.longitude };
-    state.dist = distanceMeters(c.latitude, c.longitude, state.dest.lat, state.dest.lon);
-    state.target = bearingTo(c.latitude, c.longitude, state.dest.lat, state.dest.lon);
+    const dest = destLatLon(state.dest);
+    state.dist = distanceMeters(c.latitude, c.longitude, dest.lat, dest.lon);
+    // 进入 80 米后不再每帧重算方位，避免门口 GPS 漂移让指针来回甩
+    if (!(state.dist <= 80 && state.target != null)) {
+      state.target = bearingTo(c.latitude, c.longitude, dest.lat, dest.lon);
+    }
 
     const accurate = state.gpsAccuracy != null && state.gpsAccuracy <= GPS_ACCURACY_LIMIT;
     if (!accurate) {
       state.gpsStatus = '信号弱，走两步再看看';
       state.arriveStreak = 0;
+      state.arriveReady = false;
     } else {
       state.gpsStatus = '已定位';
       state.arriveStreak = state.dist <= ARRIVE_METERS ? state.arriveStreak + 1 : 0;
+      state.arriveReady = state.arriveStreak >= GPS_ARRIVE_SAMPLES;
     }
 
     const now = performance.now();
@@ -1302,7 +1367,6 @@
     }
 
     paintFreeStatus();
-    if (accurate && state.arriveStreak >= GPS_ARRIVE_SAMPLES) finishFree(true);
   }
 
   function onGpsErr(err) {
@@ -1318,6 +1382,7 @@
     state.gpsAt = 0;
     state.gpsAccuracy = null;
     state.arriveStreak = 0;
+    state.arriveReady = false;
     paintFreeStatus();
   }
 
@@ -2270,6 +2335,11 @@
     state.pendingDest = dest;
     $('confirm-name').textContent = dest.name;
     $('confirm-blurb').textContent = dest.blurb || '';
+    const place = $('confirm-place');
+    if (place) {
+      const datum = dest.datum === 'wgs84' ? 'WGS-84' : 'GCJ-02';
+      place.textContent = `坐标 ${datum} · ${dest.source || '来源待标注'} · ${dest.entrance || '入口待实测'}`;
+    }
     showScreen('confirm');
   }
 
@@ -2351,6 +2421,8 @@
     state.gpsAccuracy = null;
     state.gpsError = '';
     state.arriveStreak = 0;
+    state.arriveReady = false;
+    state.gpsPaused = false;
     state.target = null;
     state.heading = null;
     state.headingAbsolute = false;
@@ -2395,7 +2467,13 @@
 
     setTimeout(() => {
       if (state.sensorSeen || state.simulating) return;
-      goSimulation('没检测到罗盘：拖动表盘模拟');
+      if (forceDemo) {
+        goSimulation('演示模式：拖动表盘模拟');
+        return;
+      }
+      const tip = $('sim-tip');
+      tip.hidden = false;
+      tip.textContent = '没有方向数据：把手机平放转一转，或点「改为模拟」';
     }, 2500);
   }
 
@@ -2526,11 +2604,12 @@
     state.dist = null;
     state.gpsStatus = '';
 
-    state.simPos = { lat: dest.lat - 0.0027, lon: dest.lon };
+    const d = destLatLon(dest);
+    state.simPos = { lat: d.lat - 0.0027, lon: d.lon };
     state.simSteps = 0;
     state.path.push({ lat: state.simPos.lat, lon: state.simPos.lon });
-    state.target = bearingTo(state.simPos.lat, state.simPos.lon, dest.lat, dest.lon);
-    state.dist = distanceMeters(state.simPos.lat, state.simPos.lon, dest.lat, dest.lon);
+    state.target = bearingTo(state.simPos.lat, state.simPos.lon, d.lat, d.lon);
+    state.dist = distanceMeters(state.simPos.lat, state.simPos.lon, d.lat, d.lon);
 
     state.heading = null;
     state.headingAbsolute = false;
@@ -2564,8 +2643,9 @@
     state.simPos = { lat, lon };
     state.simSteps++;
     state.path.push({ lat, lon });
-    state.target = bearingTo(lat, lon, state.dest.lat, state.dest.lon);
-    state.dist = distanceMeters(lat, lon, state.dest.lat, state.dest.lon);
+    const d = destLatLon(state.dest);
+    state.target = bearingTo(lat, lon, d.lat, d.lon);
+    state.dist = distanceMeters(lat, lon, d.lat, d.lon);
     $('free-status').textContent = `模拟 · 已走 ${state.simSteps} 步`;
     if (state.dist <= ARRIVE_METERS) finishSim();
   }
@@ -3102,16 +3182,29 @@
 
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') {
+      if (state.mode === 'free' && state.watchId != null) {
+        stopGps();
+        state.gpsPaused = true;
+        state.arriveStreak = 0;
+        state.arriveReady = false;
+      }
       saveProgress();
       return;
     }
-    if (state.screen === 'play' || state.screen === 'code') {
+    if (state.mode === 'free' && state.gpsPaused && state.screen === 'play' &&
+        !state.finished && !state.paused) {
+      startGps();
+    }
+    if (state.screen === 'play' || state.screen === 'code' || state.screen === 'arrive') {
       wantWakeLock = true;
       requestWakeLock();
     }
   });
 
-  window.addEventListener('pagehide', saveProgress);
+  window.addEventListener('pagehide', () => {
+    if (state.mode === 'free') stopGps();
+    saveProgress();
+  });
 
   async function startGame(mode) {
     const set = SETS[mode] || SETS.outdoor;
@@ -3472,8 +3565,16 @@
       return;
     }
     if (state.mode === 'free') {
-      if (state.dist != null && state.dist <= 80) finishFree(state.dist <= ARRIVE_METERS);
-      else showToast('还没到，跟着指针走');
+      if (state.dist == null) {
+        showToast('定位中，稍等');
+      } else if (state.dist <= ARRIVE_METERS) {
+        if (state.arriveReady) finishFree(true);
+        else showToast('定位确认中，再等两次采样');
+      } else if (state.dist <= 80) {
+        finishFree(false);
+      } else {
+        showToast('还没到，跟着指针走');
+      }
       return;
     }
     openArrive();
@@ -3585,6 +3686,10 @@
       state.pauseAt = 0;
     }
     state.paused = false;
+    if (state.mode === 'free' && state.gpsPaused) {
+      state.gpsPaused = false;
+      startGps();
+    }
   }
 
   function exitPause() {

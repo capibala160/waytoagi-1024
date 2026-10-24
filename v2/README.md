@@ -11,6 +11,7 @@ Open on a phone: `https://capibala160.github.io/waytoagi-1024/v2/`
 - The compass uses the generated high-resolution plate, needle, glass, and sheen from `compass-kit/assets/web/`. The layered renderer is the existing CSS transform engine; the canvas fallback remains available with `?engine=canvas`.
 - Game entry points are kept: the **游戏** tab opens the venue hunt hub, and both hunt cards still start the existing game flow.
 - **Latest gameplay ported (2026-10-24):** brief, pause/resume, stamp progress, end loop, GPS retry, arrival observation, final fragment assembly. The v2 visual shell now runs the same engine features as the root app, minus the root iframe full-screen compass button.
+- **Location trust (2026-10-24):** destination data is GCJ-02 (Amap/Tencent) and is converted to WGS-84 before distance/bearing. Arrival requires accuracy ≤ 50 m, sample age ≤ 15 s, three consecutive samples, and then the user taps “我到了”. Failed/stale/weak GPS states take priority over the “follow the needle” hint. Hiding the page stops the GPS watch and it restarts on return. Real mode no longer auto-switches to a draggable compass.
 
 ## What changed from the reference notes
 
