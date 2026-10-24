@@ -186,8 +186,33 @@
 
   function saveProgress() {
     if (!isPlaying()) return;
-    if (state.mode === 'sim' || state.mode === 'fog') return;
+    if (state.mode === 'sim') return;
     try {
+      if (state.mode === 'fog') {
+        const f = state.fog;
+        if (!f || !state.dest) return;
+        localStorage.setItem(SAVE_KEY, JSON.stringify({
+          v: 1,
+          mode: 'fog',
+          sig: 'fog:' + state.dest.id,
+          destId: state.dest.id,
+          seed: f.seed,
+          pos: { x: f.pos.x, y: f.pos.y },
+          steps: f.steps,
+          path: f.path.map((p) => ({ x: p.x, y: p.y })),
+          npcs: f.npcs.map((n) => (n.asked ? 1 : 0)),
+          asked: f.asked,
+          asks: state.asks,
+          elapsed: state.elapsed,
+          savedAt: Date.now(),
+          hint: $('fog-hint').hidden ? '' : $('fog-hint').textContent,
+          diary: {
+            events: (state.diary ? state.diary.events : [])
+              .map((e) => ({ t: e.t, text: e.text }))
+          }
+        }));
+        return;
+      }
       if (state.mode === 'free') {
         localStorage.setItem(SAVE_KEY, JSON.stringify({
           v: 1,
@@ -239,6 +264,32 @@
         return d;
       }
 
+      if (d.mode === 'fog') {
+        const dest = (window.DESTINATIONS || []).find((x) => x.id === d.destId);
+        if (!dest || d.sig !== 'fog:' + dest.id) return null;
+        if (!Number.isInteger(d.seed) || d.seed < 0) return null;
+        if (!d.pos || !Number.isInteger(d.pos.x) || !Number.isInteger(d.pos.y)) return null;
+        if (d.pos.x < 0 || d.pos.y < 0 ||
+            d.pos.x >= FOG_SIZE || d.pos.y >= FOG_SIZE) return null;
+        if (!Number.isInteger(d.steps) || d.steps < 0) return null;
+        if (!Array.isArray(d.path) || !d.path.length || d.path.length > 400) return null;
+        if (d.path.some((p) => !p || !Number.isInteger(p.x) || !Number.isInteger(p.y))) return null;
+        const last = d.path[d.path.length - 1];
+        if (last.x !== d.pos.x || last.y !== d.pos.y) return null;
+        if (!Array.isArray(d.npcs) || d.npcs.length !== 3) return null;
+        if (d.npcs.some((v) => v !== 0 && v !== 1)) return null;
+        if (!Number.isInteger(d.asked) || d.asked < 0 || d.asked > 3) return null;
+        if (!Number.isInteger(d.asks) || d.asks < 0) return null;
+        if (!Number.isFinite(d.elapsed) || d.elapsed < 0 || d.elapsed > 604800) return null;
+        if (!Number.isFinite(d.savedAt) || d.savedAt > Date.now() + 300000 ||
+            Date.now() - d.savedAt > SAVE_TTL_MS) return null;
+        if (d.hint != null && (typeof d.hint !== 'string' || d.hint.length > 500)) return null;
+        if (!d.diary || !Array.isArray(d.diary.events) || d.diary.events.length > 1000) return null;
+        if (d.diary.events.some((e) =>
+          !e || !Number.isFinite(e.t) || typeof e.text !== 'string')) return null;
+        return d;
+      }
+
       const set = SETS[d.mode];
       if (!set || !Array.isArray(set.levels) || !set.levels.length) return null;
       if (d.sig !== saveSignatureFor(d.mode, set.levels)) return null;
@@ -280,6 +331,12 @@
       return;
     }
 
+    if (d.mode === 'fog') {
+      const dest = (window.DESTINATIONS || []).find((x) => x.id === d.destId);
+      $('start-message').textContent = `上次去「${dest.name}」走到第 ${d.steps} 步，可继续。关闭页面期间仍计时。`;
+      return;
+    }
+
     const set = SETS[d.mode];
     $('start-message').textContent = `上次走到「${set.name}」第 ${d.level + 1} 站，可继续。关闭页面期间仍计时。`;
   }
@@ -289,6 +346,89 @@
     if (!d) {
       refreshResume();
       $('start-message').textContent = '没有可恢复的旅程，请重新开始。';
+      return;
+    }
+
+    if (d.mode === 'fog') {
+      const dest = (window.DESTINATIONS || []).find((x) => x.id === d.destId);
+      if (!dest) {
+        refreshResume();
+        $('start-message').textContent = '这个目的地已不在列表里，请重新选。';
+        return;
+      }
+      requestMotionPermission();
+      stopGps();
+
+      const fog = makeFog(dest, d.seed);
+      fog.pos = { x: d.pos.x, y: d.pos.y };
+      fog.steps = d.steps;
+      fog.path = d.path.map((p) => ({ x: p.x, y: p.y }));
+      fog.npcs = fog.npcs.map((n, i) => ({ ...n, asked: d.npcs[i] === 1 }));
+      fog.asked = d.asked;
+      window.__wenjinFog = fog;
+
+      const closed = Math.max(0, (Date.now() - d.savedAt) / 1000);
+      const total = Math.max(0, d.elapsed + closed);
+
+      state.mode = 'fog';
+      state.free = false;
+      state.dest = dest;
+      state.levels = [];
+      state.par = 240;
+      state.fog = fog;
+      state.level = 0;
+      state.startLevelIndex = 0;
+      state.completed = 0;
+      state.hints = 0;
+      state.hintShown = 0;
+      state.asks = d.asks;
+      state.story = [];
+      state.stamps = [];
+      state.pieces = [];
+      state.puzzleHints = 0;
+      state.optionalDone = false;
+      state.usedSimulation = false;
+      state.finished = false;
+      state.score = 0;
+      state.elapsed = total;
+      state.startAt = Date.now() - total * 1000;
+      state.path = [];
+      state.gps = null;
+      state.dist = null;
+      state.gpsStatus = '';
+      state.target = null;
+      state.heading = null;
+      state.headingAbsolute = false;
+      state.relativeOnly = false;
+      state.sensorSeen = false;
+      state.lastOrientAt = 0;
+      state.simulating = false;
+      state.aligned = false;
+      state.alignLocked = false;
+      state.alignSince = 0;
+      state.diary = {
+        events: d.diary.events.map((e) => ({ t: e.t, text: e.text })),
+        photos: [null, null, null],
+        note: '',
+        text: '',
+        stats: null
+      };
+      $('sim-tip').hidden = true;
+
+      renderFog();
+      if (d.hint) {
+        $('fog-hint').hidden = false;
+        $('fog-hint').textContent = d.hint;
+      }
+      saveProgress();
+
+      setTimeout(() => {
+        if (state.sensorSeen || state.simulating) return;
+        goSimulation('没检测到罗盘：拖动表盘模拟');
+      }, 2500);
+
+      wantWakeLock = true;
+      requestWakeLock();
       return;
     }
 
@@ -420,6 +560,7 @@
   const GPS_STALE_MS = 12000;       // 毫秒；界面超过 12 秒没新采样就提示定位暂停
   const GPS_ARRIVE_SAMPLES = 3;     // 连续 3 次有效采样都在范围内才自动结算
   const FREE_PAR = 600;
+  const FOG_SIZE = 12;              // 雾城网格边长；存档校验和 makeFog 共用
   let cscale = 1;
   let dialCanvas = null;
   let compassDirty = true;
@@ -2214,7 +2355,7 @@
 
   function makeFog(dest, seed) {
     const rnd = mulberry32(seed >>> 0);
-    const N = 12;
+    const N = FOG_SIZE;
     let grid, start, target, path;
     let attempts = 0;
 
@@ -2339,6 +2480,7 @@
     $('sim-tip').hidden = true;
 
     renderFog();
+    saveProgress();
 
     setTimeout(() => {
       if (state.sensorSeen || state.simulating) return;
@@ -2426,6 +2568,7 @@
     updateFogTarget();
     updateFogAsk();
     if (nx === f.target.x && ny === f.target.y) finishFog();
+    else saveProgress();
   }
 
   function fogAsk() {
@@ -2443,6 +2586,7 @@
     hint.hidden = false;
     hint.textContent = `${npc.name}：${fogNpcLine(npc)}`;
     updateFogAsk();
+    saveProgress();
   }
 
   function finishFog() {
