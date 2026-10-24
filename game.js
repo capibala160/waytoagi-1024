@@ -117,6 +117,22 @@
   const paramLevel = parseInt(params.get('level') || '0', 10) || 0;
   const forceDemo = params.get('demo') === '1';
 
+  // ?perf=1 打开罗盘体检：FPS、传感器频率、绘制耗时、长任务、画布尺寸
+  const perfMode = params.get('perf') === '1';
+  const perf = { frames: 0, orient: 0, draws: 0, drawMs: 0, longTasks: 0, lastAt: 0, el: null };
+  if (perfMode) {
+    perf.el = document.createElement('div');
+    perf.el.id = 'perf-hud';
+    perf.el.style.cssText = 'position:fixed;left:8px;top:8px;z-index:9999;max-width:calc(100vw - 16px);padding:6px 8px;border-radius:8px;background:rgba(0,0,0,.8);color:#8ef58e;font:12px/1.45 ui-monospace,Menlo,monospace;white-space:pre-wrap;pointer-events:none';
+    document.body.appendChild(perf.el);
+    if ('PerformanceObserver' in window) {
+      try {
+        new PerformanceObserver((list) => { perf.longTasks += list.getEntries().length; })
+          .observe({ entryTypes: ['longtask'] });
+      } catch (e) { /* 浏览器不支持 longtask 时忽略 */ }
+    }
+  }
+
   /* ---------------- 工具 ---------------- */
 
   function clamp(n, lo, hi) { return Math.max(lo, Math.min(hi, n)); }
@@ -687,6 +703,7 @@
     // 无效事件不能占用 lastAbs，否则会压掉随后到达的有效读数
     if (h === null) return;
     if (absolute) lastAbs = now;
+    perf.orient++;
 
     state.heading = norm(h);
     compassDirty = true;
@@ -879,6 +896,7 @@
   let lastDraw = 0;
   function loop(t) {
     requestAnimationFrame(loop);
+    perf.frames++;
     if (state.screen !== 'play') return;       // 只有行进页需要刷新罗盘
     if (t - lastDraw < 33) return;
     lastDraw = t;
@@ -894,12 +912,33 @@
       state.alignLocked !== prevLocked;
 
     if (changed) {
+      const drawAt = perfMode ? performance.now() : 0;
       drawCompass();
+      if (perfMode) {
+        perf.drawMs += performance.now() - drawAt;
+        perf.draws++;
+      }
       lastDrawnHeading = state.heading;
       lastDrawnTarget = state.target;
       compassDirty = smoothPending;
     }
     paintHUD();
+
+    if (perfMode && t - perf.lastAt >= 1000) {
+      const dt = t - perf.lastAt;
+      const fps = Math.round((perf.frames * 1000) / dt);
+      const hz = Math.round((perf.orient * 1000) / dt);
+      const ms = perf.draws ? (perf.drawMs / perf.draws).toFixed(1) : '0';
+      perf.el.textContent =
+        `FPS ${fps} · 方向 ${hz}Hz · 绘制 ${ms}ms · 长任务 ${perf.longTasks}\n` +
+        `画布 ${cv.width}×${cv.height} · DPR ${window.devicePixelRatio}`;
+      perf.frames = 0;
+      perf.orient = 0;
+      perf.draws = 0;
+      perf.drawMs = 0;
+      perf.longTasks = 0;
+      perf.lastAt = t;
+    }
   }
 
   function paintHUD() {

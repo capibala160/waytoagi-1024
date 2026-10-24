@@ -631,12 +631,13 @@ body {
   align-items: center;
   justify-content: center;
   gap: 14px;
-  background: rgba(8, 10, 13, .72);
+  background: rgba(8, 10, 13, .92);
   opacity: 0;
+  visibility: hidden;
   pointer-events: none;
   transition: opacity .22s;
 }
-.stamp.on { opacity: 1; pointer-events: auto; }
+.stamp.on { opacity: 1; visibility: visible; pointer-events: auto; }
 
 .stamp-station {
   color: #8a8578;
@@ -1391,8 +1392,8 @@ body::after {
 /* ---------- 通关卡 ---------- */
 
 .stamp {
-  background: radial-gradient(circle at 50% 38%, rgba(232, 176, 75, .1), rgba(6, 8, 11, .88) 62%);
-  backdrop-filter: blur(6px);
+  /* 全屏 backdrop-filter 会让 iOS 每帧重算背景模糊，直接删掉 */
+  background: radial-gradient(circle at 50% 38%, rgba(232, 176, 75, .1), rgba(6, 8, 11, .94) 62%);
 }
 .stamp-seal {
   width: 132px;
