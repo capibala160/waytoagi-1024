@@ -1,0 +1,12 @@
+{
+  "outputDir": "/Users/mike/event/hackathon/graphics",
+  "assets": [
+    {
+      "name": "flux-plate-clean",
+      "width": 1536,
+      "height": 1536,
+      "batch_count": 2,
+      "prompt": "Top-down product photograph of an antique brass compass dial plate, perfectly circular and centered on a pure black background, filling the frame. A polished brass bezel with fine concentric grooves surrounds a flat dial face of aged ivory enamel with subtle tea staining and hairline crazing. A fine black degree tick ring runs around the very edge of the dial. In the exact center is a small, compact engraved eight-point compass rose in dark oxidized bronze with a raised polished brass hub. The wide ring between the central rose and the outer tick marks is a plain, clean expanse of aged ivory enamel. Flat matte surface, even warm studio light from above, crisp macro detail, clean circular edge, orthographic top-down view, no perspective. The plate is a bare dial face, ready for printing."
+    }
+  ]
+}

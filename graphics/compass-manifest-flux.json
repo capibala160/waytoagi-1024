@@ -1,0 +1,19 @@
+{
+  "outputDir": "/Users/mike/event/hackathon/graphics",
+  "assets": [
+    {
+      "name": "flux-plate-a",
+      "width": 1536,
+      "height": 1536,
+      "batch_count": 2,
+      "prompt": "Top-down product photograph of an antique brass compass dial plate, perfectly circular and centered on a pure black background, filling the frame. A polished brass bezel with fine concentric grooves surrounds a flat dial face of aged ivory enamel with subtle tea staining and hairline crazing. The dial is printed in crisp black ink with a fine degree tick ring around its outer edge. Around the dial, reading clockwise from the top, are the capital letters N, E, S, and W in a classic serif typeface at the 12, 3, 6, and 9 o'clock positions, and the numerals 30, 60, 120, 150, 210, 240, 300, and 330 between them, each followed by a small degree symbol. In the exact center is an engraved eight-point compass rose in dark oxidized bronze with a raised brass hub. The dial is flat and matte, lit evenly by soft warm studio light, with crisp macro detail and a clean circular edge. The plate is shown straight down, orthographic, no perspective. A bare dial plate: only the printed markings and the central engraved rose."
+    },
+    {
+      "name": "flux-plate-b",
+      "width": 1536,
+      "height": 1536,
+      "batch_count": 2,
+      "prompt": "Top-down product photograph of an antique brass compass dial plate, perfectly circular and centered on a pure black background, filling the frame. A wide polished brass bezel with fine concentric grooves surrounds a flat dial face of aged ivory enamel with tea staining and hairline crazing. A fine black degree tick ring runs around the outer edge of the dial. Near the tick ring, four large capital letters are printed in black serif type: N at 12 o'clock, E at 3 o'clock, S at 6 o'clock, and W at 9 o'clock, upright and evenly spaced. The wide ring between the letters and the center is completely blank, reserved for future markings. In the exact center is a small engraved eight-point compass rose in dark oxidized bronze with a raised brass hub. Flat matte surface, even warm studio light, crisp macro detail, clean circular edge, orthographic top-down view, no perspective."
+    }
+  ]
+}

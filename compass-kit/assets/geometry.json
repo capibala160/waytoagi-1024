@@ -1,0 +1,110 @@
+{
+  "plate": {
+    "source": "graphics/flux-plate-rose-01.png",
+    "asset": "assets/plate.png",
+    "mode": "flux",
+    "size": 1400,
+    "center": [
+      700.0,
+      700.0
+    ],
+    "outerRadius": 700.0,
+    "dialRadius": 385.76,
+    "dialRadiusRatio": 0.5511,
+    "sourceCenter": [
+      766.11,
+      750.21
+    ],
+    "sourceDialRadius": 383.0,
+    "sourceOuterRadius": 694.78,
+    "cropHalf": 695
+  },
+  "needle": {
+    "source": "graphics/needle-v2-01.png",
+    "asset": "assets/needle.png",
+    "size": 1024,
+    "pivot": [
+      512,
+      512
+    ],
+    "sourcePivot": [
+      510,
+      519
+    ],
+    "sourceLength": 904,
+    "lengthRatio": 0.8218
+  },
+  "glass": {
+    "source": "graphics/glass-v2-02.png",
+    "asset": "assets/glass.png",
+    "size": 1024,
+    "blend": "screen"
+  },
+  "sheenWindow": {
+    "source": "graphics/sheen-v1-01.png",
+    "asset": "assets/sheen-window.png",
+    "size": 1024,
+    "blend": "screen"
+  },
+  "sheenSoft": {
+    "source": "graphics/sheen-v1-02.png",
+    "asset": "assets/sheen-soft.png",
+    "size": 1024,
+    "blend": "screen"
+  },
+  "markings": {
+    "asset": "assets/dial-markings.svg",
+    "viewBox": "0 0 1000 1000",
+    "dialRadius": 275.54,
+    "labelRadius": 220.43,
+    "numbers": [
+      30,
+      60,
+      120,
+      150,
+      210,
+      240,
+      300,
+      330
+    ],
+    "cardinals": [
+      "N",
+      "E",
+      "S",
+      "W"
+    ],
+    "note": "Lubber index is separate: it is fixed to the phone, not the dial."
+  },
+  "web": {
+    "plate": {
+      "asset": "assets/web/plate.webp",
+      "bytes": 372064
+    },
+    "needle": {
+      "asset": "assets/web/needle.webp",
+      "bytes": 26888
+    },
+    "glass": {
+      "asset": "assets/web/glass.webp",
+      "bytes": 32632
+    },
+    "sheen-window": {
+      "asset": "assets/web/sheen-window.webp",
+      "bytes": 16846
+    },
+    "sheen-soft": {
+      "asset": "assets/web/sheen-soft.webp",
+      "bytes": 19898
+    }
+  },
+  "preview": {
+    "asset": "assets/preview.png",
+    "web": "assets/web/preview.webp",
+    "size": 1400,
+    "pose": {
+      "heading": 25,
+      "target": 110
+    },
+    "source": "demo.html?view=clean&stage=1200"
+  }
+}
