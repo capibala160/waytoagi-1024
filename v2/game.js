@@ -28,8 +28,10 @@
   const screens = {
     start: $('screen-start'),
     modes: $('screen-modes'),
+    brief: $('screen-brief'),
     confirm: $('screen-confirm'),
     how: $('screen-how'),
+    arrive: $('screen-arrive'),
     forge: $('screen-forge'),
     play: $('screen-play'),
     code: $('screen-code'),
@@ -48,6 +50,7 @@
     free: false,
     dest: null,
     pendingDest: null,
+    pendingGame: null,
     gps: null,
     gpsStatus: '',
     gpsAt: 0,
@@ -98,6 +101,8 @@
     stamps: [],
     pieces: [],
     arriveRevealed: false,
+    arriveSolved: false,
+    finaleSolved: false,
     paused: false,
     pauseAt: 0,
     lamps: 3,
@@ -141,6 +146,10 @@
     const s = Math.max(0, Math.floor(sec));
     return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
   }
+  function fmtDuration(sec) {
+    const s = Math.max(1, Math.round(sec));
+    return s >= 120 ? `约 ${Math.round(s / 60)} 分钟` : `约 ${s} 秒`;
+  }
   function rating(score) {
     if (score >= 850) return '活 地 图';
     if (score >= 700) return '老 向 导';
@@ -161,7 +170,8 @@
   }
 
   function isPlaying() {
-    return !state.finished && (state.screen === 'play' || state.screen === 'code');
+    return !state.finished &&
+      (state.screen === 'play' || state.screen === 'code' || state.screen === 'arrive');
   }
 
   function practiceRun() {
@@ -185,6 +195,16 @@
       if (!Number.isFinite(lv.steps) || lv.steps < 0) errors.push(p + 'steps 必须是非负数字。');
       if (typeof lv.clue !== 'string' || !lv.clue.trim()) errors.push(p + '请填写 clue。');
       if (!Array.isArray(lv.hints) || lv.hints.some((h) => typeof h !== 'string' || !h.trim())) errors.push(p + 'hints 必须是文字数组。');
+      if (lv.observe) {
+        if (typeof lv.observe.question !== 'string' || !lv.observe.question.trim()) {
+          errors.push(p + 'observe.question 不能为空。');
+        }
+        if (!Array.isArray(lv.observe.options) || lv.observe.options.length < 2) {
+          errors.push(p + 'observe.options 至少要有两个选项。');
+        } else if (!lv.observe.options.some((o) => o && (o.ok || o.variant))) {
+          errors.push(p + 'observe 至少要有一个正确选项。');
+        }
+      }
     });
     if (!Number.isFinite(set.par) || set.par <= 0) errors.push('par 必须是正数。');
     return errors;
@@ -357,6 +377,19 @@
     $('start-message').textContent = `上次走到「${set.name}」第 ${d.level + 1} 站，可继续。关闭页面期间仍计时。`;
   }
 
+  function refreshGameResume() {
+    const d = readProgress();
+    const isHunt = d && (d.mode === 'outdoor' || d.mode === 'indoor');
+    $('btn-game-resume').hidden = !isHunt;
+    if (!isHunt) {
+      $('game-resume-msg').textContent = '';
+      return;
+    }
+    const set = SETS[d.mode];
+    $('game-resume-msg').textContent =
+      `上次走到「${set ? set.name : '会场寻宝'}」第 ${d.level + 1} 站，可继续。`;
+  }
+
   function resumeGame() {
     const d = readProgress();
     if (!d) {
@@ -392,6 +425,8 @@
       state.levels = [];
       state.par = 240;
       state.fog = fog;
+      state.paused = false;
+      state.pauseAt = 0;
       state.level = 0;
       state.startLevelIndex = 0;
       state.completed = 0;
@@ -463,6 +498,8 @@
       state.mode = 'free';
       state.free = true;
       state.dest = dest;
+      state.paused = false;
+      state.pauseAt = 0;
       state.levels = [];
       state.par = FREE_PAR;
       state.level = 0;
@@ -525,6 +562,8 @@
     state.pieces = d.pieces.slice();
     state.variantSet = d.set;
     state.arriveRevealed = false;
+    state.arriveSolved = false;
+    state.finaleSolved = false;
     state.paused = false;
     state.pauseAt = 0;
     state.lamps = d.lamps;
@@ -851,12 +890,7 @@
       state.alignLocked = true;
       if (typeof navigator.vibrate === 'function') navigator.vibrate([15, 40, 15]);
 
-      // 稳定对准后，才揭示“到了附近再看”的第二层线索
-      if (!state.arriveRevealed) {
-        state.arriveRevealed = true;
-        const ac = $('arrive-clue');
-        if (ac.textContent) ac.hidden = false;
-      }
+      // 第二层线索留到「我到了」的到站确认后再揭示
     }
   }
 
@@ -1113,7 +1147,11 @@
     Object.keys(screens).forEach((k) => screens[k].classList.toggle('active', k === name));
     state.screen = name;
     if (name === 'play') requestAnimationFrame(fitCompass);
-    if (name === 'end') paintEndDest();
+    if (name === 'modes') refreshGameResume();
+    if (name === 'end') {
+      renderEndActions();
+      paintEndDest();
+    }
     syncModeTabs();
   }
 
@@ -1945,7 +1983,7 @@
         } else {
           const locked = document.createElement('p');
           locked.className = 'book-locked';
-          locked.textContent = '稳定对准方向后解锁到达线索';
+          locked.textContent = '点「我到了」确认物件后解锁到达线索';
           item.appendChild(locked);
         }
       } else {
@@ -2242,6 +2280,28 @@
     showScreen('how');
   }
 
+  function showBrief(mode) {
+    const set = SETS[mode];
+    if (!set) return;
+    state.pendingGame = mode;
+    const n = set.levels.length;
+    $('brief-kicker').textContent = `会场寻宝 · ${set.name}`;
+    $('brief-title').textContent = `沿线索走 ${n} 站，集齐 ${n} 枚印章`;
+    $('brief-body').textContent =
+      '罗盘只指方向，不显示地图。每站按线索找到纸上的 4 位码，输入后盖章。';
+    $('brief-duration').textContent = fmtDuration(set.par || 300);
+    $('brief-stations').textContent = `${n} 站`;
+    $('brief-lamps').textContent = '3 盏';
+
+    const ready = set.ready === true;
+    const note = $('brief-ready');
+    note.textContent = ready
+      ? `现场已布置 · ${CFG.venue || '会场'}的线索对应现场纸码。`
+      : '演示路线 · 现场点位尚未布置，方位和 4 位码仅用于试跑。';
+    note.classList.toggle('warn', !ready);
+    showScreen('brief');
+  }
+
   function randomDest() {
     const list = window.DESTINATIONS || [];
     if (!list.length) return null;
@@ -2277,6 +2337,8 @@
     state.optionalDone = false;
     state.usedSimulation = false;
     state.finished = false;
+    state.paused = false;
+    state.pauseAt = 0;
     state.score = 0;
     state.elapsed = 0;
     state.startAt = Date.now();
@@ -2306,7 +2368,8 @@
 
   function renderFree() {
     resetFogUI();
-    $('hud-level').textContent = '自由行';
+    $('hud-level').textContent = '真实出行';
+    $('hud-stamps').hidden = true;
     $('clue-card').hidden = true;
     $('free-card').hidden = false;
     $('btn-book').hidden = true;
@@ -2362,7 +2425,7 @@
     $('end-hints').textContent = '0';
     $('end-asks').textContent = String(state.asks);
     $('end-score').textContent = String(state.score);
-    $('end-rating').textContent = '到 了';
+    $('end-rating').textContent = state.dest ? `到 了 · ${state.dest.name}` : '到 了';
     $('stat-hints').hidden = true;
     renderEndExtras();
     state.firstClear = false;
@@ -2688,6 +2751,8 @@
     state.optionalDone = false;
     state.usedSimulation = false;
     state.finished = false;
+    state.paused = false;
+    state.pauseAt = 0;
     state.score = 0;
     state.elapsed = 0;
     state.startAt = Date.now();
@@ -2721,7 +2786,8 @@
 
   function renderFog() {
     $('screen-play').classList.add('fog-mode');
-    $('hud-level').textContent = '雾城';
+    $('hud-level').textContent = '雾城 · 模拟';
+    $('hud-stamps').hidden = true;
     $('clue-card').hidden = true;
     $('free-card').hidden = true;
     $('fog-card').hidden = false;
@@ -2928,7 +2994,7 @@
     btn.disabled = exhausted || noLamp;
     if (exhausted) btn.textContent = '没有更多提示';
     else if (noLamp) btn.textContent = '提示灯用完了';
-    else btn.textContent = free ? '要提示' : `要提示 · 灯 ${state.lamps}`;
+    else btn.textContent = free ? '要提示' : `提示 · ${state.lamps}灯`;
   }
 
   function renderLevel() {
@@ -2956,6 +3022,8 @@
     $('halo-text').classList.remove('on');
     $('btn-bonus').hidden = true;
     state.arriveRevealed = false;
+    state.arriveSolved = false;
+    state.finaleSolved = false;
     state.paused = false;
     state.pauseAt = 0;
     const ac = $('arrive-clue');
@@ -2967,6 +3035,8 @@
     state.aligned = false;
 
     $('hud-level').textContent = `第 ${state.level + 1} / ${state.levels.length} 站`;
+    $('hud-stamps').hidden = false;
+    $('hud-stamps').textContent = `已集 ${state.stamps.length} / ${state.levels.length} 枚`;
     $('clue-text').textContent = lv.clue;
     $('clue-meta').textContent = lv.bearing != null
       ? `目标方位 ${String(Math.round(lv.bearing)).padStart(3, '0')}° · 约 ${lv.steps} 步`
@@ -3071,6 +3141,8 @@
     state.stamps = [];
     state.pieces = [];
     state.arriveRevealed = false;
+    state.arriveSolved = false;
+    state.finaleSolved = false;
     state.paused = false;
     state.pauseAt = 0;
     state.lamps = 3;
@@ -3117,20 +3189,26 @@
 
   /* ---------------- 提示 ---------------- */
 
-  $('btn-hint').addEventListener('click', () => {
+  function takeHint() {
     const lv = levelData(state.levels[state.level]);
-    if (state.hintShown >= lv.hints.length) return;
+    if (!lv) return null;
+    if (state.hintShown >= lv.hints.length) return null;
     const free = !!lv.freeHint || lv.type === 'tutorial';
-    if (!free && state.lamps <= 0) return;
-
+    if (!free && state.lamps <= 0) return null;
     if (!free) {
       state.lamps--;
       state.puzzleHints++;
     }
+    const text = lv.hints[state.hintShown];
     state.hintShown++;
     state.hints++;
     renderHints();
     saveProgress();
+    return { text, free };
+  }
+
+  $('btn-hint').addEventListener('click', () => {
+    takeHint();
   });
 
   $('btn-ask').addEventListener('click', () => {
@@ -3139,6 +3217,251 @@
     showToast(`问了第 ${state.asks} 个人`);
     saveProgress();
   });
+
+  /* ---------------- 到站确认 ---------------- */
+
+  function arriveOptionOk(opt) {
+    return opt.variant ? opt.variant === state.variantSet : opt.ok === true;
+  }
+
+  function markArriveSolved(lv, opt) {
+    state.arriveSolved = true;
+    state.arriveRevealed = true;
+    const playClue = $('arrive-clue');
+    if (playClue && lv.arriveClue) {
+      playClue.textContent = lv.arriveClue;
+      playClue.hidden = false;
+    }
+    const feedback = $('arrive-feedback');
+    feedback.hidden = false;
+    feedback.classList.remove('bad');
+    feedback.textContent = `${lv.npc || '现场工作人员'}：${opt.feedback || '对，就是这里。'}` +
+      (lv.arriveClue ? `\n${lv.arriveClue}` : '');
+    [...$('arrive-options').children].forEach((btn) => {
+      btn.disabled = true;
+      if (btn.dataset.ok === '1') btn.classList.add('ok');
+    });
+    $('arrive-hint-actions').hidden = true;
+    if (state.level >= state.levels.length - 1) setupFinale(lv);
+    else $('btn-arrive-next').hidden = false;
+    saveProgress();
+  }
+
+  function renderArriveOptions(lv) {
+    const box = $('arrive-options');
+    box.replaceChildren();
+    const options = (lv.observe && lv.observe.options) || [
+      { text: '找到了', ok: true, feedback: '对，就是这里。' },
+      { text: '还没找到', feedback: '再沿着线索找一下。' }
+    ];
+    options.forEach((opt) => {
+      const btn = document.createElement('button');
+      btn.className = 'arrive-option';
+      btn.textContent = opt.text;
+      if (arriveOptionOk(opt)) btn.dataset.ok = '1';
+      btn.addEventListener('click', () => {
+        if (state.arriveSolved) return;
+        if (arriveOptionOk(opt)) {
+          markArriveSolved(lv, opt);
+          return;
+        }
+        btn.classList.add('bad');
+        btn.disabled = true;
+        const feedback = $('arrive-feedback');
+        feedback.hidden = false;
+        feedback.classList.add('bad');
+        feedback.textContent =
+          `${lv.npc || '现场工作人员'}：${opt.wrongFeedback || opt.feedback || '不是这里，回到线索再看一眼。'}`;
+      });
+      box.appendChild(btn);
+    });
+  }
+
+  function edgeCount(piece) {
+    const m = /(\d+)/.exec((piece && piece.label) || '');
+    return m ? Number(m[1]) : 0;
+  }
+
+  function finalePieces(lv) {
+    const list = (state.pieces || []).slice();
+    if (lv && lv.piece) list.push(lv.piece);
+    return list;
+  }
+
+  function finaleOrder(lv) {
+    const list = finalePieces(lv);
+    if (state.variantSet === 'B' && lv.sets && lv.sets.B) return list.slice().reverse();
+    return list.slice().sort((a, b) => edgeCount(a) - edgeCount(b));
+  }
+
+  function marksOf(list) {
+    return list.map((p) => p.mark || '?').join(' ');
+  }
+
+  function shuffleList(list) {
+    const a = list.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function setupFinale(lv) {
+    const pieces = finalePieces(lv);
+    if (pieces.length < 3) {
+      $('btn-arrive-next').hidden = false;
+      return;
+    }
+    const correct = finaleOrder(lv);
+    const correctText = marksOf(correct);
+    const options = [correct, correct.slice().reverse()];
+    for (let i = 0; i < 12 && options.length < 3; i++) {
+      const candidate = shuffleList(correct);
+      const text = marksOf(candidate);
+      if (text !== correctText && !options.some((o) => marksOf(o) === text)) {
+        options.push(candidate);
+      }
+    }
+
+    $('arrive-finale').hidden = false;
+    const box = $('arrive-pieces');
+    box.replaceChildren();
+    pieces.forEach((p) => {
+      const chip = document.createElement('span');
+      chip.className = 'arrive-piece';
+      const mark = document.createElement('b');
+      mark.textContent = p.mark || '?';
+      chip.appendChild(mark);
+      chip.appendChild(document.createTextNode(p.label || ''));
+      box.appendChild(chip);
+    });
+    $('arrive-finale-question').textContent =
+      (state.variantSet === 'B' && lv.sets && lv.sets.B)
+        ? '把一路收集的碎片按收集顺序倒着排。'
+        : '把一路收集的碎片按边数从少到多排好。';
+
+    const fb = $('arrive-finale-feedback');
+    fb.hidden = true;
+    fb.classList.remove('bad');
+    const optBox = $('arrive-finale-options');
+    optBox.replaceChildren();
+    options.slice(0, 3).forEach((arr) => {
+      const btn = document.createElement('button');
+      btn.className = 'arrive-option';
+      btn.textContent = marksOf(arr);
+      btn.addEventListener('click', () => {
+        if (state.finaleSolved) return;
+        if (marksOf(arr) === correctText) {
+          state.finaleSolved = true;
+          [...optBox.children].forEach((b) => { b.disabled = true; });
+          btn.classList.add('ok');
+          fb.hidden = false;
+          fb.textContent = lv.arriveClue || '碎片对上了。去看纸上最后的四位码。';
+          $('btn-arrive-next').hidden = false;
+          saveProgress();
+          return;
+        }
+        btn.classList.add('bad');
+        btn.disabled = true;
+        fb.hidden = false;
+        fb.classList.add('bad');
+        fb.textContent = '顺序不对，按边数或收集顺序再排一次。';
+      });
+      optBox.appendChild(btn);
+    });
+  }
+
+  function updateArriveHint(lv) {
+    const btn = $('btn-arrive-hint');
+    const left = lv.hints.length - state.hintShown;
+    const free = !!lv.freeHint || lv.type === 'tutorial';
+    btn.disabled = false;
+    if (left <= 0) {
+      btn.textContent = '没有更多提示';
+      btn.disabled = true;
+    } else if (free) {
+      btn.textContent = `看教学提示（免费）· 还有 ${left} 条`;
+    } else if (state.lamps <= 0) {
+      btn.textContent = '提示灯用完了';
+      btn.disabled = true;
+    } else {
+      btn.textContent = `用 1 盏灯换提示 · 还剩 ${state.lamps} 盏`;
+    }
+  }
+
+  function openArrive() {
+    const lv = levelData(state.levels[state.level]);
+    if (!lv) return;
+    state.arriveSolved = false;
+    state.finaleSolved = false;
+    $('arrive-kicker').textContent =
+      `${lv.name || ''} · ${lv.typeLabel || ''} · 第 ${state.level + 1} / ${state.levels.length} 站`;
+    $('arrive-npc').textContent = lv.npc || '现场工作人员';
+    $('arrive-question').textContent =
+      (lv.observe && lv.observe.question) || '你找到线索说的那个东西了吗？';
+    renderArriveOptions(lv);
+    const fb = $('arrive-feedback');
+    fb.hidden = true;
+    fb.classList.remove('bad');
+    fb.textContent = '';
+    $('arrive-finale').hidden = true;
+    $('arrive-hint').hidden = true;
+    $('btn-arrive-next').hidden = true;
+    $('arrive-hint-actions').hidden = false;
+    updateArriveHint(lv);
+    showScreen('arrive');
+  }
+
+  function openCodeEntry() {
+    clearTimeout(state.checkTimer);
+    clearTimeout(state.resetTimer);
+    state.codeInput = '';
+    state.checking = false;
+    state.bonusMode = false;
+    $('code-title').textContent = '输入纸上的四位码';
+    $('code-msg').textContent = '';
+    const lv = levelData(state.levels[state.level]);
+    $('btn-bonus').hidden = !(lv && lv.bonus && !state.optionalDone);
+    $('btn-bonus').disabled = false;
+    $('btn-bonus').textContent = '加试一题（可选）';
+    renderCode();
+    showScreen('code');
+  }
+
+  $('btn-arrive-back').addEventListener('click', () => showScreen('play'));
+  $('btn-arrive-self').addEventListener('click', () => showScreen('play'));
+  $('btn-arrive-next').addEventListener('click', openCodeEntry);
+  $('btn-arrive-hint').addEventListener('click', () => {
+    const lv = levelData(state.levels[state.level]);
+    const got = takeHint();
+    if (!got) {
+      updateArriveHint(lv);
+      return;
+    }
+    const box = $('arrive-hint');
+    box.hidden = false;
+    box.textContent = got.text;
+    updateArriveHint(lv);
+  });
+
+  /* ---------------- 全屏罗盘 ---------------- */
+
+  const fullCompassBtn = $('btn-full-compass');
+  if (fullCompassBtn) {
+    fullCompassBtn.addEventListener('click', () => {
+      saveProgress();
+      const q = new URLSearchParams();
+      q.set('name', state.dest ? state.dest.name : '目的地');
+      if (state.mode === 'free' && state.dest) {
+        q.set('destLat', String(state.dest.lat));
+        q.set('destLon', String(state.dest.lon));
+      }
+      if (state.target != null) q.set('target', String(Math.round(state.target)));
+      q.set('v', '20261024r');
+      location.href = 'compass-widget.html?' + q.toString();
+    });
+  }
 
   /* ---------------- 输码 ---------------- */
 
@@ -3153,19 +3476,7 @@
       else showToast('还没到，跟着指针走');
       return;
     }
-    clearTimeout(state.checkTimer);
-    clearTimeout(state.resetTimer);
-    state.codeInput = '';
-    state.checking = false;
-    state.bonusMode = false;
-    $('code-title').textContent = '输入纸上的四位码';
-    $('code-msg').textContent = '';
-    const lv = levelData(state.levels[state.level]);
-    $('btn-bonus').hidden = !(lv && lv.bonus && !state.optionalDone);
-    $('btn-bonus').disabled = false;
-    $('btn-bonus').textContent = '加试一题（可选）';
-    renderCode();
-    showScreen('code');
+    openArrive();
   });
 
   $('btn-bonus').addEventListener('click', () => {
@@ -3222,7 +3533,15 @@
     }
 
     const last = state.level >= state.levels.length - 1;
-    $('stamp-next').textContent = last ? '揭晓结局' : '继续前进';
+    $('stamp-next').textContent = last ? '查看成果' : '前往下一站';
+    $('stamp-progress').textContent =
+      `已集 ${state.stamps.length} / ${state.levels.length} 枚`;
+    const next = state.levels[state.level + 1];
+    $('stamp-next-hint').textContent = next
+      ? `下一站 · ${next.name}${next.typeLabel ? ' · ' + next.typeLabel : ''}`
+      : '下一站 · 揭晓结局';
+    $('hud-stamps').textContent =
+      `已集 ${state.stamps.length} / ${state.levels.length} 枚`;
 
     if (last && state.pieces.length) {
       $('stamp-story').textContent = (lv.story || '') + '\n\n碎片：' +
@@ -3230,6 +3549,63 @@
     }
 
     $('stamp').classList.add('on');
+  }
+
+  function pauseText() {
+    if (state.mode === 'fog') {
+      const steps = state.fog ? state.fog.steps : 0;
+      return `雾城 · 已走 ${steps} 步 · ${fmtTime(state.elapsed)}`;
+    }
+    if (state.mode === 'free') {
+      const name = state.dest ? state.dest.name : '自由行';
+      return `去「${name}」· ${fmtTime(state.elapsed)}`;
+    }
+    return `第 ${state.level + 1} / ${state.levels.length} 站 · ` +
+      `已集 ${state.stamps.length} / ${state.levels.length} 枚 · ${fmtTime(state.elapsed)}`;
+  }
+
+  function openPause() {
+    if (state.screen !== 'play' || state.finished || state.paused) return;
+    state.elapsed = elapsedNow();
+    state.paused = true;
+    state.pauseAt = Date.now();
+    $('pause-info').textContent = pauseText();
+    $('btn-pause-exit').textContent =
+      (state.mode === 'outdoor' || state.mode === 'indoor') ? '返回游戏首页' : '返回首页';
+    $('pause').classList.add('on');
+    $('pause').inert = false;
+    saveProgress();
+  }
+
+  function resumePause() {
+    $('pause').classList.remove('on');
+    $('pause').inert = true;
+    if (state.pauseAt) {
+      state.startAt += Date.now() - state.pauseAt;
+      state.pauseAt = 0;
+    }
+    state.paused = false;
+  }
+
+  function exitPause() {
+    saveProgress();
+    stopGps();
+    $('pause').classList.remove('on');
+    $('pause').inert = true;
+    state.paused = false;
+    state.pauseAt = 0;
+    state.finished = true;
+    releaseWakeLock();
+    if (state.mode === 'outdoor' || state.mode === 'indoor') {
+      showScreen('modes');
+      refreshGameResume();
+    } else {
+      state.fog = null;
+      resetFogUI();
+      showScreen('start');
+      renderHome();
+      refreshResume();
+    }
   }
 
   function shakeCode(message) {
@@ -3286,7 +3662,7 @@
   document.querySelectorAll('.key').forEach((btn) => {
     btn.addEventListener('click', () => {
       const k = btn.dataset.k;
-      if (k === 'back') { showScreen('play'); return; }
+      if (k === 'back') { showScreen(state.arriveSolved ? 'arrive' : 'play'); return; }
       if (k === 'clear') { state.codeInput = ''; renderCode(); return; }
       if (state.codeInput.length >= 4 || state.checking) return;
 
@@ -3365,7 +3741,7 @@
     if (hunt && state.puzzleHints === 0) list.push('独立寻路者');
     if (state.optionalDone) list.push('细节观察家');
     if (state.asks >= 3) list.push('同行向导');
-    if (state.score >= 850) list.push('活地图');
+    if (!state.free && state.score >= 850) list.push('活地图');
     return list;
   }
 
@@ -3394,6 +3770,21 @@
       box.appendChild(chip);
     });
     $('end-story').textContent = state.story.length ? state.story.join('\n') : '';
+  }
+
+  function renderEndActions() {
+    const hunt = state.mode === 'outdoor' || state.mode === 'indoor';
+    $('btn-again').textContent = hunt ? '再挑战一次' : '再走一次';
+    $('btn-switch-route').hidden = !hunt;
+    $('btn-home').textContent = hunt ? '返回游戏' : '换一个目的地';
+    $('stat-score').hidden = !hunt;   // 探索不强调得分，游戏保留计分
+    if (hunt) {
+      const other = state.mode === 'outdoor' ? 'indoor' : 'outdoor';
+      const set = SETS[other];
+      $('btn-switch-route').textContent = set
+        ? `换条路线 · ${set.levels.length} 站`
+        : '换条路线';
+    }
   }
 
   function finish() {
@@ -3614,14 +4005,24 @@
     x.fillText('用 时', W / 2, 490);
 
     const sy = 580;
-    x.fillStyle = '#e8b04b';
-    x.font = '400 46px ui-monospace,Menlo,Consolas,monospace';
-    x.fillText(String(fog ? opts.steps : score), W / 2 - 150, sy);
-    x.fillText(String(fog ? opts.asked : (free ? state.asks : state.hints)), W / 2 + 150, sy);
-    x.fillStyle = '#6b7280';
-    x.font = '400 22px -apple-system,"PingFang SC",sans-serif';
-    x.fillText(fog ? '步数' : '得分', W / 2 - 150, sy + 40);
-    x.fillText(fog ? '问路' : (free ? '问路' : '提示'), W / 2 + 150, sy + 40);
+    if (free) {
+      // 探索不强调得分：只留问路次数
+      x.fillStyle = '#e8b04b';
+      x.font = '400 46px ui-monospace,Menlo,Consolas,monospace';
+      x.fillText(String(state.asks), W / 2, sy);
+      x.fillStyle = '#6b7280';
+      x.font = '400 22px -apple-system,"PingFang SC",sans-serif';
+      x.fillText('问 路', W / 2, sy + 40);
+    } else {
+      x.fillStyle = '#e8b04b';
+      x.font = '400 46px ui-monospace,Menlo,Consolas,monospace';
+      x.fillText(String(fog ? opts.steps : score), W / 2 - 150, sy);
+      x.fillText(String(fog ? opts.asked : state.hints), W / 2 + 150, sy);
+      x.fillStyle = '#6b7280';
+      x.font = '400 22px -apple-system,"PingFang SC",sans-serif';
+      x.fillText(fog ? '步数' : '得分', W / 2 - 150, sy + 40);
+      x.fillText(fog ? '问路' : '提示', W / 2 + 150, sy + 40);
+    }
 
     x.strokeStyle = 'rgba(255,255,255,.08)';
     x.beginPath();
@@ -3706,8 +4107,13 @@
 
   /* ---------------- 事件 ---------------- */
 
-  $('btn-start').addEventListener('click', () => startGame('outdoor'));
-  $('btn-start-indoor').addEventListener('click', () => startGame('indoor'));
+  $('btn-start').addEventListener('click', () => showBrief('outdoor'));
+  $('btn-start-indoor').addEventListener('click', () => showBrief('indoor'));
+  $('btn-brief-back').addEventListener('click', () => showScreen('modes'));
+  $('btn-brief-start').addEventListener('click', () => {
+    const mode = state.pendingGame || 'outdoor';
+    startGame(mode);
+  });
 
   $('btn-search').addEventListener('click', () => renderSuggestions($('dest-input').value));
   $('dest-input').addEventListener('input', (e) => renderSuggestions(e.target.value));
@@ -3816,6 +4222,10 @@
     refreshResume();
   });
 
+  $('btn-pause').addEventListener('click', openPause);
+  $('btn-pause-resume').addEventListener('click', resumePause);
+  $('btn-pause-exit').addEventListener('click', exitPause);
+
   $('btn-book').addEventListener('click', openBook);
   $('btn-book-back').addEventListener('click', () => showScreen('play'));
   $('btn-code-back').addEventListener('click', () => showScreen('play'));
@@ -3896,6 +4306,7 @@
   });
 
   $('btn-resume').addEventListener('click', resumeGame);
+  $('btn-game-resume').addEventListener('click', resumeGame);
   $('btn-forward').addEventListener('click', simStep);
 
   $('btn-free-retry').addEventListener('click', () => {
@@ -3904,17 +4315,8 @@
   });
 
   $('btn-free-exit').addEventListener('click', () => {
-    stopGps();
-    state.finished = true;
-    state.free = false;
-    state.dest = null;
-    state.simPos = null;
-    state.simSteps = 0;
-    state.mode = 'outdoor';
-    clearProgress();
-    showScreen('start');
-    $('btn-forward').hidden = true;
-    refreshResume();
+    if (state.dest) startFog(state.dest);
+    else showScreen('start');
   });
 
   $('btn-again').addEventListener('click', () => {
@@ -3928,11 +4330,22 @@
 
   $('btn-home').addEventListener('click', () => {
     state.finished = true;
+    if (state.mode === 'outdoor' || state.mode === 'indoor') {
+      showScreen('modes');
+      refreshGameResume();
+      return;
+    }
     state.fog = null;
     resetFogUI();
     showScreen('start');
     renderHome();
     refreshResume();
+  });
+
+  $('btn-switch-route').addEventListener('click', () => {
+    const other = state.mode === 'outdoor' ? 'indoor' : 'outdoor';
+    if (SETS[other]) showBrief(other);
+    else showScreen('modes');
   });
 
   // 图层模式只靠 CSS 尺寸，地址栏伸缩/转屏不需要重建 900px 盘面
@@ -3948,6 +4361,8 @@
   updatePackUI();
   renderHome();
   refreshResume();
+  refreshGameResume();
+  if (params.get('resume') === '1') resumeGame();
   const configErrors = validateAll();
   if (configErrors.length) {
     $('start-message').textContent = configErrors.slice(0, 3).join('\n');

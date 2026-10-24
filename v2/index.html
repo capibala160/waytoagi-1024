@@ -8,8 +8,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <link rel="icon" href="favicon.svg" type="image/svg+xml" />
 <title>犟针 · 只指方向，不指路</title>
-<link rel="stylesheet" href="base.css?v=2" />
-<link rel="stylesheet" href="theme.css?v=2" />
+<link rel="stylesheet" href="base.css?v=3" />
+<link rel="stylesheet" href="theme.css?v=3" />
+<link rel="stylesheet" href="game.css?v=3" />
 </head>
 <body>
 
@@ -112,6 +113,9 @@
       <p class="page-sub">五站故事，或三站评委局。选一个走法。</p>
     </div>
 
+    <button id="btn-game-resume" class="btn ghost resume" hidden>继续上次</button>
+    <p id="game-resume-msg" class="start-message" role="status" aria-live="polite"></p>
+
     <div class="mode-list game-list">
       <button id="btn-start" class="mode-btn primary game-card">
         <span class="mode-badge">出门玩</span>
@@ -127,6 +131,75 @@
     </div>
 
     <p class="page-note">更多玩法在探索里：选一个目的地，再选「手机模拟」。</p>
+  </section>
+
+  <!-- ============================================================
+       玩法说明
+       ============================================================ -->
+  <section id="screen-brief" class="screen">
+    <header class="topbar sub-topbar">
+      <button id="btn-brief-back" class="icon-btn" aria-label="返回">‹</button>
+      <span class="sub-title">玩法说明</span>
+      <span class="topbar-spacer"></span>
+    </header>
+
+    <div class="page-head">
+      <p id="brief-kicker" class="eyebrow"></p>
+      <h2 id="brief-title" class="page-title"></h2>
+      <p id="brief-body" class="page-sub"></p>
+    </div>
+
+    <div class="brief-stats">
+      <div><b id="brief-duration">约 5 分钟</b><span>预计时长</span></div>
+      <div><b id="brief-stations">5 站</b><span>目标</span></div>
+      <div><b id="brief-lamps">3 盏</b><span>提示灯</span></div>
+    </div>
+
+    <div class="brief-rule">
+      <h3>提示灯</h3>
+      <p>每站 3 条提示。教学站免费；解谜站每看一条耗 1 盏灯，共 3 盏。问路不扣灯。</p>
+    </div>
+
+    <p id="brief-ready" class="brief-ready"></p>
+    <button id="btn-brief-start" class="btn primary wide">开始寻宝</button>
+    <p class="page-note">中途可暂停；退出会保留进度。</p>
+  </section>
+
+  <!-- ============================================================
+       到站确认
+       ============================================================ -->
+  <section id="screen-arrive" class="screen">
+    <header class="topbar sub-topbar">
+      <button id="btn-arrive-back" class="icon-btn" aria-label="返回">‹</button>
+      <span class="sub-title">到站确认</span>
+      <span class="topbar-spacer"></span>
+    </header>
+
+    <p id="arrive-kicker" class="eyebrow"></p>
+    <h2 class="page-title">先看看眼前的东西</h2>
+
+    <div class="arrive-npc">
+      <span id="arrive-npc" class="arrive-npc-name"></span>
+      <p id="arrive-question" class="arrive-question"></p>
+    </div>
+
+    <div id="arrive-options" class="arrive-options"></div>
+    <p id="arrive-feedback" class="arrive-feedback" hidden></p>
+
+    <div id="arrive-finale" class="arrive-finale" hidden>
+      <p class="arrive-finale-title">最后一步 · 拼合碎片</p>
+      <div id="arrive-pieces" class="arrive-pieces"></div>
+      <p id="arrive-finale-question" class="arrive-question"></p>
+      <div id="arrive-finale-options" class="arrive-options"></div>
+      <p id="arrive-finale-feedback" class="arrive-feedback" hidden></p>
+    </div>
+
+    <div id="arrive-hint" class="arrive-hint" hidden></div>
+    <button id="btn-arrive-next" class="btn primary wide" hidden>看数字</button>
+    <div id="arrive-hint-actions" class="arrive-hint-actions">
+      <button id="btn-arrive-self" class="btn ghost">自己再找找</button>
+      <button id="btn-arrive-hint" class="btn ghost">用 1 盏灯换提示</button>
+    </div>
   </section>
 
   <!-- ============================================================
@@ -241,8 +314,12 @@
        ============================================================ -->
   <section id="screen-play" class="screen">
     <header class="hud play-hud">
-      <span id="hud-level">自由行</span>
+      <span class="hud-left">
+        <span id="hud-level">自由行</span>
+        <span id="hud-stamps" class="hud-stamps" hidden>已集 0 / 5 枚</span>
+      </span>
       <span class="hud-right">
+        <button id="btn-pause" class="hud-btn">暂停</button>
         <button id="btn-book" class="hud-btn">线索册</button>
         <span id="hud-time" class="mono">00:00</span>
       </span>
@@ -261,7 +338,7 @@
           <div class="free-label">目的地</div>
           <p id="free-name" class="free-name"></p>
         </div>
-        <button id="btn-free-exit" class="trip-exit">退出</button>
+        <button id="btn-free-exit" class="trip-exit">改为模拟</button>
       </div>
       <p id="free-blurb" class="free-blurb"></p>
       <div class="trip-status">
@@ -376,7 +453,7 @@
       <div><b id="end-time">00:00</b><span>用时</span></div>
       <div id="stat-hints"><b id="end-hints">0</b><span>提示</span></div>
       <div><b id="end-asks">0</b><span>问路</span></div>
-      <div><b id="end-score">0</b><span>得分</span></div>
+      <div id="stat-score"><b id="end-score">0</b><span>得分</span></div>
     </div>
 
     <div id="fog-stats" class="stats" hidden>
@@ -401,7 +478,10 @@
     </div>
     <button id="btn-diary" class="btn ghost diary-btn">写日记 →</button>
     <p id="end-note" class="end-note" hidden>轻量验码 · 不作为到访证明</p>
-    <button id="btn-home" class="link">换一个目的地</button>
+    <div class="end-links">
+      <button id="btn-switch-route" class="link" hidden>换条路线</button>
+      <button id="btn-home" class="link">换一个目的地</button>
+    </div>
   </section>
 
   <!-- ============================================================
@@ -477,7 +557,19 @@
     <div class="stamp-seal"><span id="stamp-mark"></span></div>
     <p id="stamp-story"></p>
     <div id="stamp-piece" class="stamp-piece"></div>
-    <button id="stamp-next" class="btn primary">继续前进</button>
+    <p id="stamp-progress" class="stamp-progress"></p>
+    <p id="stamp-next-hint" class="stamp-next-hint"></p>
+    <button id="stamp-next" class="btn primary">前往下一站</button>
+  </div>
+
+  <div id="pause" class="pause" aria-live="polite" inert>
+    <div class="pause-card">
+      <p class="pause-kicker">已暂停</p>
+      <h2 class="pause-title">歇一下</h2>
+      <p id="pause-info" class="pause-info"></p>
+      <button id="btn-pause-resume" class="btn primary">继续</button>
+      <button id="btn-pause-exit" class="btn ghost">返回游戏首页</button>
+    </div>
   </div>
 
   <div id="toast" class="toast"></div>
@@ -494,11 +586,11 @@
 
 </div>
 
-<script src="destinations.js?v=2"></script>
-<script src="destinations-city.js?v=2"></script>
-<script src="levels.js?v=2"></script>
-<script src="packs.js?v=2"></script>
-<script src="game.js?v=2"></script>
-<script src="companion.js?v=2"></script>
+<script src="destinations.js?v=3"></script>
+<script src="destinations-city.js?v=3"></script>
+<script src="levels.js?v=3"></script>
+<script src="packs.js?v=3"></script>
+<script src="game.js?v=3"></script>
+<script src="companion.js?v=3"></script>
 </body>
 </html>

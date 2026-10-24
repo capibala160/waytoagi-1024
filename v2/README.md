@@ -9,7 +9,8 @@ Open on a phone: `https://capibala160.github.io/waytoagi-1024/v2/`
 - Same product flow: **今天去哪 → 搜地点 → 确认 → 怎么走 → 罗盘 → 到达 → 日记／抵达证明**.
 - New visual system: ink background by default, warm paper cards, one brass primary button per screen, light/dark switch in the top right.
 - The compass uses the generated high-resolution plate, needle, glass, and sheen from `compass-kit/assets/web/`. The layered renderer is the existing CSS transform engine; the canvas fallback remains available with `?engine=canvas`.
-- Game entry points are kept: the **游戏** tab opens the venue hunt hub, and both hunt cards still start the existing game flow. The game internals are copied unchanged so the person refining game mode can work in `v2/game.js` without touching the exploration layer.
+- Game entry points are kept: the **游戏** tab opens the venue hunt hub, and both hunt cards still start the existing game flow.
+- **Latest gameplay ported (2026-10-24):** brief, pause/resume, stamp progress, end loop, GPS retry, arrival observation, final fragment assembly. The v2 visual shell now runs the same engine features as the root app, minus the root iframe full-screen compass button.
 
 ## What changed from the reference notes
 
