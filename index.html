@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <link rel="icon" href="favicon.svg" type="image/svg+xml" />
 <title>犟针 · 只指方向，不指路</title>
-<link rel="stylesheet" href="style.css?v=20261024n" />
+<link rel="stylesheet" href="style.css?v=20261024o" />
 </head>
 <body>
 
@@ -155,6 +155,38 @@
       </button>
     </div>
     <p class="how-note">定位失败可以改为模拟。随时可以退出，没有人会扣分。</p>
+  </section>
+
+  <!-- 到站确认 -->
+  <section id="screen-arrive" class="screen">
+    <div class="hud">
+      <button id="btn-arrive-back" class="btn ghost small">‹</button>
+      <span>到站确认</span>
+      <span></span>
+    </div>
+    <p id="arrive-kicker" class="arrive-kicker"></p>
+    <h2 class="arrive-title">先看看眼前的东西</h2>
+    <div class="arrive-npc">
+      <span id="arrive-npc" class="arrive-npc-name"></span>
+      <p id="arrive-question" class="arrive-question"></p>
+    </div>
+    <div id="arrive-options" class="arrive-options"></div>
+    <p id="arrive-feedback" class="arrive-feedback" hidden></p>
+
+    <div id="arrive-finale" class="arrive-finale" hidden>
+      <p class="arrive-finale-title">最后一步 · 拼合碎片</p>
+      <div id="arrive-pieces" class="arrive-pieces"></div>
+      <p id="arrive-finale-question" class="arrive-question"></p>
+      <div id="arrive-finale-options" class="arrive-options"></div>
+      <p id="arrive-finale-feedback" class="arrive-feedback" hidden></p>
+    </div>
+
+    <div id="arrive-hint" class="arrive-hint" hidden></div>
+    <button id="btn-arrive-next" class="btn primary" hidden>看数字</button>
+    <div id="arrive-hint-actions" class="arrive-hint-actions">
+      <button id="btn-arrive-self" class="btn ghost">自己再找找</button>
+      <button id="btn-arrive-hint" class="btn ghost">用 1 盏灯换提示</button>
+    </div>
   </section>
 
   <!-- 旅伴铸造 -->
@@ -412,11 +444,11 @@
 
 </div>
 
-<script src="destinations.js?v=20261024n"></script>
-<script src="destinations-city.js?v=20261024n"></script>
-<script src="levels.js?v=20261024n"></script>
-<script src="packs.js?v=20261024n"></script>
-<script src="game.js?v=20261024n"></script>
-<script src="companion.js?v=20261024n"></script>
+<script src="destinations.js?v=20261024o"></script>
+<script src="destinations-city.js?v=20261024o"></script>
+<script src="levels.js?v=20261024o"></script>
+<script src="packs.js?v=20261024o"></script>
+<script src="game.js?v=20261024o"></script>
+<script src="companion.js?v=20261024o"></script>
 </body>
 </html>

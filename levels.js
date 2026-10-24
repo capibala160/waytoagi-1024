@@ -36,6 +36,15 @@ window.LEVEL_SETS = {
         type: 'tutorial',
         typeLabel: '教学',
         place: '（占位）门口右侧的绿植',
+        npc: '门口接待员',
+        observe: {
+          question: '线索说的入口，你眼前看到的是哪一处？',
+          options: [
+            { text: '写着「欢迎来客」的墙', variant: 'A', feedback: '对，就是这面墙。', wrongFeedback: '不是这条线索说的入口，再看一眼线索。' },
+            { text: '贴着营业时间表的玻璃门', variant: 'B', feedback: '对，就是这扇门。', wrongFeedback: '不是这条线索说的入口，再看一眼线索。' },
+            { text: '签到台后面的那张海报', feedback: '海报是下一站的事，先找入口。' }
+          ]
+        },
         code: '4821',
         bearing: 30,
         steps: 12,
@@ -61,6 +70,15 @@ window.LEVEL_SETS = {
         type: 'observe',
         typeLabel: '观察',
         place: '（占位）签到台旁的海报',
+        npc: '海报管理员',
+        observe: {
+          question: '那张颜色最多的海报，主色是哪三种？',
+          options: [
+            { text: '红、黄、蓝', ok: true, feedback: '对，就是这张海报。' },
+            { text: '黑、白、灰', feedback: '这张太素了，再找颜色最多的。' },
+            { text: '红、绿、紫', feedback: '颜色不对，回到线索描述的海报。' }
+          ]
+        },
         code: '7306',
         bearing: 120,
         steps: 9,
@@ -85,6 +103,15 @@ window.LEVEL_SETS = {
         type: 'combine',
         typeLabel: '组合',
         place: '（占位）饮水机',
+        npc: '路过的同事',
+        observe: {
+          question: '一直响的水声，把你带到了哪里？',
+          options: [
+            { text: '一直在响的饮水机', ok: true, feedback: '对，就是这台饮水机。' },
+            { text: '洗手间门口', feedback: '方向不对，线索说的是那台一直响的饮水机。' },
+            { text: '签到台', feedback: '那是起点，往回走。' }
+          ]
+        },
         code: '1592',
         bearing: 210,
         steps: 15,
@@ -109,6 +136,15 @@ window.LEVEL_SETS = {
         type: 'optional',
         typeLabel: '挑战',
         place: '（占位）路演厅后墙插座',
+        npc: '路演厅工作人员',
+        observe: {
+          question: '后墙插座旁边那张纸，为什么需要蹲下？',
+          options: [
+            { text: '它被挡住了一半', ok: true, feedback: '对，蹲下才看得到下半张。' },
+            { text: '它贴在天花板上', feedback: '不用抬头，看插座旁边。' },
+            { text: '它在门背后', feedback: '不是门后，是后墙插座旁边。' }
+          ]
+        },
         code: '6048',
         bearing: 300,
         steps: 10,
@@ -134,6 +170,15 @@ window.LEVEL_SETS = {
         type: 'final',
         typeLabel: '揭晓',
         place: '（占位）起点旁的空桌',
+        npc: '终点守章人',
+        observe: {
+          question: '回到起点旁的空桌，桌上有什么？',
+          options: [
+            { text: '四张纸和一个纸杯', ok: true, feedback: '对，就是这张桌子。' },
+            { text: '一台投影仪', feedback: '不是这里，回到你出发时坐过的空桌。' },
+            { text: '一盆绿植', feedback: '绿植在门口，不在桌上。' }
+          ]
+        },
         code: '3371',
         bearing: 45,
         steps: 14,
@@ -168,6 +213,15 @@ window.LEVEL_SETS = {
         type: 'tutorial',
         typeLabel: '教学',
         place: '（占位）展台右角，杯子下面',
+        npc: '摊位接待',
+        observe: {
+          question: '展台右角，杯子下面压着什么？',
+          options: [
+            { text: '一张写着数字的纸', ok: true, feedback: '对，把杯子抬起来就看到了。' },
+            { text: '一把钥匙', feedback: '不是钥匙，看杯子下面。' },
+            { text: '一张名片', feedback: '再仔细看，杯子下面压着一张纸。' }
+          ]
+        },
         code: '1123',
         bearing: 20,
         steps: 3,
@@ -190,6 +244,15 @@ window.LEVEL_SETS = {
         type: 'observe',
         typeLabel: '观察',
         place: '（占位）椅子靠背后面',
+        npc: '邻座同事',
+        observe: {
+          question: '椅子靠背后面那张纸，上面的图形是？',
+          options: [
+            { text: '三角形', ok: true, feedback: '对，就是那张纸。' },
+            { text: '圆形', feedback: '图形不对，再摸一下靠背后面。' },
+            { text: '方形', feedback: '图形不对，看看靠背后面那张纸。' }
+          ]
+        },
         code: '5566',
         bearing: 200,
         steps: 4,
@@ -211,6 +274,15 @@ window.LEVEL_SETS = {
         type: 'final',
         typeLabel: '揭晓',
         place: '（占位）笔记本电脑后面',
+        npc: '守章人',
+        observe: {
+          question: '笔记本电脑背面那张纸，最后一句是什么？',
+          options: [
+            { text: '「你到了」', ok: true, feedback: '对，三段拼起来就是这句。' },
+            { text: '「欢迎来客」', feedback: '那是门口，不是电脑背面。' },
+            { text: '「营业时间」', feedback: '再看看电脑背面那张纸。' }
+          ]
+        },
         code: '9087',
         bearing: 300,
         steps: 3,
