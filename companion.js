@@ -18,7 +18,7 @@
   const ASK_LINE = '又问？行吧。';
   const GREET_DELAY_MS = 900;
   const BUBBLE_MS = 3800;
-  const NEEDLE_POLL_MS = 400;
+  const NEEDLE_POLL_MS = 100;
 
   const root = document.getElementById('azhen');
   if (!root) return;

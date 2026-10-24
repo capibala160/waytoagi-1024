@@ -413,6 +413,8 @@
   let hudAligned;
   let hudLocked;
   let hudTextAt = 0;
+  let smoothHeading = null;
+  let smoothPending = false;
 
   const bearingNum = $('bearing-num');
   const bearingWrap = document.querySelector('.bearing');
@@ -429,6 +431,8 @@
     compassDirty = true;
     lastDrawnHeading = undefined;
     lastDrawnTarget = undefined;
+    smoothHeading = null;
+    smoothPending = false;
   }
 
   function buildDial() {
@@ -542,6 +546,19 @@
   window.addEventListener('deviceorientationabsolute', (e) => onOrient(e, true), true);
   window.addEventListener('deviceorientation', (e) => onOrient(e, false), true);
 
+  function dampHeading(target) {
+    if (smoothHeading == null) {
+      smoothHeading = target;
+      smoothPending = false;
+      return target;
+    }
+    const delta = ((target - smoothHeading + 540) % 360) - 180;
+    smoothHeading = norm(smoothHeading + delta * 0.28);
+    const remain = ((target - smoothHeading + 540) % 360) - 180;
+    smoothPending = Math.abs(remain) > 0.2;
+    return smoothHeading;
+  }
+
   function updateAlign() {
     if (!state.headingAbsolute || state.target == null || state.heading == null) {
       state.aligned = false;
@@ -557,7 +574,8 @@
       return;
     }
     const was = state.aligned;
-    const diff = Math.abs(((state.heading - state.target + 540) % 360) - 180);
+    const shown = smoothHeading != null ? smoothHeading : state.heading;
+    const diff = Math.abs(((shown - state.target + 540) % 360) - 180);
     state.aligned = diff <= 6;
 
     // 进入对准区间时震一下，走路不用一直盯屏
@@ -602,7 +620,11 @@
   function drawCompass() {
     if (!cscale || !dialCanvas) return;
     const live = state.heading != null;
-    const h = live ? state.heading : 0;
+    if (!live) {
+      smoothHeading = null;
+      smoothPending = false;
+    }
+    const h = live ? dampHeading(state.heading) : 0;
 
     ctx.setTransform(cscale, 0, 0, cscale, 0, 0);
     ctx.clearRect(0, 0, CSIZE, CSIZE);
@@ -718,7 +740,7 @@
       drawCompass();
       lastDrawnHeading = state.heading;
       lastDrawnTarget = state.target;
-      compassDirty = false;
+      compassDirty = smoothPending;
     }
     paintHUD();
   }
