@@ -30,4 +30,8 @@ Slash command: `/spec <feature>` writes requirements, design, and tasks to `spec
 
 ## Stack
 
-Not chosen yet. Record the choice here once the first commit lands.
+- **Static HTML/CSS/JS, no build step.** Serve the repo and open `/v2/`; the root `/` redirects to v2, and the old root app is kept at `/legacy.html` for rollback.
+- **v2 is the main entry**: `v2/index.html`, `v2/game.js`, `v2/theme.css`, `v2/game.css`, `v2/assets/`.
+- **Compass**: v2 uses the layered kit assets in `v2/assets/compass/`; `compass-kit/demo.html` is embedded as the in-app “罗盘校准” page. The old iframe full-screen compass only exists in the legacy root app.
+- **Location data**: `v2/destinations.js` / `v2/destinations-city.js`; declare `datum`, convert GCJ-02 to WGS-84 in `v2/game.js`, and keep `entrance` honest.
+- **Local check**: `py -3 -m http.server 8081` → `http://127.0.0.1:8081/v2/`; test 390×844 and 430×932, light/dark, and the real-travel GPS states.

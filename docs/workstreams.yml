@@ -3,14 +3,15 @@
 # 更新：每完成一件事，把 status 改成 done，并在 docs/STATUS.md 写一行。
 
 project:
-  submission_app: "问津"
-  docs_concept: "犟针"
-  rule: "产品真值是目的地优先：用户说一个地方，罗盘只指它。5 关寻宝是兜底，不是中心。"
+  submission_app: "犟针 v2"
+  main_entry: "v2/（根路径 / 自动跳转；旧根应用在 /legacy.html）"
+  rule: "产品真值是目的地优先：用户说一个地方，罗盘只指它。真实出行先保定位可信，5/3 站寻宝是游戏标签。"
   product_truth: "docs/PRODUCT-TRUTH.md"
   repo: "https://github.com/capibala160/waytoagi-1024"
   pages_url: "https://capibala160.github.io/waytoagi-1024/"
+  compass_lab: "真实出行 → 罗盘校准；独立 demo /compass-kit/demo.html"
   principle: "这是起点，不是定稿；所有人都可以改。ownership 是协调，不是门槛。"
-  updated: "2026-10-24"
+  updated: "2026-10-24T18:00:00+08:00"
 
 deadlines:
   team_formation: "2026-10-25T12:00:00+08:00"
@@ -40,7 +41,7 @@ tasks:
     owner: B
     backup: C
     due: "2026-10-24T12:30:00+08:00"
-    note: "https://capibala160.github.io/waytoagi-1024/ ；电脑选「不出门」，90 秒一局。"
+    note: "https://capibala160.github.io/waytoagi-1024/ 根路径自动跳 v2；旧根在 /legacy.html。"
     files: ["index.html", "style.css", "game.js", "levels.js"]
     acceptance:
       - "链接可打开"
@@ -55,13 +56,13 @@ tasks:
     owner: B
     backup: C
     due: "2026-10-24T22:00:00+08:00"
-    note: "根路径 https://capibala160.github.io/waytoagi-1024/ 已可玩；会场寻宝在首页底部。"
-    files: ["index.html", "style.css", "game.js", "destinations.js", "companion.js"]
+    note: "根路径自动跳 /v2/；旧根 /legacy.html。真实出行已接 GPS 与定位可信校验。"
+    files: ["index.html", "legacy.html", "v2/game.js", "v2/destinations.js", "v2/game.css"]
     acceptance:
       - "输入/选择一个成都地点"
       - "罗盘只指这个地点"
-      - "走到目的地格，结果页出现"
-      - "6 个地点；输入能过滤"
+      - "精度/时效/连续 3 次通过后，用户点「我到了」才结算"
+      - "6 个地点；GCJ-02 → WGS-84；输入能过滤"
     depends_on: ["deploy-https"]
 
   - id: home-destination-input
@@ -93,16 +94,17 @@ tasks:
     depends_on: ["destination-mode"]
 
   - id: chengdu-levels
-    title: "会场寻宝（兜底，保留首页底部）"
+    title: "会场寻宝（游戏标签）"
     status: fallback
     owner: C
     backup: B
     due: "2026-10-25T12:00:00+08:00"
-    note: "不再加关卡/码；根路径已换目的地模式。"
-    files: ["levels.js", "game.js"]
+    note: "v2 首页「游戏」标签；5/3 站；不再加关卡/码。现场点位和纸码待校准。"
+    files: ["v2/levels.js", "v2/game.js"]
     acceptance:
-      - "首页底部「会场寻宝模式」能玩"
-      - "不进主入口"
+      - "游戏标签能玩 5 站 / 3 站"
+      - "开局说明 / 到站观察 / 集章 / 终点拼合 / 结算闭环"
+      - "不抢探索主入口"
     depends_on: []
 
   - id: protagonist-card
@@ -210,3 +212,26 @@ tasks:
       - "游戏赛道已锁定"
       - "OpenDev 已登记"
     depends_on: []
+
+  - id: v2-main-location-trust
+    title: "v2 主入口 + 真实出行定位可信 + 罗盘校准"
+    status: done
+    owner: B
+    backup: C
+    due: "2026-10-24T18:00:00+08:00"
+    note: "根路径跳 /v2/；旧根 /legacy.html；定位逻辑通过模拟采样，真机待走。"
+    files:
+      - "index.html（跳转）"
+      - "legacy.html"
+      - "v2/game.js"
+      - "v2/destinations.js"
+      - "v2/destinations-city.js"
+      - "v2/game.css"
+      - "compass-kit/demo.html"
+    acceptance:
+      - "根路径跳到 /v2/"
+      - "目的地 GCJ-02 → WGS-84 后算距离/方位"
+      - "精度 ≤50m、采样 ≤15s、连续 3 次；用户点「我到了」"
+      - "页面隐藏停止 GPS，返回重新定位"
+      - "真实出行 → 罗盘校准可打开 kit demo"
+    depends_on: ["deploy-https"]

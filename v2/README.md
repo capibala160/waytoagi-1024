@@ -4,6 +4,8 @@ This is the high-resolution visual pass. It is a separate folder; the root app i
 
 Open on a phone: `https://capibala160.github.io/waytoagi-1024/v2/`
 
+The root `https://capibala160.github.io/waytoagi-1024/` now redirects here; the old root app is kept at `/legacy.html`. This `v2/` folder is the main entry.
+
 ## What this version is
 
 - Same product flow: **今天去哪 → 搜地点 → 确认 → 怎么走 → 罗盘 → 到达 → 日记／抵达证明**.
@@ -34,7 +36,7 @@ Open on a phone: `https://capibala160.github.io/waytoagi-1024/v2/`
 ## Local check
 
 ```bash
-python3 -m http.server 8000
+py -3 -m http.server 8000
 # http://localhost:8000/v2/
 ```
 
@@ -50,5 +52,7 @@ Design QA shortcuts (not user-facing):
 - `index.html` — new structure, all existing element IDs preserved
 - `theme.css` — new design layer, loaded after `base.css`
 - `base.css` — the original stylesheet, kept for behaviour and game screens
-- `game.js` / `companion.js` — copied engine with the v2 hooks
+- `game.js` / `companion.js` — v2 engine hooks plus the latest gameplay (arrival, pause, stamps, finale, location trust)
+- `game.css` — gameplay additions (brief, arrival, pause, stamp progress, compass lab)
+- `destinations.js` / `destinations-city.js` — datum/source/entrance + GCJ-02 coordinates
 - `assets/compass/` — high-resolution compass layers from `compass-kit`
