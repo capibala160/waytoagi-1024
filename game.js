@@ -919,12 +919,7 @@
       state.alignLocked = true;
       if (typeof navigator.vibrate === 'function') navigator.vibrate([15, 40, 15]);
 
-      // 稳定对准后，才揭示“到了附近再看”的第二层线索
-      if (!state.arriveRevealed) {
-        state.arriveRevealed = true;
-        const ac = $('arrive-clue');
-        if (ac.textContent) ac.hidden = false;
-      }
+      // 第二层线索留到「我到了」的到站确认后再揭示
     }
   }
 
@@ -1963,7 +1958,7 @@
         } else {
           const locked = document.createElement('p');
           locked.className = 'book-locked';
-          locked.textContent = '稳定对准或到站确认物件后解锁到达线索';
+          locked.textContent = '点「我到了」确认物件后解锁到达线索';
           item.appendChild(locked);
         }
       } else {
