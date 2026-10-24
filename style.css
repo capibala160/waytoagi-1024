@@ -1098,12 +1098,34 @@ body::after {
 
 /* ---------- 首页 hero ---------- */
 
+.home-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
 .home-eyebrow {
   margin: 6px 0 10px;
   color: var(--amber);
   font-size: 11px;
   letter-spacing: .28em;
 }
+.home-top .home-eyebrow { margin: 0; }
+
+.theme-toggle {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line-soft);
+  background: var(--surface-1);
+  color: var(--text-2);
+  font-family: inherit;
+  font-size: 16px;
+  cursor: pointer;
+}
+.theme-toggle:active { transform: scale(.96); }
 
 .home-brand {
   margin: 0 0 4px;
@@ -1439,4 +1461,69 @@ body::after {
   .sim-tip { margin: 0 0 4px; font-size: 10px; }
   .actions { padding-top: 6px; }
   .actions .btn { min-height: 46px; }
+}
+
+/* ============================================================
+   Light theme
+   ============================================================ */
+
+:root[data-theme="light"] {
+  --bg: #f5f1e7;
+  --surface-1: #fffdf8;
+  --surface-2: #faf6ec;
+  --surface-3: #f1eadb;
+  --line: rgba(120, 90, 40, .18);
+  --line-soft: rgba(80, 60, 30, .1);
+  --text: #211d16;
+  --text-2: #5c5444;
+  --text-3: #8a7f6b;
+  --dim: #7c7363;
+  --amber: #a86f16;
+  --amber-2: #c98a20;
+  --amber-deep: #8a5a10;
+  --green: #4f8a4a;
+  --red: #b8433f;
+  --paper: #fffaf0;
+  --paper-2: #f3e8d2;
+  --paper-ink: #241f19;
+  --shadow-1: 0 10px 30px rgba(80, 60, 30, .12);
+  --shadow-2: 0 18px 50px rgba(80, 60, 30, .2);
+}
+
+:root[data-theme="light"] body::before {
+  background:
+    radial-gradient(900px 420px at 50% -8%, rgba(200, 140, 40, .18), transparent 70%),
+    radial-gradient(600px 320px at 100% 100%, rgba(90, 140, 80, .08), transparent 70%),
+    linear-gradient(180deg, #fbf7ee, #f1ebdf 60%);
+}
+:root[data-theme="light"] body::after {
+  background-image: repeating-linear-gradient(0deg, rgba(80, 60, 30, .02) 0 1px, transparent 1px 3px);
+  opacity: .4;
+}
+
+:root[data-theme="light"] .home-brand {
+  text-shadow: 0 0 60px rgba(168, 111, 22, .15);
+}
+:root[data-theme="light"] .clue {
+  border: 1px solid rgba(120, 90, 40, .12);
+  box-shadow: 0 18px 40px rgba(80, 60, 30, .18), inset 0 1px 0 #fff;
+}
+:root[data-theme="light"] .bearing span { color: #a29a8a; }
+:root[data-theme="light"] .bearing.live span { color: #211d16; }
+:root[data-theme="light"] .hint-box { color: #5c5444; }
+:root[data-theme="light"] .free-blurb { color: #5c5444; }
+:root[data-theme="light"] .challenge { color: #5c5444; }
+:root[data-theme="light"] .timeline-row { color: #5c5444; }
+:root[data-theme="light"] .piece-chip { color: #5c5444; }
+:root[data-theme="light"] .piece-chip b { color: var(--amber); }
+:root[data-theme="light"] .end-story { color: #5c5444; }
+
+/* 通关卡是暗色浮层，两种主题都保持亮琥珀 */
+:root[data-theme="light"] .stamp-station { color: #f0c66f; }
+:root[data-theme="light"] .stamp-story { color: #e8e6e1; }
+:root[data-theme="light"] .stamp-seal { color: #f0c66f; border-color: #f0c66f; }
+:root[data-theme="light"] .stamp-piece {
+  color: #f0c66f;
+  border-color: rgba(240, 198, 111, .35);
+  background: rgba(240, 198, 111, .1);
 }

@@ -990,6 +990,26 @@
     $('btn-forge-link').textContent = '旅伴 · ' + (state.variant ? state.variant.name : '阿针');
   }
 
+  function applyTheme(theme) {
+    const t = theme === 'light' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = t;
+    try { localStorage.setItem('wenjin-theme', t); } catch (e) { /* 忽略 */ }
+
+    const btn = $('btn-theme');
+    if (btn) {
+      btn.textContent = t === 'light' ? '☀' : '☾';
+      btn.setAttribute('aria-label', t === 'light' ? '切换到深色' : '切换到浅色');
+    }
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', t === 'light' ? '#f5f1e7' : '#0b0d10');
+  }
+
+  function loadTheme() {
+    let t = 'dark';
+    try { t = localStorage.getItem('wenjin-theme') || 'dark'; } catch (e) { /* 忽略 */ }
+    applyTheme(t);
+  }
+
   function loadVariant() {
     try {
       const v = JSON.parse(localStorage.getItem('wenjin-variant') || 'null');
@@ -2827,6 +2847,11 @@
     showScreen('start');
   });
 
+  $('btn-theme').addEventListener('click', () => {
+    const cur = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+    applyTheme(cur === 'light' ? 'dark' : 'light');
+  });
+
   $('btn-char-save').addEventListener('click', () => {
     const v = state.forgeVariants[state.forgePick];
     if (!v) return;
@@ -2922,6 +2947,7 @@
   window.addEventListener('resize', fitCompass);
   window.addEventListener('orientationchange', () => setTimeout(fitCompass, 150));
 
+  loadTheme();
   loadVariant();
   loadChallenge();
   renderHome();
