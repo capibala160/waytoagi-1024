@@ -12,6 +12,9 @@
     SETS.outdoor = { key: 'outdoor', name: '出门玩', desc: '', levels: window.LEVELS };
   }
 
+  const SAVE_KEY = 'wenjin-save-v1';
+  const SAVE_TTL_MS = 7 * 864e5;
+
   const CFG = Object.assign({
     venue: '会场',
     event: '问津',
@@ -54,6 +57,7 @@
     startLevelIndex: 0,
     par: 300,
     completed: 0,
+    usedSimulation: false,
     checkTimer: null,
     resetTimer: null,
     finished: false,
@@ -77,6 +81,157 @@
     if (score >= 700) return '老 向 导';
     if (score >= 500) return '认 得 路';
     return '第 一 次 来';
+  }
+
+  function isPlaying() {
+    return !state.finished && (state.screen === 'play' || state.screen === 'code');
+  }
+
+  function practiceRun() {
+    return forceDemo || state.usedSimulation || state.startLevelIndex > 0;
+  }
+
+  function saveSignatureFor(mode, levels) {
+    return mode + ':' + levels.map((l) => l.code + '/' + l.bearing + '/' + l.steps).join('|');
+  }
+
+  function validateSet(set) {
+    const errors = [];
+    if (!set || !Array.isArray(set.levels) || !set.levels.length) {
+      return ['至少配置一个站点。'];
+    }
+    set.levels.forEach((lv, i) => {
+      const p = `第 ${i + 1} 站：`;
+      if (!lv || typeof lv !== 'object') { errors.push(p + '站点必须是对象。'); return; }
+      if (typeof lv.code !== 'string' || !/^\d{4}$/.test(lv.code)) errors.push(p + 'code 必须是四位数字字符串。');
+      if (!Number.isFinite(lv.bearing) || lv.bearing < 0 || lv.bearing >= 360) errors.push(p + 'bearing 必须在 0–359。');
+      if (!Number.isFinite(lv.steps) || lv.steps < 0) errors.push(p + 'steps 必须是非负数字。');
+      if (typeof lv.clue !== 'string' || !lv.clue.trim()) errors.push(p + '请填写 clue。');
+      if (!Array.isArray(lv.hints) || lv.hints.some((h) => typeof h !== 'string' || !h.trim())) errors.push(p + 'hints 必须是文字数组。');
+    });
+    if (!Number.isFinite(set.par) || set.par <= 0) errors.push('par 必须是正数。');
+    return errors;
+  }
+
+  function validateAll() {
+    const errors = [];
+    Object.keys(SETS).forEach((key) => {
+      const set = SETS[key];
+      validateSet(set).forEach((e) => errors.push(`${set.name || key}：${e}`));
+    });
+    return errors;
+  }
+
+  function saveProgress() {
+    if (!isPlaying()) return;
+    try {
+      localStorage.setItem(SAVE_KEY, JSON.stringify({
+        v: 1,
+        mode: state.mode,
+        sig: saveSignatureFor(state.mode, state.levels),
+        level: state.level,
+        startLevel: state.startLevelIndex,
+        completed: state.completed,
+        hints: state.hints,
+        hintShown: state.hintShown,
+        asks: state.asks,
+        elapsed: state.elapsed,
+        savedAt: Date.now(),
+        usedSimulation: state.usedSimulation
+      }));
+    } catch (e) { /* 隐私模式或存储满时照常玩 */ }
+  }
+
+  function readProgress() {
+    try {
+      const d = JSON.parse(localStorage.getItem(SAVE_KEY));
+      if (!d || d.v !== 1) return null;
+      const set = SETS[d.mode];
+      if (!set || !Array.isArray(set.levels) || !set.levels.length) return null;
+      if (d.sig !== saveSignatureFor(d.mode, set.levels)) return null;
+      if (!Number.isInteger(d.level) || d.level < 0 || d.level >= set.levels.length) return null;
+      if (!Number.isInteger(d.startLevel) || d.startLevel < 0 || d.startLevel > d.level) return null;
+      if (!Number.isInteger(d.completed) || d.completed < 0) return null;
+      if (!Number.isInteger(d.hints) || d.hints < 0) return null;
+      if (!Number.isInteger(d.hintShown) || d.hintShown < 0) return null;
+      if (!Number.isInteger(d.asks) || d.asks < 0) return null;
+      if (!Number.isFinite(d.elapsed) || d.elapsed < 0 || d.elapsed > 604800) return null;
+      if (!Number.isFinite(d.savedAt) || d.savedAt > Date.now() + 300000 || Date.now() - d.savedAt > SAVE_TTL_MS) return null;
+      if (typeof d.usedSimulation !== 'boolean') return null;
+      return d;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function clearProgress() {
+    try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* 忽略 */ }
+    $('btn-resume').hidden = true;
+  }
+
+  function refreshResume() {
+    const d = readProgress();
+    $('btn-resume').hidden = !d;
+    if (d) {
+      const set = SETS[d.mode];
+      $('start-message').textContent = `上次走到「${set.name}」第 ${d.level + 1} 站，可继续。关闭页面期间仍计时。`;
+    }
+  }
+
+  function resumeGame() {
+    const d = readProgress();
+    if (!d) {
+      refreshResume();
+      $('start-message').textContent = '没有可恢复的旅程，请重新开始。';
+      return;
+    }
+    const set = SETS[d.mode];
+    const errors = validateSet(set);
+    if (errors.length) {
+      $('start-message').textContent = errors.slice(0, 3).join('\n');
+      return;
+    }
+
+    requestMotionPermission();
+
+    state.mode = d.mode;
+    state.levels = set.levels;
+    state.par = set.par || 300;
+    state.startLevelIndex = d.startLevel;
+    state.level = d.level;
+    state.completed = d.completed;
+    state.hints = d.hints;
+    state.hintShown = d.hintShown;
+    state.asks = d.asks;
+    state.usedSimulation = d.usedSimulation;
+    state.finished = false;
+    state.score = 0;
+    state.codeInput = '';
+    state.checking = false;
+
+    const closed = Math.max(0, (Date.now() - d.savedAt) / 1000);
+    const total = Math.max(0, d.elapsed + closed);
+    state.elapsed = total;
+    state.startAt = Date.now() - total * 1000;
+
+    state.heading = null;
+    state.headingAbsolute = false;
+    state.relativeOnly = false;
+    state.sensorSeen = false;
+    state.lastOrientAt = 0;
+    state.simulating = false;
+    state.aligned = false;
+    $('sim-tip').hidden = true;
+
+    renderLevel();
+    state.hintShown = d.hintShown;
+    renderHints();
+    saveProgress();
+
+    if (state.usedSimulation) goSimulation('上次用了模拟罗盘，继续模拟');
+
+    wantWakeLock = true;
+    requestWakeLock();
   }
 
   /* ---------------- 罗盘 ---------------- */
@@ -163,6 +318,7 @@
   function goSimulation(reason) {
     if (!state.simulating) {
       state.simulating = true;
+      state.usedSimulation = true;
       state.heading = null;
       state.headingAbsolute = false;
       state.aligned = false;
@@ -294,10 +450,16 @@
     $('align-badge').classList.toggle('on', state.aligned);
   }
 
+  let lastSaveAt = 0;
   setInterval(() => {
-    if (state.screen !== 'play' && state.screen !== 'code') return;
-    if (!state.finished) state.elapsed = (Date.now() - state.startAt) / 1000;
+    if (!isPlaying()) return;
+    state.elapsed = Math.max(0, (Date.now() - state.startAt) / 1000);
     $('hud-time').textContent = fmtTime(state.elapsed);
+
+    if (performance.now() - lastSaveAt > 1000) {
+      saveProgress();
+      lastSaveAt = performance.now();
+    }
 
     // 罗盘断流：不再沿用旧角度，切模拟兜底
     if (!forceDemo && !state.simulating && state.heading != null &&
@@ -331,6 +493,27 @@
 
   /* ---------------- 关卡 ---------------- */
 
+  function renderHints() {
+    const lv = state.levels[state.level];
+    const n = state.hintShown || 0;
+    const box = $('hint-box');
+
+    if (!n) {
+      box.hidden = true;
+      box.textContent = '';
+    } else {
+      box.hidden = false;
+      const lines = lv.hints.slice(0, n).map((h, i) => `${i + 1}. ${h}`);
+      lines.push(`已用 ${n} 条 · 折算 +${n * CFG.hintSeconds} 秒`);
+      box.textContent = lines.join('\n');
+    }
+
+    const btn = $('btn-hint');
+    const exhausted = n >= lv.hints.length;
+    btn.disabled = exhausted;
+    btn.textContent = exhausted ? '没有更多提示' : '要提示';
+  }
+
   function renderLevel() {
     const lv = state.levels[state.level];
     state.target = lv.bearing != null ? lv.bearing : null;
@@ -345,13 +528,11 @@
       ? `目标方位 ${String(Math.round(lv.bearing)).padStart(3, '0')}° · 约 ${lv.steps} 步`
       : `约 ${lv.steps} 步`;
 
-    const box = $('hint-box');
-    box.hidden = true;
-    box.textContent = '';
-    $('btn-hint').textContent = '要提示';
+    renderHints();
 
     showScreen('play');
     requestAnimationFrame(fitCompass);
+    saveProgress();
 
     setTimeout(() => {
       if (state.sensorSeen || state.simulating) return;
@@ -406,12 +587,17 @@
   }
 
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' &&
-        (state.screen === 'play' || state.screen === 'code')) {
+    if (document.visibilityState === 'hidden') {
+      saveProgress();
+      return;
+    }
+    if (state.screen === 'play' || state.screen === 'code') {
       wantWakeLock = true;
       requestWakeLock();
     }
   });
+
+  window.addEventListener('pagehide', saveProgress);
 
   async function startGame(mode) {
     const set = SETS[mode] || SETS.outdoor;
@@ -419,8 +605,15 @@
       alert('levels.js 里还没有关卡');
       return;
     }
+    const errors = validateSet(set);
+    if (errors.length) {
+      $('start-message').textContent = errors.slice(0, 3).join('\n');
+      return;
+    }
     await requestMotionPermission();
 
+    clearProgress();
+    state.usedSimulation = false;
     state.mode = mode;
     state.levels = set.levels;
     state.par = set.par || 300;
@@ -448,6 +641,7 @@
     state.startAt = Date.now();
 
     if (forceDemo) {
+      state.usedSimulation = true;
       state.simulating = true;
       const tip = $('sim-tip');
       tip.hidden = false;
@@ -465,19 +659,16 @@
     const lv = state.levels[state.level];
     if (state.hintShown >= lv.hints.length) return;
 
-    const text = lv.hints[state.hintShown++];
+    state.hintShown++;
     state.hints++;
-
-    const box = $('hint-box');
-    box.hidden = false;
-    box.textContent = text;
-
-    if (state.hintShown >= lv.hints.length) $('btn-hint').textContent = '没有更多提示';
+    renderHints();
+    saveProgress();
   });
 
   $('btn-ask').addEventListener('click', () => {
     state.asks++;
     showToast(`问了第 ${state.asks} 个人`);
+    saveProgress();
   });
 
   /* ---------------- 输码 ---------------- */
@@ -586,7 +777,7 @@
 
   function finish() {
     state.finished = true;
-    state.elapsed = (Date.now() - state.startAt) / 1000;
+    state.elapsed = Math.max(0, (Date.now() - state.startAt) / 1000);
     // 按模式的目标时间（par）计分：正常发挥 ≈ 750，快 ≈ 850+
     const par = state.par || 300;
     const effective = state.elapsed + state.hints * CFG.hintSeconds;
@@ -600,19 +791,23 @@
     $('end-score').textContent = String(state.score);
     $('end-rating').textContent = rating(state.score);
 
-    const debug = state.startLevelIndex > 0;
+    const practice = practiceRun();
+    const reasons = [];
+    if (state.startLevelIndex > 0) reasons.push(`第 ${state.startLevelIndex + 1} 站起，完成 ${state.completed} 站`);
+    if (state.usedSimulation || forceDemo) reasons.push('含模拟罗盘');
+
     const debugEl = $('end-debug');
-    debugEl.hidden = !debug;
-    debugEl.textContent = debug
-      ? `调试模式 · 不计入活动成绩（第 ${state.startLevelIndex + 1} 站起，完成 ${state.completed} 站）`
-      : '';
+    debugEl.hidden = !practice;
+    debugEl.textContent = practice ? `练习成绩 · 不计入活动（${reasons.join(' · ')}）` : '';
 
     drawCard(state.score, {
       startLevel: state.startLevelIndex,
-      completed: state.completed
+      completed: state.completed,
+      practice
     });
     showScreen('end');
     releaseWakeLock();
+    clearProgress();
   }
 
   function drawRoute(x, cx, cy, boxW, boxH, from, to) {
@@ -680,6 +875,7 @@
   function drawCard(score, opts) {
     const doneStart = opts ? opts.startLevel : 0;
     const doneEnd = opts ? opts.startLevel + opts.completed : state.levels.length;
+    const practice = !!(opts && opts.practice);
     const W = 750, H = 1200;
     const card = $('card');
     card.width = W;
@@ -696,11 +892,11 @@
     x.lineWidth = 2;
     x.strokeRect(26, 26, W - 52, H - 52);
 
-    if (doneStart > 0) {
+    if (practice) {
       x.fillStyle = 'rgba(232,176,75,.55)';
       x.font = '400 20px -apple-system,"PingFang SC",sans-serif';
       x.textAlign = 'right';
-      x.fillText('调试成绩 · 不计入', W - 56, 78);
+      x.fillText('练习成绩 · 不计入', W - 56, 78);
     }
 
     x.textAlign = 'center';
@@ -711,7 +907,7 @@
 
     x.fillStyle = '#8a8578';
     x.font = '400 26px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
-    x.fillText('只带指南针的一次找路', W / 2, 240);
+    x.fillText(practice ? '练习旅程 · 含模拟或调试模式' : '只带指南针的一次找路', W / 2, 240);
 
     x.fillStyle = '#f0ece3';
     x.font = '200 150px ui-monospace,Menlo,Consolas,monospace';
@@ -788,6 +984,7 @@
 
   $('btn-start').addEventListener('click', () => startGame('outdoor'));
   $('btn-start-indoor').addEventListener('click', () => startGame('indoor'));
+  $('btn-resume').addEventListener('click', resumeGame);
 
   $('btn-again').addEventListener('click', () => {
     state.finished = false;
@@ -797,6 +994,12 @@
 
   window.addEventListener('resize', fitCompass);
   window.addEventListener('orientationchange', () => setTimeout(fitCompass, 150));
+
+  refreshResume();
+  const configErrors = validateAll();
+  if (configErrors.length) {
+    $('start-message').textContent = configErrors.slice(0, 3).join('\n');
+  }
 
   requestAnimationFrame(loop);
 })();

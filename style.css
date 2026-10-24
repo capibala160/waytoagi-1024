@@ -79,6 +79,18 @@ body {
   line-height: 1.9;
 }
 
+.resume { margin-top: 12px; }
+
+.start-message {
+  min-height: 18px;
+  margin: 10px 0 0;
+  color: var(--dim);
+  font-size: 12px;
+  line-height: 1.7;
+  text-align: center;
+  white-space: pre-line;
+}
+
 .mode-list {
   display: flex;
   flex-direction: column;
@@ -295,6 +307,12 @@ body {
   color: #d8cfae;
   font-size: 13px;
   line-height: 1.7;
+  white-space: pre-line;
+}
+
+.btn:disabled {
+  opacity: .45;
+  cursor: default;
 }
 
 /* ---------- 输码 ---------- */
