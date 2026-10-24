@@ -330,6 +330,13 @@ body {
   letter-spacing: .24em;
 }
 
+.end-debug {
+  margin: -12px 0 14px;
+  color: var(--dim);
+  font-size: 11px;
+  letter-spacing: .16em;
+}
+
 .card {
   width: min(72vw, 300px);
   border-radius: 14px;
