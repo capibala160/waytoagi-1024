@@ -558,7 +558,7 @@
       return target;
     }
     const delta = ((target - smoothHeading + 540) % 360) - 180;
-    smoothHeading = norm(smoothHeading + delta * 0.28);
+    smoothHeading = norm(smoothHeading + delta * 0.35);
     const remain = ((target - smoothHeading + 540) % 360) - 180;
     smoothPending = Math.abs(remain) > 0.2;
     return smoothHeading;
@@ -728,7 +728,7 @@
   function loop(t) {
     requestAnimationFrame(loop);
     if (state.screen !== 'play') return;       // 只有行进页需要刷新罗盘
-    if (t - lastDraw < 16) return;
+    if (t - lastDraw < 33) return;
     lastDraw = t;
 
     const prevAligned = state.aligned;

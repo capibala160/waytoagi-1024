@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0b0d10" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<link rel="icon" href="favicon.svg" type="image/svg+xml" />
+<title>问津 · 只带指南针</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div id="app">
+
+  <!-- 开始 -->
+  <section id="screen-start" class="screen active">
+    <div class="start-mark">問津</div>
+    <h1 class="start-title">只带指南针，<br/>自己找路</h1>
+    <p class="start-sub">没有地图，没有箭头，没有距离</p>
+
+    <div class="mode-list">
+      <button id="btn-start-free" class="mode-btn primary">
+        <b>自由行</b>
+        <span>选一个目的地 · GPS 指方向 · 到了出证明</span>
+      </button>
+      <button id="btn-start" class="mode-btn">
+        <b>出门玩</b>
+        <span>5 站寻宝 · 约 5 分钟 · 会场周边</span>
+      </button>
+      <button id="btn-start-indoor" class="mode-btn">
+        <b>不出门</b>
+        <span>3 站寻宝 · 约 90 秒 · 摊位附近（评委用）</span>
+      </button>
+    </div>
+
+    <button id="btn-resume" class="btn ghost resume" hidden>继续上次</button>
+    <p id="start-message" class="start-message" role="status" aria-live="polite"></p>
+
+    <p class="fine">看不懂就抬头问人<br/>自由行需要定位 · 没有 GPS 用「不出门」</p>
+  </section>
+
+  <!-- 自由行：选目的地 -->
+  <section id="screen-dest" class="screen">
+    <div class="hud">
+      <span>自由行</span>
+      <button id="btn-dest-back" class="btn ghost small">返回</button>
+    </div>
+    <h2 class="dest-title">今天去哪？</h2>
+    <p class="dest-sub">选一个地方，罗盘只指它。没有地图，没有路线。</p>
+    <div id="dest-list" class="dest-list"></div>
+    <p class="dest-note">需要定位权限 · 室内或没有 GPS 就用「不出门」模式</p>
+  </section>
+
+  <!-- 行进 -->
+  <section id="screen-play" class="screen">
+    <div class="hud">
+      <span id="hud-level">第 1 / 5 站</span>
+      <span id="hud-time" class="mono">00:00</span>
+    </div>
+
+    <div id="clue-card" class="clue">
+      <div class="clue-tag">线索 <span id="clue-type" class="clue-type"></span></div>
+      <p id="clue-text" class="clue-text"></p>
+      <div id="clue-meta" class="clue-meta"></div>
+    </div>
+
+    <div id="free-card" class="free-card" hidden>
+      <div class="free-label">目的地</div>
+      <p id="free-name" class="free-name"></p>
+      <p id="free-blurb" class="free-blurb"></p>
+      <div id="free-status" class="free-status">定位中…</div>
+      <button id="btn-free-exit" class="link">换模式</button>
+    </div>
+
+    <div class="compass-stage">
+      <canvas id="compass"></canvas>
+      <div class="bearing"><span id="bearing-num">--</span><i>°</i></div>
+      <div id="halo-text" class="halo-text"></div>
+      <div id="align-badge" class="align-badge">已对准</div>
+    </div>
+
+    <div id="sim-tip" class="sim-tip" hidden>没检测到罗盘：拖动表盘模拟</div>
+
+    <div class="actions">
+      <button id="btn-hint" class="btn ghost">要提示</button>
+      <button id="btn-ask" class="btn ghost ask">问了个人</button>
+      <button id="btn-arrive" class="btn primary">我到了</button>
+    </div>
+
+    <div id="hint-box" class="hint-box" hidden></div>
+  </section>
+
+  <!-- 输码 -->
+  <section id="screen-code" class="screen">
+    <div class="code-head">
+      <div id="code-title" class="code-title">输入纸上的四位码</div>
+      <div id="code-display" class="code-display">····</div>
+      <div id="code-msg" class="code-msg"></div>
+      <button id="btn-bonus" class="link" hidden>加试一题（可选）</button>
+    </div>
+
+    <div class="keypad">
+      <button class="key" data-k="1">1</button>
+      <button class="key" data-k="2">2</button>
+      <button class="key" data-k="3">3</button>
+      <button class="key" data-k="4">4</button>
+      <button class="key" data-k="5">5</button>
+      <button class="key" data-k="6">6</button>
+      <button class="key" data-k="7">7</button>
+      <button class="key" data-k="8">8</button>
+      <button class="key" data-k="9">9</button>
+      <button class="key fn" data-k="clear">清除</button>
+      <button class="key" data-k="0">0</button>
+      <button class="key fn" data-k="back">返回</button>
+    </div>
+  </section>
+
+  <!-- 结算 -->
+  <section id="screen-end" class="screen">
+    <div class="end-head">
+      <div class="end-title">到了</div>
+      <div class="end-sub">没有导航，你也到了</div>
+    </div>
+
+    <div class="stats">
+      <div><b id="end-time">00:00</b><span>用时</span></div>
+      <div id="stat-hints"><b id="end-hints">0</b><span>提示</span></div>
+      <div><b id="end-asks">0</b><span>问路</span></div>
+      <div><b id="end-score">0</b><span>得分</span></div>
+    </div>
+
+    <div id="end-rating" class="rating"></div>
+    <div id="end-badges" class="end-badges"></div>
+    <div id="end-story" class="end-story"></div>
+    <div id="end-debug" class="end-debug" hidden></div>
+
+    <canvas id="card" class="card"></canvas>
+
+    <div class="actions">
+      <a id="btn-save" class="btn primary" download="问津-旅程卡.png">保存旅程卡</a>
+      <button id="btn-again" class="btn ghost">再走一次</button>
+    </div>
+  </section>
+
+  <div id="stamp" class="stamp" aria-live="polite">
+    <div class="stamp-seal"><span id="stamp-mark"></span></div>
+    <p id="stamp-story"></p>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+</div>
+
+<script src="destinations.js"></script>
+<script src="levels.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
