@@ -262,10 +262,29 @@ body {
 
 .actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   padding-top: 10px;
 }
-.actions .btn { flex: 1; }
+.actions .btn { flex: 1; padding: 0 8px; }
+.ask { font-size: 14px; letter-spacing: .02em; }
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(92px + env(safe-area-inset-bottom));
+  z-index: 20;
+  padding: 9px 16px;
+  border-radius: 999px;
+  background: rgba(232, 176, 75, .95);
+  color: #1a1408;
+  font-size: 13px;
+  letter-spacing: .06em;
+  opacity: 0;
+  transform: translateX(-50%) translateY(6px);
+  transition: opacity .18s, transform .18s;
+  pointer-events: none;
+}
+.toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
 
 .hint-box {
   margin-top: 10px;
@@ -358,7 +377,7 @@ body {
 .stats {
   display: flex;
   justify-content: center;
-  gap: 36px;
+  gap: 26px;
   margin-bottom: 8px;
 }
 .stats div { display: flex; flex-direction: column; gap: 4px; }

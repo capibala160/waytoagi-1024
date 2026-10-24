@@ -38,6 +38,9 @@
     elapsed: 0,
     hints: 0,
     hintShown: 0,
+    asks: 0,
+    lastVibeAt: 0,
+    toastTimer: null,
     heading: null,
     headingAbsolute: false,
     relativeOnly: false,
@@ -145,8 +148,16 @@
       state.aligned = false;
       return;
     }
+    const was = state.aligned;
     const diff = Math.abs(((state.heading - state.target + 540) % 360) - 180);
     state.aligned = diff <= 6;
+
+    // 进入对准区间时震一下，走路不用一直盯屏
+    if (state.aligned && !was && typeof navigator.vibrate === 'function' &&
+        performance.now() - state.lastVibeAt > 1200) {
+      navigator.vibrate(25);
+      state.lastVibeAt = performance.now();
+    }
   }
 
   function goSimulation(reason) {
@@ -297,6 +308,14 @@
 
   /* ---------------- 屏幕 ---------------- */
 
+  function showToast(text) {
+    const el = $('toast');
+    el.textContent = text;
+    el.classList.add('on');
+    clearTimeout(state.toastTimer);
+    state.toastTimer = setTimeout(() => el.classList.remove('on'), 1300);
+  }
+
   function showScreen(name) {
     if (name !== 'code') {
       // 离开输码页时，取消上一轮的验码 / 清空回调
@@ -422,6 +441,7 @@
     state.completed = 0;
     state.hints = 0;
     state.hintShown = 0;
+    state.asks = 0;
     state.elapsed = 0;
     state.finished = false;
     state.score = 0;
@@ -453,6 +473,11 @@
     box.textContent = text;
 
     if (state.hintShown >= lv.hints.length) $('btn-hint').textContent = '没有更多提示';
+  });
+
+  $('btn-ask').addEventListener('click', () => {
+    state.asks++;
+    showToast(`问了第 ${state.asks} 个人`);
   });
 
   /* ---------------- 输码 ---------------- */
@@ -571,6 +596,7 @@
 
     $('end-time').textContent = fmtTime(state.elapsed);
     $('end-hints').textContent = String(state.hints);
+    $('end-asks').textContent = String(state.asks);
     $('end-score').textContent = String(state.score);
     $('end-rating').textContent = rating(state.score);
 
@@ -589,30 +615,66 @@
     releaseWakeLock();
   }
 
-  function drawRose(x, cx, cy, r) {
-    for (let i = 0; i < 8; i++) {
-      const long = i % 2 === 0;
-      const a = i * Math.PI / 4;
-      const len = long ? r : r * 0.6;
-      const w = long ? 16 : 10;
-      const tipX = cx + Math.sin(a) * len;
-      const tipY = cy - Math.cos(a) * len;
-      const leftX = cx + Math.sin(a - Math.PI / 2) * w;
-      const leftY = cy - Math.cos(a - Math.PI / 2) * w;
-      const rightX = cx + Math.sin(a + Math.PI / 2) * w;
-      const rightY = cy - Math.cos(a + Math.PI / 2) * w;
-      const inX = cx + Math.sin(a) * len * 0.18;
-      const inY = cy - Math.cos(a) * len * 0.18;
+  function drawRoute(x, cx, cy, boxW, boxH, from, to) {
+    const pts = [{ x: 0, y: 0 }];
+    let px = 0, py = 0;
 
-      x.beginPath();
-      x.moveTo(tipX, tipY);
-      x.lineTo(leftX, leftY);
-      x.lineTo(inX, inY);
-      x.lineTo(rightX, rightY);
-      x.closePath();
-      x.fillStyle = long ? '#e8b04b' : 'rgba(232,176,75,.42)';
-      x.fill();
+    for (let i = from; i < to; i++) {
+      const lv = state.levels[i];
+      const a = (lv.bearing || 0) * Math.PI / 180;
+      const step = lv.steps || 10;
+      px += Math.sin(a) * step;
+      py -= Math.cos(a) * step;
+      pts.push({ x: px, y: py });
     }
+    if (pts.length < 2) return;
+
+    let minX = 0, maxX = 0, minY = 0, maxY = 0;
+    for (const p of pts) {
+      if (p.x < minX) minX = p.x;
+      if (p.x > maxX) maxX = p.x;
+      if (p.y < minY) minY = p.y;
+      if (p.y > maxY) maxY = p.y;
+    }
+
+    const spanX = Math.max(1, maxX - minX);
+    const spanY = Math.max(1, maxY - minY);
+    const scale = Math.min(boxW / spanX, boxH / spanY) * 0.82;
+    const ox = cx - ((minX + maxX) / 2) * scale;
+    const oy = cy - ((minY + maxY) / 2) * scale;
+    const X = (p) => ox + p.x * scale;
+    const Y = (p) => oy + p.y * scale;
+
+    x.lineJoin = 'round';
+    x.lineCap = 'round';
+    x.strokeStyle = 'rgba(232,176,75,.72)';
+    x.lineWidth = 4;
+    x.beginPath();
+    pts.forEach((p, i) => {
+      if (i === 0) x.moveTo(X(p), Y(p));
+      else x.lineTo(X(p), Y(p));
+    });
+    x.stroke();
+
+    for (let i = 1; i < pts.length; i++) {
+      x.beginPath();
+      x.arc(X(pts[i]), Y(pts[i]), 8, 0, Math.PI * 2);
+      x.fillStyle = '#e8b04b';
+      x.fill();
+      x.strokeStyle = '#0b0d10';
+      x.lineWidth = 3;
+      x.stroke();
+    }
+
+    x.beginPath();
+    x.arc(X(pts[0]), Y(pts[0]), 11, 0, Math.PI * 2);
+    x.strokeStyle = 'rgba(232,176,75,.9)';
+    x.lineWidth = 3;
+    x.stroke();
+
+    x.fillStyle = '#6b7280';
+    x.font = '400 18px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
+    x.fillText('起', X(pts[0]), Y(pts[0]) - 20);
   }
 
   function drawCard(score, opts) {
@@ -677,7 +739,11 @@
 
     x.fillStyle = '#e8b04b';
     x.font = '400 34px "Songti SC","SimSun",serif';
-    x.fillText(rating(score), W / 2, 748);
+    x.fillText(rating(score), W / 2, 745);
+
+    x.fillStyle = '#6b7280';
+    x.font = '400 22px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
+    x.fillText(`问了 ${state.asks} 个人`, W / 2, 785);
 
     // 五站圆点
     const n = state.levels.length;
@@ -687,16 +753,16 @@
       const cx = startX + i * gap;
       const done = i >= doneStart && i < doneEnd;
       x.beginPath();
-      x.arc(cx, 820, 10, 0, Math.PI * 2);
+      x.arc(cx, 832, 10, 0, Math.PI * 2);
       if (done) {
         x.fillStyle = '#e8b04b';
         x.fill();
         x.strokeStyle = '#0b0d10';
         x.lineWidth = 3;
         x.beginPath();
-        x.moveTo(cx - 4, 820);
-        x.lineTo(cx - 1, 824);
-        x.lineTo(cx + 5, 815);
+        x.moveTo(cx - 4, 832);
+        x.lineTo(cx - 1, 836);
+        x.lineTo(cx + 5, 827);
         x.stroke();
       } else {
         x.strokeStyle = 'rgba(232,176,75,.28)';
@@ -705,7 +771,10 @@
       }
     }
 
-    drawRose(x, W / 2, 950, 88);
+    x.fillStyle = '#565d66';
+    x.font = '400 18px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
+    x.fillText('你 走 的 路', W / 2, 872);
+    drawRoute(x, W / 2, 955, 470, 150, doneStart, doneEnd);
 
     x.fillStyle = '#565d66';
     x.font = '400 22px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
