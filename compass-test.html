@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0b0d10" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<title>指南针体检</title>
+<style>
+  :root { color-scheme: dark; --amber:#e8b04b; --dim:#8a8578; --line:#242a31; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin:0; padding:0; background:#0b0d10; }
+  body {
+    min-height:100dvh; color:#e8e6e1;
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;
+    display:flex; flex-direction:column; align-items:center;
+    padding: max(16px, env(safe-area-inset-top)) 16px calc(22px + env(safe-area-inset-bottom));
+    user-select:none; touch-action:manipulation;
+  }
+  h1 { font-size:13px; letter-spacing:.24em; color:var(--dim); font-weight:500; margin:4px 0 12px; }
+  .stage { position:relative; width:min(82vw, 360px); aspect-ratio:1; margin-bottom:6px; }
+  canvas { width:100%; height:100%; display:block; }
+  .start {
+    position:absolute; inset:0; margin:auto; width:116px; height:116px; border-radius:50%;
+    border:1px solid #3a3020;
+    background:radial-gradient(circle at 50% 38%, #2c2417, #14110b);
+    color:var(--amber); font-size:18px; letter-spacing:.14em; font-weight:600;
+    box-shadow:0 0 0 8px rgba(232,176,75,.04), 0 10px 34px rgba(0,0,0,.65);
+    cursor:pointer; font-family:inherit;
+  }
+  .start:active { transform:scale(.965); }
+  .start[hidden] { display:none; }
+  .readout { display:flex; align-items:baseline; gap:10px; margin:2px 0 4px; }
+  .deg { font-size:64px; font-weight:300; letter-spacing:.02em; font-variant-numeric:tabular-nums; line-height:1; color:#4a5058; transition:color .2s; }
+  .deg.live { color:#f0ece3; }
+  .unit { font-size:22px; color:#6b7280; }
+  .dir { font-size:20px; color:var(--amber); letter-spacing:.12em; min-width:2em; }
+  .hint { font-size:13px; line-height:1.6; color:#8a8578; text-align:center; max-width:340px; min-height:42px; margin:2px 0 10px; }
+  .panel { width:min(92vw,420px); border-top:1px solid var(--line); padding-top:8px; }
+  .row { display:flex; justify-content:space-between; align-items:baseline; gap:14px; font-size:12px; padding:5px 0; border-bottom:1px solid rgba(36,42,49,.55); }
+  .row span { color:#6b7280; flex:none; }
+  .row b { font-weight:500; color:#c9c4b8; text-align:right; font-variant-numeric:tabular-nums; }
+  .row b.bad { color:#d9534f; }
+  .row b.good { color:#79b473; }
+  .row b.warn { color:#e8b04b; }
+  .mono { font-family:ui-monospace,Menlo,Consolas,monospace; font-size:11px !important; }
+  .actions { display:flex; gap:10px; margin-top:14px; }
+  .ghost {
+    padding:10px 18px; border-radius:999px; border:1px solid #2c323a; background:#11151a;
+    color:#a8a296; font-size:13px; letter-spacing:.06em; font-family:inherit; cursor:pointer;
+  }
+  .ghost:active { background:#181d24; }
+  .foot { margin-top:12px; font-size:11px; color:#4a5058; text-align:center; line-height:1.7; }
+</style>
+</head>
+<body>
+
+<h1>指 南 针 体 检</h1>
+
+<div class="stage">
+  <canvas id="dial"></canvas>
+  <button id="start" class="start">开始</button>
+</div>
+
+<div class="readout">
+  <span class="deg" id="deg">--</span><span class="unit">°</span>
+  <span class="dir" id="dir">—</span>
+</div>
+
+<div class="hint" id="hint">把手机平放，点「开始」</div>
+
+<div class="panel">
+  <div class="row"><span>安全上下文</span><b id="d-sec">—</b></div>
+  <div class="row"><span>授权</span><b id="d-perm">—</b></div>
+  <div class="row"><span>数据来源</span><b id="d-src">—</b></div>
+  <div class="row"><span>罗盘精度</span><b id="d-acc">—</b></div>
+  <div class="row"><span>静止稳定度</span><b id="d-stab">—</b></div>
+  <div class="row"><span>采样率</span><b id="d-rate">—</b></div>
+  <div class="row"><span>原始 α / β / γ</span><b id="d-raw" class="mono">—</b></div>
+</div>
+
+<div class="actions">
+  <button id="stop" class="ghost" hidden>停止</button>
+  <button id="copy" class="ghost">复制诊断</button>
+</div>
+
+<div class="foot">平放手机 · 抖动大就在空中画 8 字<br/>用你要演示的那台手机测</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  var cv = $('dial');
+  var ctx = cv.getContext('2d');
+  var SIZE = 700, C = SIZE / 2, R = 300;
+  var scale = 1;
+
+  var startBtn = $('start');
+  var stopBtn = $('stop');
+  var copyBtn = $('copy');
+  var degEl = $('deg');
+  var dirEl = $('dir');
+  var hintEl = $('hint');
+
+  var DIRS = ['北', '东北', '东', '东南', '南', '西南', '西', '西北'];
+
+  var st = {
+    running: false,
+    heading: null,
+    source: '—',
+    perm: '未请求',
+    alpha: null, beta: null, gamma: null,
+    compassAccuracy: null,
+    samples: [],
+    events: 0,
+    rate: 0,
+    lastAbs: 0,
+    lastDraw: 0,
+    lastPanel: 0
+  };
+
+  function norm(h) { return ((h % 360) + 360) % 360; }
+  function dirName(h) { return DIRS[Math.round(norm(h) / 45) % 8]; }
+  function fmt(n) { return (n === null || n === undefined || isNaN(n)) ? '—' : Math.round(n); }
+
+  function circularSD(arr) {
+    if (arr.length < 3) return null;
+    var sx = 0, sy = 0, i, a;
+    for (i = 0; i < arr.length; i++) {
+      a = arr[i] * Math.PI / 180;
+      sx += Math.cos(a); sy += Math.sin(a);
+    }
+    var rbar = Math.sqrt(sx * sx + sy * sy) / arr.length;
+    if (rbar >= 0.999999) return 0;
+    return Math.sqrt(-2 * Math.log(Math.max(rbar, 1e-9))) * 180 / Math.PI;
+  }
+
+  /* ---------- 传感器 ---------- */
+
+  function handle(e, isAbsolute) {
+    var now = performance.now();
+    if (isAbsolute) st.lastAbs = now;
+    else if (now - st.lastAbs < 600) return;   // 有绝对事件时忽略相对事件
+
+    var h = null, src = '';
+
+    if (typeof e.webkitCompassHeading === 'number' && isFinite(e.webkitCompassHeading)) {
+      h = e.webkitCompassHeading;
+      src = 'webkitCompassHeading';
+      if (typeof e.webkitCompassAccuracy === 'number') st.compassAccuracy = e.webkitCompassAccuracy;
+    } else if (typeof e.alpha === 'number' && isFinite(e.alpha)) {
+      var abs = (e.absolute === true) || isAbsolute;
+      h = 360 - e.alpha;
+      src = abs ? 'alpha（绝对）' : 'alpha（相对·不可信）';
+    }
+
+    if (h === null) return;
+
+    st.heading = norm(h);
+    st.source = src;
+    st.alpha = e.alpha;
+    st.beta = e.beta;
+    st.gamma = e.gamma;
+    st.events++;
+
+    st.samples.push(st.heading);
+    if (st.samples.length > 60) st.samples.shift();
+  }
+
+  window.addEventListener('deviceorientationabsolute', function (e) { handle(e, true); }, true);
+  window.addEventListener('deviceorientation', function (e) { handle(e, false); }, true);
+
+  setInterval(function () {
+    st.rate = st.events;
+    st.events = 0;
+  }, 1000);
+
+  /* ---------- 绘制 ---------- */
+
+  function resize() {
+    var rect = cv.getBoundingClientRect();
+    var dpr = Math.min(window.devicePixelRatio || 1, 3);
+    cv.width = Math.max(1, Math.round(rect.width * dpr));
+    cv.height = Math.max(1, Math.round(rect.height * dpr));
+    scale = cv.width / SIZE;
+  }
+
+  function drawCard(heading) {
+    var live = st.heading !== null;
+    var hdg = heading || 0;
+
+    ctx.setTransform(scale, 0, 0, scale, 0, 0);
+    ctx.clearRect(0, 0, SIZE, SIZE);
+
+    // 外圈
+    ctx.beginPath();
+    ctx.arc(C, C, R + 28, 0, Math.PI * 2);
+    ctx.fillStyle = '#080a0d';
+    ctx.fill();
+    ctx.strokeStyle = '#1d2228';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // 固定指标（屏幕顶端）
+    ctx.beginPath();
+    ctx.moveTo(C, C - R - 4);
+    ctx.lineTo(C - 15, C - R - 32);
+    ctx.lineTo(C + 15, C - R - 32);
+    ctx.closePath();
+    ctx.fillStyle = live ? '#e8b04b' : '#3a3f47';
+    ctx.fill();
+
+    ctx.save();
+    ctx.translate(C, C);
+    ctx.rotate(-hdg * Math.PI / 180);
+
+    // 盘面
+    var g = ctx.createRadialGradient(0, -R * 0.3, R * 0.05, 0, 0, R);
+    g.addColorStop(0, '#1b2027');
+    g.addColorStop(0.7, '#12161b');
+    g.addColorStop(1, '#0c0f13');
+    ctx.beginPath();
+    ctx.arc(0, 0, R, 0, Math.PI * 2);
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.strokeStyle = '#2c333b';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // 内圈
+    ctx.beginPath();
+    ctx.arc(0, 0, R * 0.82, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255,255,255,.045)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // 刻度
+    for (var d = 0; d < 360; d += 5) {
+      var a = (d - 90) * Math.PI / 180;
+      var major = d % 90 === 0;
+      var mid = d % 30 === 0;
+      var outer = R - 12;
+      var inner = R - (major ? 40 : mid ? 26 : 14);
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a) * outer, Math.sin(a) * outer);
+      ctx.lineTo(Math.cos(a) * inner, Math.sin(a) * inner);
+      ctx.strokeStyle = major ? '#e6e0d2' : mid ? '#79828d' : '#39404a';
+      ctx.lineWidth = major ? 5 : mid ? 3 : 1.5;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+    }
+
+    // 度数
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = '500 22px ui-monospace, Menlo, Consolas, monospace';
+    for (var dd = 0; dd < 360; dd += 30) {
+      if (dd % 90 === 0) continue;
+      var aa = (dd - 90) * Math.PI / 180;
+      var rr = R - 82;
+      ctx.save();
+      ctx.translate(Math.cos(aa) * rr, Math.sin(aa) * rr);
+      ctx.rotate(dd * Math.PI / 180);
+      ctx.fillStyle = '#6b7480';
+      ctx.fillText(String(dd), 0, 0);
+      ctx.restore();
+    }
+
+    // 方位字
+    var cards = [['N', 0, '#d9534f'], ['E', 90, '#d6d0c2'], ['S', 180, '#d6d0c2'], ['W', 270, '#d6d0c2']];
+    for (var i = 0; i < cards.length; i++) {
+      var t = cards[i][0], deg = cards[i][1], col = cards[i][2];
+      var ang = (deg - 90) * Math.PI / 180;
+      var rad = R - 58;
+      ctx.save();
+      ctx.translate(Math.cos(ang) * rad, Math.sin(ang) * rad);
+      ctx.rotate(deg * Math.PI / 180);
+      ctx.fillStyle = col;
+      ctx.font = '700 44px -apple-system, "PingFang SC", sans-serif';
+      ctx.fillText(t, 0, 0);
+      ctx.restore();
+    }
+
+    // 中心点
+    ctx.beginPath();
+    ctx.arc(0, 0, 7, 0, Math.PI * 2);
+    ctx.fillStyle = live ? '#e8b04b' : '#3a3f47';
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  /* ---------- 面板 ---------- */
+
+  function setBadge(el, text, cls) {
+    el.textContent = text;
+    el.className = cls || '';
+  }
+
+  function updatePanel() {
+    var secure = window.isSecureContext && location.protocol !== 'file:';
+    setBadge($('d-sec'), secure ? '✅ HTTPS' : '❌ 不是 HTTPS', secure ? 'good' : 'bad');
+
+    setBadge($('d-perm'), st.perm, st.perm === 'granted' || st.perm === '不需要' ? 'good' : (st.perm === '未请求' ? '' : 'bad'));
+
+    setBadge($('d-src'), st.source, st.source.indexOf('相对') >= 0 ? 'bad' : (st.source === '—' ? '' : 'good'));
+
+    if (st.compassAccuracy === null) {
+      setBadge($('d-acc'), '—', '');
+    } else if (st.compassAccuracy < 0) {
+      setBadge($('d-acc'), '无效 · 需校准', 'warn');
+    } else {
+      setBadge($('d-acc'), st.compassAccuracy + '°', st.compassAccuracy <= 15 ? 'good' : 'warn');
+    }
+
+    var sd = circularSD(st.samples);
+    if (sd === null) setBadge($('d-stab'), '—', '');
+    else setBadge($('d-stab'), '±' + sd.toFixed(0) + '°', sd <= 5 ? 'good' : sd <= 15 ? 'warn' : 'bad');
+
+    setBadge($('d-rate'), st.rate + ' Hz', st.rate >= 5 ? 'good' : (st.running ? 'bad' : ''));
+
+    $('d-raw').textContent = st.alpha === null
+      ? '—'
+      : fmt(st.alpha) + ' / ' + fmt(st.beta) + ' / ' + fmt(st.gamma);
+  }
+
+  function updateHint() {
+    var secure = window.isSecureContext && location.protocol !== 'file:';
+    var sd = circularSD(st.samples);
+
+    if (!secure) {
+      hintEl.textContent = '不是 HTTPS：手机浏览器不会给指南针数据。换 HTTPS 再试。';
+    } else if (st.perm === 'denied') {
+      hintEl.textContent = '权限被拒绝：iPhone 设置 → Safari → 动作与方向 → 允许。';
+    } else if (st.running && st.heading === null) {
+      hintEl.textContent = '没收到方向事件——换一台安卓机，或换浏览器再试。';
+    } else if (st.running && st.compassAccuracy !== null && st.compassAccuracy < 0) {
+      hintEl.textContent = '系统报「精度无效」：把手机在空中画几个 8 字再放平。';
+    } else if (st.running && sd !== null && sd > 15) {
+      hintEl.textContent = '抖动偏大：画 8 字校准，或远离金属桌、音箱、磁吸支架。';
+    } else if (st.running) {
+      hintEl.textContent = '转一圈：数字要连续、指北要稳。现在这个就可以做游戏。';
+    } else {
+      hintEl.textContent = '把手机平放，点「开始」';
+    }
+  }
+
+  function updateReadout() {
+    if (st.heading === null) {
+      degEl.textContent = '--';
+      degEl.classList.remove('live');
+      dirEl.textContent = '—';
+    } else {
+      degEl.textContent = String(Math.round(st.heading) % 360).padStart(3, '0');
+      degEl.classList.add('live');
+      dirEl.textContent = dirName(st.heading);
+    }
+  }
+
+  function loop(t) {
+    requestAnimationFrame(loop);
+    if (t - st.lastDraw < 33) return;
+    st.lastDraw = t;
+    drawCard(st.heading);
+    updateReadout();
+    if (t - st.lastPanel > 300) {
+      st.lastPanel = t;
+      updatePanel();
+      updateHint();
+    }
+  }
+
+  /* ---------- 开始 / 停止 ---------- */
+
+  function start() {
+    if (st.running) return;
+
+    startBtn.textContent = '…';
+
+    var afterPermission = function () {
+      st.running = true;
+      startBtn.hidden = true;
+      stopBtn.hidden = false;
+      st.samples = [];
+      updateHint();
+
+      if (navigator.wakeLock && navigator.wakeLock.request) {
+        navigator.wakeLock.request('screen').catch(function () {});
+      }
+    };
+
+    if (typeof DeviceOrientationEvent !== 'undefined' &&
+        typeof DeviceOrientationEvent.requestPermission === 'function') {
+      DeviceOrientationEvent.requestPermission().then(function (res) {
+        st.perm = res;
+        if (res === 'granted') afterPermission();
+        else {
+          startBtn.textContent = '开始';
+          updateHint();
+          updatePanel();
+        }
+      }).catch(function (err) {
+        st.perm = '失败：' + (err && err.message ? err.message : '未知');
+        startBtn.textContent = '开始';
+        updatePanel();
+        updateHint();
+      });
+    } else {
+      st.perm = '不需要（非 iOS）';
+      afterPermission();
+    }
+  }
+
+  function stop() {
+    st.running = false;
+    startBtn.hidden = false;
+    startBtn.textContent = '开始';
+    stopBtn.hidden = true;
+    updateHint();
+  }
+
+  /* ---------- 复制诊断 ---------- */
+
+  function diagnostics() {
+    var sd = circularSD(st.samples);
+    return [
+      'secureContext: ' + window.isSecureContext,
+      'protocol: ' + location.protocol,
+      'permission: ' + st.perm,
+      'source: ' + st.source,
+      'heading: ' + (st.heading === null ? 'null' : st.heading.toFixed(1)),
+      'compassAccuracy: ' + st.compassAccuracy,
+      'stability: ' + (sd === null ? 'null' : '±' + sd.toFixed(1) + '°'),
+      'rate: ' + st.rate + 'Hz',
+      'alpha/beta/gamma: ' + fmt(st.alpha) + ' / ' + fmt(st.beta) + ' / ' + fmt(st.gamma),
+      'ua: ' + navigator.userAgent
+    ].join('\n');
+  }
+
+  copyBtn.addEventListener('click', function () {
+    var txt = diagnostics();
+    var done = function () {
+      copyBtn.textContent = '已复制';
+      setTimeout(function () { copyBtn.textContent = '复制诊断'; }, 1500);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(txt).then(done).catch(function () { window.prompt('手动复制：', txt); });
+    } else {
+      window.prompt('手动复制：', txt);
+    }
+  });
+
+  startBtn.addEventListener('click', start);
+  stopBtn.addEventListener('click', stop);
+
+  window.addEventListener('resize', function () { resize(); });
+  window.addEventListener('orientationchange', function () { setTimeout(resize, 120); });
+
+  resize();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
