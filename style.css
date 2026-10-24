@@ -1081,6 +1081,7 @@ body::before {
   position: fixed;
   inset: 0;
   z-index: -1;
+  display: none;
   background:
     radial-gradient(900px 420px at 50% -8%, rgba(232, 176, 75, .12), transparent 70%),
     radial-gradient(600px 320px at 100% 100%, rgba(121, 180, 115, .05), transparent 70%),
@@ -1092,6 +1093,7 @@ body::after {
   position: fixed;
   inset: 0;
   z-index: -1;
+  display: none;
   background-image: repeating-linear-gradient(0deg, rgba(255, 255, 255, .012) 0 1px, transparent 1px 3px);
   opacity: .5;
   pointer-events: none;
@@ -1291,6 +1293,7 @@ body::after {
 .compass-stage { position: relative; }
 .compass-stage::before {
   content: '';
+  display: none;
   position: absolute;
   left: 50%;
   top: 46%;
