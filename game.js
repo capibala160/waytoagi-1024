@@ -83,6 +83,10 @@
     usedSimulation: false,
     story: [],
     stamps: [],
+    pieces: [],
+    arriveRevealed: false,
+    paused: false,
+    pauseAt: 0,
     lamps: 3,
     puzzleHints: 0,
     optionalDone: false,
@@ -184,6 +188,7 @@
         asks: state.asks,
         story: state.story.slice(),
         stamps: state.stamps.slice(),
+        pieces: state.pieces.slice(),
         lamps: state.lamps,
         puzzleHints: state.puzzleHints,
         optionalDone: state.optionalDone,
@@ -222,6 +227,7 @@
       if (typeof d.usedSimulation !== 'boolean') return null;
       if (!Array.isArray(d.story) || d.story.some((s) => typeof s !== 'string')) return null;
       if (!Array.isArray(d.stamps) || d.stamps.some((s) => typeof s !== 'string')) return null;
+      if (!Array.isArray(d.pieces) || d.pieces.some((p) => !p || typeof p.mark !== 'string')) return null;
       if (!Number.isInteger(d.lamps) || d.lamps < 0 || d.lamps > 9) return null;
       if (!Number.isInteger(d.puzzleHints) || d.puzzleHints < 0) return null;
       if (typeof d.optionalDone !== 'boolean') return null;
@@ -284,6 +290,7 @@
       state.asks = d.asks;
       state.story = [];
       state.stamps = [];
+      state.pieces = [];
       state.puzzleHints = 0;
       state.optionalDone = false;
       state.usedSimulation = false;
@@ -332,6 +339,10 @@
     state.asks = d.asks;
     state.story = d.story.slice();
     state.stamps = d.stamps.slice();
+    state.pieces = d.pieces.slice();
+    state.arriveRevealed = false;
+    state.paused = false;
+    state.pauseAt = 0;
     state.lamps = d.lamps;
     state.puzzleHints = d.puzzleHints;
     state.optionalDone = d.optionalDone;
@@ -437,8 +448,8 @@
       state.alignLocked = false;
       return;
     }
-    // 断流：旧角度不再算“已对准”
-    if (performance.now() - state.lastOrientAt > HEADING_STALE_MS) {
+    // 断流：旧角度不再算“已对准”（模拟罗盘不走这条）
+    if (!state.simulating && performance.now() - state.lastOrientAt > HEADING_STALE_MS) {
       state.aligned = false;
       state.alignSince = 0;
       state.alignLocked = false;
@@ -464,6 +475,13 @@
     } else if (!state.alignLocked && performance.now() - state.alignSince > 900) {
       state.alignLocked = true;
       if (typeof navigator.vibrate === 'function') navigator.vibrate([15, 40, 15]);
+
+      // 稳定对准后，才揭示“到了附近再看”的第二层线索
+      if (!state.arriveRevealed) {
+        state.arriveRevealed = true;
+        const ac = $('arrive-clue');
+        if (ac.textContent) ac.hidden = false;
+      }
     }
   }
 
@@ -637,7 +655,7 @@
   let lastSaveAt = 0;
   setInterval(() => {
     if (!isPlaying()) return;
-    state.elapsed = Math.max(0, (Date.now() - state.startAt) / 1000);
+    if (!state.paused) state.elapsed = Math.max(0, (Date.now() - state.startAt) / 1000);
     $('hud-time').textContent = fmtTime(state.elapsed);
 
     if (performance.now() - lastSaveAt > 1000) {
@@ -1375,6 +1393,7 @@
     state.asks = 0;
     state.story = [];
     state.stamps = [];
+    state.pieces = [];
     state.puzzleHints = 0;
     state.optionalDone = false;
     state.usedSimulation = false;
@@ -1521,6 +1540,7 @@
     state.asks = 0;
     state.story = [];
     state.stamps = [];
+    state.pieces = [];
     state.puzzleHints = 0;
     state.optionalDone = false;
     state.usedSimulation = true;
@@ -1753,6 +1773,7 @@
     state.asks = 0;
     state.story = [];
     state.stamps = [];
+    state.pieces = [];
     state.puzzleHints = 0;
     state.optionalDone = false;
     state.usedSimulation = false;
@@ -1990,6 +2011,12 @@
     $('halo-text').textContent = lv.confirm || '';
     $('halo-text').classList.remove('on');
     $('btn-bonus').hidden = true;
+    state.arriveRevealed = false;
+    state.paused = false;
+    state.pauseAt = 0;
+    const ac = $('arrive-clue');
+    ac.textContent = lv.arriveClue || '';
+    ac.hidden = true;
     state.hintShown = 0;
     state.codeInput = '';
     state.checking = false;
@@ -2093,6 +2120,10 @@
     resetDiary(set.name);
     state.story = [];
     state.stamps = [];
+    state.pieces = [];
+    state.arriveRevealed = false;
+    state.paused = false;
+    state.pauseAt = 0;
     state.lamps = 3;
     state.puzzleHints = 0;
     state.optionalDone = false;
@@ -2200,19 +2231,49 @@
     renderCode();
   });
 
+  $('stamp-next').addEventListener('click', () => {
+    if (!state.paused) return;
+    $('stamp').classList.remove('on');
+    if (state.pauseAt) {
+      state.startAt += Date.now() - state.pauseAt;
+      state.pauseAt = 0;
+    }
+    state.paused = false;
+    state.level++;
+    if (state.level >= state.levels.length) finish();
+    else renderLevel();
+  });
+
   function renderCode() {
     const s = state.codeInput;
     $('code-display').textContent = s + '·'.repeat(4 - s.length);
   }
 
-  function showStamp(lv) {
-    const el = $('stamp');
+  function showStationCard(lv) {
+    state.paused = true;
+    state.pauseAt = Date.now();
+
+    $('stamp-station').textContent = lv.name || '';
     $('stamp-mark').textContent = lv.stamp || '✓';
     $('stamp-story').textContent = lv.story || '';
-    el.classList.add('on');
-    clearTimeout(state.stampTimer);
-    state.stampTimer = setTimeout(() => el.classList.remove('on'),
-      state.levels.length <= 3 ? 1100 : 1600);
+
+    const piece = $('stamp-piece');
+    if (lv.piece) {
+      piece.textContent = lv.piece.mark + '  ' + (lv.piece.label || '');
+      piece.hidden = false;
+    } else {
+      piece.hidden = true;
+    }
+
+    const last = state.level >= state.levels.length - 1;
+    $('stamp-next').textContent = last ? '揭晓结局' : '继续前进';
+
+    if (last && state.pieces.length) {
+      $('stamp-story').textContent = (lv.story || '') + '\n\n碎片：' +
+        state.pieces.map((p) => p.mark).join('  ');
+    }
+
+    $('stamp').classList.add('on');
   }
 
   function shakeCode(message) {
@@ -2258,10 +2319,8 @@
       state.completed++;
       if (lv.story) state.story.push(lv.story);
       if (lv.stamp) state.stamps.push(lv.stamp);
-      showStamp(lv);
-      state.level++;
-      if (state.level >= state.levels.length) finish();
-      else renderLevel();
+      if (lv.piece) state.pieces.push(lv.piece);
+      showStationCard(lv);
       return;
     }
 
@@ -2316,6 +2375,7 @@
     const dx = e.clientX - dragX;
     dragX = e.clientX;
     state.heading = norm((state.heading == null ? 0 : state.heading) + dx * 0.7);
+    state.headingAbsolute = true;
   });
 
   cv.addEventListener('pointerup', () => { dragX = null; });
@@ -2334,6 +2394,7 @@
     const hunt = state.mode !== 'free' && state.mode !== 'sim' && state.mode !== 'fog';
     if (state.mode === 'fog') list.push('雾城通关');
     if (hunt && state.completed >= state.levels.length) list.push('记忆拼图');
+    if (hunt && state.pieces.length >= Math.min(4, state.levels.length)) list.push('碎片收集');
     if (hunt && state.puzzleHints === 0) list.push('独立寻路者');
     if (state.optionalDone) list.push('细节观察家');
     if (state.asks >= 3) list.push('同行向导');
@@ -2342,6 +2403,21 @@
   }
 
   function renderEndExtras() {
+    const pieces = $('end-pieces');
+    pieces.replaceChildren();
+    (state.pieces || []).forEach((p) => {
+      const chip = document.createElement('span');
+      chip.className = 'piece-chip';
+      const mark = document.createElement('b');
+      mark.textContent = p.mark;
+      const label = document.createElement('span');
+      label.textContent = p.label || '';
+      chip.appendChild(mark);
+      chip.appendChild(label);
+      pieces.appendChild(chip);
+    });
+    pieces.hidden = !state.pieces.length;
+
     const box = $('end-badges');
     box.replaceChildren();
     earnedBadges().forEach((name) => {

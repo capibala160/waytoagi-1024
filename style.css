@@ -635,7 +635,46 @@ body {
   pointer-events: none;
   transition: opacity .22s;
 }
-.stamp.on { opacity: 1; }
+.stamp.on { opacity: 1; pointer-events: auto; }
+
+.stamp-station {
+  color: #8a8578;
+  font-size: 12px;
+  letter-spacing: .24em;
+}
+
+.stamp-piece {
+  color: var(--amber);
+  font-size: 24px;
+  letter-spacing: .28em;
+}
+
+#stamp-next {
+  min-width: 180px;
+  margin-top: 6px;
+}
+
+.end-pieces {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin: -4px 0 12px;
+}
+
+.piece-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(232, 176, 75, .28);
+  background: rgba(232, 176, 75, .06);
+  color: #d8cfae;
+  font-size: 12px;
+  letter-spacing: .08em;
+}
+.piece-chip b { color: var(--amber); font-size: 15px; }
 
 .stamp-seal {
   display: grid;
@@ -660,6 +699,7 @@ body {
   font-size: 15px;
   line-height: 1.8;
   text-align: center;
+  white-space: pre-line;
 }
 
 .end-badges {
@@ -775,6 +815,16 @@ body {
   font-size: 12px;
   letter-spacing: .06em;
   color: #8b806c;
+}
+
+.arrive-clue {
+  margin: 10px 0 0;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(0, 0, 0, .16);
+  color: #5f5543;
+  font-size: 14px;
+  line-height: 1.7;
+  animation: fade .35s ease;
 }
 
 .compass-stage {
