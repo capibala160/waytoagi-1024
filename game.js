@@ -2960,7 +2960,7 @@
     btn.disabled = exhausted || noLamp;
     if (exhausted) btn.textContent = '没有更多提示';
     else if (noLamp) btn.textContent = '提示灯用完了';
-    else btn.textContent = free ? '要提示' : `要提示 · 灯 ${state.lamps}`;
+    else btn.textContent = free ? '要提示' : `提示 · ${state.lamps}灯`;
   }
 
   function renderLevel() {
