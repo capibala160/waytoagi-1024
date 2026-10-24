@@ -28,12 +28,28 @@
         <b>不出门</b>
         <span>3 站 · 约 90 秒 · 摊位附近（评委用）</span>
       </button>
+      <button id="btn-start-free" class="mode-btn">
+        <b>自由行</b>
+        <span>选一个目的地 · GPS 指方向 · 到了出证明</span>
+      </button>
     </div>
 
     <button id="btn-resume" class="btn ghost resume" hidden>继续上次</button>
     <p id="start-message" class="start-message" role="status" aria-live="polite"></p>
 
     <p class="fine">看不懂就抬头问人<br/>没有罗盘会自动切模拟模式</p>
+  </section>
+
+  <!-- 自由行：选目的地 -->
+  <section id="screen-dest" class="screen">
+    <div class="hud">
+      <span>自由行</span>
+      <button id="btn-dest-back" class="btn ghost small">返回</button>
+    </div>
+    <h2 class="dest-title">今天去哪？</h2>
+    <p class="dest-sub">选一个地方，罗盘只指它。没有地图，没有路线。</p>
+    <div id="dest-list" class="dest-list"></div>
+    <p class="dest-note">需要定位权限 · 室内或没有 GPS 就用「不出门」模式</p>
   </section>
 
   <!-- 行进 -->
@@ -43,10 +59,18 @@
       <span id="hud-time" class="mono">00:00</span>
     </div>
 
-    <div class="clue">
+    <div id="clue-card" class="clue">
       <div class="clue-tag">线索</div>
       <p id="clue-text" class="clue-text"></p>
       <div id="clue-meta" class="clue-meta"></div>
+    </div>
+
+    <div id="free-card" class="free-card" hidden>
+      <div class="free-label">目的地</div>
+      <p id="free-name" class="free-name"></p>
+      <p id="free-blurb" class="free-blurb"></p>
+      <div id="free-status" class="free-status">定位中…</div>
+      <button id="btn-free-exit" class="link">换模式</button>
     </div>
 
     <div class="compass-stage">
@@ -99,7 +123,7 @@
 
     <div class="stats">
       <div><b id="end-time">00:00</b><span>用时</span></div>
-      <div><b id="end-hints">0</b><span>提示</span></div>
+      <div id="stat-hints"><b id="end-hints">0</b><span>提示</span></div>
       <div><b id="end-asks">0</b><span>问路</span></div>
       <div><b id="end-score">0</b><span>得分</span></div>
     </div>
@@ -119,6 +143,7 @@
 
 </div>
 
+<script src="destinations.js"></script>
 <script src="levels.js"></script>
 <script src="game.js"></script>
 </body>

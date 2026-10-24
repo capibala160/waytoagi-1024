@@ -27,6 +27,7 @@
 
   const screens = {
     start: $('screen-start'),
+    dest: $('screen-dest'),
     play: $('screen-play'),
     code: $('screen-code'),
     end: $('screen-end')
@@ -36,6 +37,14 @@
     screen: 'start',
     mode: 'outdoor',
     levels: SETS.outdoor ? SETS.outdoor.levels : [],
+    free: false,
+    dest: null,
+    gps: null,
+    gpsStatus: '',
+    dist: null,
+    path: [],
+    lastPathAt: 0,
+    watchId: null,
     level: 0,
     startAt: 0,
     elapsed: 0,
@@ -119,12 +128,26 @@
       const set = SETS[key];
       validateSet(set).forEach((e) => errors.push(`${set.name || key}：${e}`));
     });
+    validateDestinations().forEach((e) => errors.push('自由行：' + e));
     return errors;
   }
 
   function saveProgress() {
     if (!isPlaying()) return;
     try {
+      if (state.mode === 'free') {
+        localStorage.setItem(SAVE_KEY, JSON.stringify({
+          v: 1,
+          mode: 'free',
+          sig: 'free:' + state.dest.id,
+          destId: state.dest.id,
+          elapsed: state.elapsed,
+          asks: state.asks,
+          savedAt: Date.now(),
+          path: state.path.slice(-40)
+        }));
+        return;
+      }
       localStorage.setItem(SAVE_KEY, JSON.stringify({
         v: 1,
         mode: state.mode,
@@ -146,6 +169,16 @@
     try {
       const d = JSON.parse(localStorage.getItem(SAVE_KEY));
       if (!d || d.v !== 1) return null;
+
+      if (d.mode === 'free') {
+        const dest = (window.DESTINATIONS || []).find((x) => x.id === d.destId);
+        if (!dest || d.sig !== 'free:' + dest.id) return null;
+        if (!Number.isFinite(d.elapsed) || d.elapsed < 0 || d.elapsed > 604800) return null;
+        if (!Number.isInteger(d.asks) || d.asks < 0) return null;
+        if (!Number.isFinite(d.savedAt) || d.savedAt > Date.now() + 300000 || Date.now() - d.savedAt > SAVE_TTL_MS) return null;
+        return d;
+      }
+
       const set = SETS[d.mode];
       if (!set || !Array.isArray(set.levels) || !set.levels.length) return null;
       if (d.sig !== saveSignatureFor(d.mode, set.levels)) return null;
@@ -172,10 +205,16 @@
   function refreshResume() {
     const d = readProgress();
     $('btn-resume').hidden = !d;
-    if (d) {
-      const set = SETS[d.mode];
-      $('start-message').textContent = `上次走到「${set.name}」第 ${d.level + 1} 站，可继续。关闭页面期间仍计时。`;
+    if (!d) return;
+
+    if (d.mode === 'free') {
+      const dest = (window.DESTINATIONS || []).find((x) => x.id === d.destId);
+      $('start-message').textContent = `上次去「${dest.name}」没走完，可继续。关闭页面期间仍计时。`;
+      return;
     }
+
+    const set = SETS[d.mode];
+    $('start-message').textContent = `上次走到「${set.name}」第 ${d.level + 1} 站，可继续。关闭页面期间仍计时。`;
   }
 
   function resumeGame() {
@@ -185,6 +224,56 @@
       $('start-message').textContent = '没有可恢复的旅程，请重新开始。';
       return;
     }
+
+    if (d.mode === 'free') {
+      const dest = (window.DESTINATIONS || []).find((x) => x.id === d.destId);
+      if (!dest) {
+        refreshResume();
+        $('start-message').textContent = '这个目的地已不在列表里，请重新选。';
+        return;
+      }
+      requestMotionPermission();
+
+      const closed = Math.max(0, (Date.now() - d.savedAt) / 1000);
+      const total = Math.max(0, d.elapsed + closed);
+
+      state.mode = 'free';
+      state.free = true;
+      state.dest = dest;
+      state.levels = [];
+      state.par = FREE_PAR;
+      state.level = 0;
+      state.startLevelIndex = 0;
+      state.completed = 0;
+      state.hints = 0;
+      state.hintShown = 0;
+      state.asks = d.asks;
+      state.usedSimulation = false;
+      state.finished = false;
+      state.score = 0;
+      state.elapsed = total;
+      state.startAt = Date.now() - total * 1000;
+      state.path = Array.isArray(d.path) ? d.path.slice() : [];
+      state.lastPathAt = 0;
+      state.gps = null;
+      state.dist = null;
+      state.gpsStatus = '定位中…';
+      state.target = null;
+      state.heading = null;
+      state.headingAbsolute = false;
+      state.relativeOnly = false;
+      state.sensorSeen = false;
+      state.lastOrientAt = 0;
+      state.simulating = false;
+      state.aligned = false;
+      $('sim-tip').hidden = true;
+
+      renderFree();
+      wantWakeLock = true;
+      requestWakeLock();
+      return;
+    }
+
     const set = SETS[d.mode];
     const errors = validateSet(set);
     if (errors.length) {
@@ -240,6 +329,8 @@
   const ctx = cv.getContext('2d');
   const CSIZE = 600, CC = 300, CR = 258;
   const HEADING_STALE_MS = 2500;
+  const ARRIVE_METERS = 30;
+  const FREE_PAR = 600;
   let cscale = 1;
 
   function fitCompass() {
@@ -424,6 +515,22 @@
     ctx.fill();
 
     ctx.restore();
+
+    // 自由行：目标方位标记（相对手机顶部）
+    if (state.mode === 'free' && state.target != null && live) {
+      const rel = norm(state.target - h);
+      ctx.save();
+      ctx.translate(CC, CC);
+      ctx.rotate(rel * Math.PI / 180);
+      ctx.beginPath();
+      ctx.moveTo(0, -CR - 4);
+      ctx.lineTo(-12, -CR - 26);
+      ctx.lineTo(12, -CR - 26);
+      ctx.closePath();
+      ctx.fillStyle = state.aligned ? '#79b473' : '#e8b04b';
+      ctx.fill();
+      ctx.restore();
+    }
   }
 
   let lastDraw = 0;
@@ -493,6 +600,230 @@
 
   /* ---------------- 关卡 ---------------- */
 
+  function distanceMeters(lat1, lon1, lat2, lon2) {
+    const R = 6371000;
+    const p1 = lat1 * Math.PI / 180;
+    const p2 = lat2 * Math.PI / 180;
+    const dp = (lat2 - lat1) * Math.PI / 180;
+    const dl = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dp / 2) ** 2 + Math.cos(p1) * Math.cos(p2) * Math.sin(dl / 2) ** 2;
+    return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  function bearingTo(lat1, lon1, lat2, lon2) {
+    const p1 = lat1 * Math.PI / 180;
+    const p2 = lat2 * Math.PI / 180;
+    const dl = (lon2 - lon1) * Math.PI / 180;
+    const y = Math.sin(dl) * Math.cos(p2);
+    const x = Math.cos(p1) * Math.sin(p2) - Math.sin(p1) * Math.cos(p2) * Math.cos(dl);
+    return norm(Math.atan2(y, x) * 180 / Math.PI);
+  }
+
+  function validateDestinations() {
+    const list = window.DESTINATIONS || [];
+    const errors = [];
+    if (!Array.isArray(list) || !list.length) return ['destinations.js 里还没有目的地。'];
+    list.forEach((d, i) => {
+      const p = `目的地 ${i + 1}：`;
+      if (!d || typeof d !== 'object') { errors.push(p + '必须是对象。'); return; }
+      if (typeof d.id !== 'string' || !d.id) errors.push(p + 'id 必填。');
+      if (typeof d.name !== 'string' || !d.name.trim()) errors.push(p + 'name 必填。');
+      if (!Number.isFinite(d.lat) || d.lat < -90 || d.lat > 90) errors.push(p + 'lat 不合法。');
+      if (!Number.isFinite(d.lon) || d.lon < -180 || d.lon > 180) errors.push(p + 'lon 不合法。');
+    });
+    return errors;
+  }
+
+  function paintFreeStatus() {
+    if (state.mode !== 'free') return;
+    let text = state.gpsStatus || '定位中…';
+    if (state.gps && state.dist != null) {
+      if (state.dist <= ARRIVE_METERS) text = '到了';
+      else if (state.dist <= 80) text = '很近了';
+      else text = '跟着指针走';
+    }
+    const el = $('free-status');
+    if (el.textContent !== text) el.textContent = text;
+  }
+
+  function stopGps() {
+    if (state.watchId != null && navigator.geolocation) {
+      navigator.geolocation.clearWatch(state.watchId);
+      state.watchId = null;
+    }
+  }
+
+  function startGps() {
+    if (!navigator.geolocation) {
+      state.gpsStatus = '这台设备没有定位能力';
+      paintFreeStatus();
+      return;
+    }
+    stopGps();
+    state.gpsStatus = '定位中…';
+    paintFreeStatus();
+    state.watchId = navigator.geolocation.watchPosition(onPos, onGpsErr, {
+      enableHighAccuracy: true,
+      maximumAge: 2000,
+      timeout: 12000
+    });
+  }
+
+  function onPos(pos) {
+    if (state.mode !== 'free' || state.finished) return;
+    const c = pos.coords;
+    state.gps = { lat: c.latitude, lon: c.longitude };
+    state.dist = distanceMeters(c.latitude, c.longitude, state.dest.lat, state.dest.lon);
+    state.target = bearingTo(c.latitude, c.longitude, state.dest.lat, state.dest.lon);
+    state.gpsStatus = c.accuracy > 60 ? '信号弱，走两步再看看' : '已定位';
+
+    const now = performance.now();
+    if (!state.path.length || now - state.lastPathAt > 5000) {
+      state.path.push({ lat: c.latitude, lon: c.longitude });
+      if (state.path.length > 240) state.path.shift();
+      state.lastPathAt = now;
+    }
+
+    paintFreeStatus();
+    if (state.dist <= ARRIVE_METERS) finishFree(true);
+  }
+
+  function onGpsErr(err) {
+    if (state.mode !== 'free') return;
+    state.gpsStatus = err && err.code === 1
+      ? '定位权限被拒绝'
+      : '定位失败，换个开阔处再试';
+    paintFreeStatus();
+  }
+
+  function renderDestList() {
+    const list = $('dest-list');
+    list.replaceChildren();
+    (window.DESTINATIONS || []).forEach((d) => {
+      const btn = document.createElement('button');
+      btn.className = 'dest-item';
+      const name = document.createElement('b');
+      name.textContent = d.name;
+      const blurb = document.createElement('span');
+      blurb.textContent = d.blurb || '';
+      btn.appendChild(name);
+      btn.appendChild(blurb);
+      btn.addEventListener('click', () => startFree(d));
+      list.appendChild(btn);
+    });
+  }
+
+  function showDestinations() {
+    const errors = validateDestinations();
+    if (errors.length) {
+      $('start-message').textContent = errors.slice(0, 3).join('\n');
+      return;
+    }
+    showScreen('dest');
+  }
+
+  function startFree(dest) {
+    if (!dest) return;
+    requestMotionPermission();
+
+    stopGps();
+    clearProgress();
+
+    state.mode = 'free';
+    state.free = true;
+    state.dest = dest;
+    state.levels = [];
+    state.par = FREE_PAR;
+    state.level = 0;
+    state.startLevelIndex = 0;
+    state.completed = 0;
+    state.hints = 0;
+    state.hintShown = 0;
+    state.asks = 0;
+    state.usedSimulation = false;
+    state.finished = false;
+    state.score = 0;
+    state.elapsed = 0;
+    state.startAt = Date.now();
+    state.path = [];
+    state.lastPathAt = 0;
+    state.gps = null;
+    state.dist = null;
+    state.gpsStatus = '定位中…';
+    state.target = null;
+    state.heading = null;
+    state.headingAbsolute = false;
+    state.relativeOnly = false;
+    state.sensorSeen = false;
+    state.lastOrientAt = 0;
+    state.simulating = false;
+    state.aligned = false;
+    $('sim-tip').hidden = true;
+
+    renderFree();
+    wantWakeLock = true;
+    requestWakeLock();
+  }
+
+  function renderFree() {
+    $('hud-level').textContent = '自由行';
+    $('clue-card').hidden = true;
+    $('free-card').hidden = false;
+    $('free-name').textContent = state.dest.name;
+    $('free-blurb').textContent = state.dest.blurb || '';
+    $('btn-hint').hidden = true;
+    $('hint-box').hidden = true;
+    $('btn-arrive').textContent = '我到了';
+    $('stat-hints').hidden = true;
+    paintFreeStatus();
+    showScreen('play');
+    requestAnimationFrame(fitCompass);
+    startGps();
+    saveProgress();
+
+    setTimeout(() => {
+      if (state.sensorSeen || state.simulating) return;
+      goSimulation('没检测到罗盘：拖动表盘模拟');
+    }, 2500);
+  }
+
+  function finishFree(auto) {
+    if (state.finished) return;
+    state.finished = true;
+    state.elapsed = Math.max(0, (Date.now() - state.startAt) / 1000);
+
+    const reasons = [];
+    if (state.usedSimulation) reasons.push('含模拟罗盘');
+    if (!auto && (!state.gps || state.dist == null || state.dist > 60)) reasons.push('手动结算');
+    const practice = reasons.length > 0;
+    state.usedSimulation = practice;
+    state.score = Math.max(100, Math.min(1000, Math.round(
+      1000 - 250 * (state.elapsed / FREE_PAR)
+    )));
+    stopGps();
+
+    $('end-time').textContent = fmtTime(state.elapsed);
+    $('end-hints').textContent = '0';
+    $('end-asks').textContent = String(state.asks);
+    $('end-score').textContent = String(state.score);
+    $('end-rating').textContent = '到 了';
+    $('stat-hints').hidden = true;
+
+    const debugEl = $('end-debug');
+    debugEl.hidden = !practice;
+    debugEl.textContent = practice ? `练习成绩 · 不计入活动（${reasons.join(' · ')}）` : '';
+
+    drawCard(state.score, {
+      free: true,
+      dest: state.dest,
+      path: state.path,
+      practice
+    });
+    showScreen('end');
+    releaseWakeLock();
+    clearProgress();
+  }
+
   function renderHints() {
     const lv = state.levels[state.level];
     const n = state.hintShown || 0;
@@ -515,6 +846,15 @@
   }
 
   function renderLevel() {
+    state.free = false;
+    state.dest = null;
+    stopGps();
+    $('clue-card').hidden = false;
+    $('free-card').hidden = true;
+    $('btn-hint').hidden = false;
+    $('btn-arrive').textContent = '我到了';
+    $('stat-hints').hidden = false;
+
     const lv = state.levels[state.level];
     state.target = lv.bearing != null ? lv.bearing : null;
     state.hintShown = 0;
@@ -674,6 +1014,11 @@
   /* ---------------- 输码 ---------------- */
 
   $('btn-arrive').addEventListener('click', () => {
+    if (state.mode === 'free') {
+      if (state.dist != null && state.dist <= 80) finishFree(state.dist <= ARRIVE_METERS);
+      else showToast('还没到，跟着指针走');
+      return;
+    }
     clearTimeout(state.checkTimer);
     clearTimeout(state.resetTimer);
     state.codeInput = '';
@@ -777,6 +1122,10 @@
 
   function finish() {
     state.finished = true;
+    state.free = false;
+    state.dest = null;
+    stopGps();
+    $('stat-hints').hidden = false;
     state.elapsed = Math.max(0, (Date.now() - state.startAt) / 1000);
     // 按模式的目标时间（par）计分：正常发挥 ≈ 750，快 ≈ 850+
     const par = state.par || 300;
@@ -822,7 +1171,22 @@
       py -= Math.cos(a) * step;
       pts.push({ x: px, y: py });
     }
-    if (pts.length < 2) return;
+    drawPolyline(x, cx, cy, boxW, boxH, pts);
+  }
+
+  function drawGpsPath(x, cx, cy, boxW, boxH, pts) {
+    if (!pts || pts.length < 2) return;
+    const lat0 = pts[0].lat;
+    const lon0 = pts[0].lon;
+    const meters = pts.map((p) => ({
+      x: (p.lon - lon0) * Math.cos(lat0 * Math.PI / 180) * 111320,
+      y: -(p.lat - lat0) * 110540
+    }));
+    drawPolyline(x, cx, cy, boxW, boxH, meters);
+  }
+
+  function drawPolyline(x, cx, cy, boxW, boxH, pts) {
+    if (!pts || pts.length < 2) return;
 
     let minX = 0, maxX = 0, minY = 0, maxY = 0;
     for (const p of pts) {
@@ -873,9 +1237,10 @@
   }
 
   function drawCard(score, opts) {
-    const doneStart = opts ? opts.startLevel : 0;
-    const doneEnd = opts ? opts.startLevel + opts.completed : state.levels.length;
+    const doneStart = opts && Number.isInteger(opts.startLevel) ? opts.startLevel : 0;
+    const doneEnd = opts && Number.isInteger(opts.completed) ? doneStart + opts.completed : state.levels.length;
     const practice = !!(opts && opts.practice);
+    const free = !!(opts && opts.free);
     const W = 750, H = 1200;
     const card = $('card');
     card.width = W;
@@ -921,11 +1286,11 @@
     x.fillStyle = '#e8b04b';
     x.font = '400 46px ui-monospace,Menlo,Consolas,monospace';
     x.fillText(String(score), W / 2 - 150, sy);
-    x.fillText(String(state.hints), W / 2 + 150, sy);
+    x.fillText(String(free ? state.asks : state.hints), W / 2 + 150, sy);
     x.fillStyle = '#6b7280';
     x.font = '400 22px -apple-system,"PingFang SC",sans-serif';
     x.fillText('得分', W / 2 - 150, sy + 40);
-    x.fillText('提示', W / 2 + 150, sy + 40);
+    x.fillText(free ? '问路' : '提示', W / 2 + 150, sy + 40);
 
     x.strokeStyle = 'rgba(255,255,255,.08)';
     x.beginPath();
@@ -935,42 +1300,49 @@
 
     x.fillStyle = '#e8b04b';
     x.font = '400 34px "Songti SC","SimSun",serif';
-    x.fillText(rating(score), W / 2, 745);
+    x.fillText(free ? '到 了' : rating(score), W / 2, 745);
 
-    x.fillStyle = '#6b7280';
-    x.font = '400 22px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
-    x.fillText(`问了 ${state.asks} 个人`, W / 2, 785);
+    if (free) {
+      x.fillStyle = '#e8b04b';
+      x.font = '400 32px "Songti SC","SimSun",serif';
+      x.fillText(`目的地 · ${opts.dest.name}`, W / 2, 810);
+    } else {
+      x.fillStyle = '#6b7280';
+      x.font = '400 22px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
+      x.fillText(`问了 ${state.asks} 个人`, W / 2, 785);
 
-    // 五站圆点
-    const n = state.levels.length;
-    const gap = Math.min(86, 520 / Math.max(1, n - 1));
-    const startX = W / 2 - (n - 1) * gap / 2;
-    for (let i = 0; i < n; i++) {
-      const cx = startX + i * gap;
-      const done = i >= doneStart && i < doneEnd;
-      x.beginPath();
-      x.arc(cx, 832, 10, 0, Math.PI * 2);
-      if (done) {
-        x.fillStyle = '#e8b04b';
-        x.fill();
-        x.strokeStyle = '#0b0d10';
-        x.lineWidth = 3;
+      // 五站圆点
+      const n = state.levels.length;
+      const gap = Math.min(86, 520 / Math.max(1, n - 1));
+      const startX = W / 2 - (n - 1) * gap / 2;
+      for (let i = 0; i < n; i++) {
+        const cx = startX + i * gap;
+        const done = i >= doneStart && i < doneEnd;
         x.beginPath();
-        x.moveTo(cx - 4, 832);
-        x.lineTo(cx - 1, 836);
-        x.lineTo(cx + 5, 827);
-        x.stroke();
-      } else {
-        x.strokeStyle = 'rgba(232,176,75,.28)';
-        x.lineWidth = 2;
-        x.stroke();
+        x.arc(cx, 832, 10, 0, Math.PI * 2);
+        if (done) {
+          x.fillStyle = '#e8b04b';
+          x.fill();
+          x.strokeStyle = '#0b0d10';
+          x.lineWidth = 3;
+          x.beginPath();
+          x.moveTo(cx - 4, 832);
+          x.lineTo(cx - 1, 836);
+          x.lineTo(cx + 5, 827);
+          x.stroke();
+        } else {
+          x.strokeStyle = 'rgba(232,176,75,.28)';
+          x.lineWidth = 2;
+          x.stroke();
+        }
       }
     }
 
     x.fillStyle = '#565d66';
     x.font = '400 18px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
     x.fillText('你 走 的 路', W / 2, 872);
-    drawRoute(x, W / 2, 955, 470, 150, doneStart, doneEnd);
+    if (free) drawGpsPath(x, W / 2, 955, 470, 150, opts.path);
+    else drawRoute(x, W / 2, 955, 470, 150, doneStart, doneEnd);
 
     x.fillStyle = '#565d66';
     x.font = '400 22px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
@@ -984,17 +1356,32 @@
 
   $('btn-start').addEventListener('click', () => startGame('outdoor'));
   $('btn-start-indoor').addEventListener('click', () => startGame('indoor'));
+  $('btn-start-free').addEventListener('click', showDestinations);
+  $('btn-dest-back').addEventListener('click', () => showScreen('start'));
   $('btn-resume').addEventListener('click', resumeGame);
+
+  $('btn-free-exit').addEventListener('click', () => {
+    stopGps();
+    state.finished = true;
+    state.free = false;
+    state.dest = null;
+    state.mode = 'outdoor';
+    clearProgress();
+    showScreen('start');
+    refreshResume();
+  });
 
   $('btn-again').addEventListener('click', () => {
     state.finished = false;
     state.elapsed = 0;
-    startGame(state.mode);
+    if (state.mode === 'free' && state.dest) startFree(state.dest);
+    else startGame(state.mode);
   });
 
   window.addEventListener('resize', fitCompass);
   window.addEventListener('orientationchange', () => setTimeout(fitCompass, 150));
 
+  renderDestList();
   refreshResume();
   const configErrors = validateAll();
   if (configErrors.length) {

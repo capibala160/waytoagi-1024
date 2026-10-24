@@ -133,6 +133,99 @@ body {
   box-shadow: 0 8px 26px rgba(232, 176, 75, .1);
 }
 
+/* ---------- 自由行 ---------- */
+
+#screen-dest { overflow-y: auto; }
+
+.dest-title {
+  margin: 10px 0 6px;
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: .04em;
+}
+
+.dest-sub {
+  margin: 0 0 18px;
+  color: var(--dim);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.dest-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dest-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 15px 18px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.dest-item:active { transform: scale(.985); }
+.dest-item b {
+  color: var(--amber);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: .06em;
+}
+.dest-item span {
+  color: var(--dim);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.dest-note {
+  margin: 18px 0 8px;
+  color: #565d66;
+  font-size: 12px;
+  line-height: 1.7;
+  text-align: center;
+}
+
+.free-card {
+  position: relative;
+  padding: 16px 18px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(232, 176, 75, .28);
+  background: linear-gradient(180deg, #1a1f26, #11151a);
+}
+.free-card::after {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 5px;
+  border-radius: 10px 0 0 10px;
+  background: linear-gradient(180deg, #d99a2b, #b9771f);
+}
+.free-label { margin-bottom: 6px; color: #9a8f7a; font-size: 10px; letter-spacing: .3em; }
+.free-name { margin: 0; color: var(--amber); font-size: 22px; font-weight: 600; letter-spacing: .08em; }
+.free-blurb { margin: 6px 0 8px; color: #a8a296; font-size: 13px; line-height: 1.6; }
+.free-status { color: var(--green); font-size: 12px; letter-spacing: .08em; }
+
+.link {
+  margin-top: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #6b7280;
+  font-family: inherit;
+  font-size: 12px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.btn.small { min-height: 38px; padding: 0 14px; font-size: 13px; }
+
 /* ---------- 按钮 ---------- */
 
 .btn {
