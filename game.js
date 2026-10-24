@@ -67,6 +67,15 @@
     par: 300,
     completed: 0,
     usedSimulation: false,
+    story: [],
+    stamps: [],
+    lamps: 3,
+    puzzleHints: 0,
+    optionalDone: false,
+    bonusMode: false,
+    alignSince: 0,
+    alignLocked: false,
+    stampTimer: null,
     checkTimer: null,
     resetTimer: null,
     finished: false,
@@ -158,6 +167,11 @@
         hints: state.hints,
         hintShown: state.hintShown,
         asks: state.asks,
+        story: state.story.slice(),
+        stamps: state.stamps.slice(),
+        lamps: state.lamps,
+        puzzleHints: state.puzzleHints,
+        optionalDone: state.optionalDone,
         elapsed: state.elapsed,
         savedAt: Date.now(),
         usedSimulation: state.usedSimulation
@@ -191,6 +205,11 @@
       if (!Number.isFinite(d.elapsed) || d.elapsed < 0 || d.elapsed > 604800) return null;
       if (!Number.isFinite(d.savedAt) || d.savedAt > Date.now() + 300000 || Date.now() - d.savedAt > SAVE_TTL_MS) return null;
       if (typeof d.usedSimulation !== 'boolean') return null;
+      if (!Array.isArray(d.story) || d.story.some((s) => typeof s !== 'string')) return null;
+      if (!Array.isArray(d.stamps) || d.stamps.some((s) => typeof s !== 'string')) return null;
+      if (!Number.isInteger(d.lamps) || d.lamps < 0 || d.lamps > 9) return null;
+      if (!Number.isInteger(d.puzzleHints) || d.puzzleHints < 0) return null;
+      if (typeof d.optionalDone !== 'boolean') return null;
       return d;
     } catch (e) {
       return null;
@@ -248,6 +267,10 @@
       state.hints = 0;
       state.hintShown = 0;
       state.asks = d.asks;
+      state.story = [];
+      state.stamps = [];
+      state.puzzleHints = 0;
+      state.optionalDone = false;
       state.usedSimulation = false;
       state.finished = false;
       state.score = 0;
@@ -292,6 +315,14 @@
     state.hints = d.hints;
     state.hintShown = d.hintShown;
     state.asks = d.asks;
+    state.story = d.story.slice();
+    state.stamps = d.stamps.slice();
+    state.lamps = d.lamps;
+    state.puzzleHints = d.puzzleHints;
+    state.optionalDone = d.optionalDone;
+    state.bonusMode = false;
+    state.alignLocked = false;
+    state.alignSince = 0;
     state.usedSimulation = d.usedSimulation;
     state.finished = false;
     state.score = 0;
@@ -387,11 +418,15 @@
   function updateAlign() {
     if (!state.headingAbsolute || state.target == null || state.heading == null) {
       state.aligned = false;
+      state.alignSince = 0;
+      state.alignLocked = false;
       return;
     }
     // 断流：旧角度不再算“已对准”
     if (performance.now() - state.lastOrientAt > HEADING_STALE_MS) {
       state.aligned = false;
+      state.alignSince = 0;
+      state.alignLocked = false;
       return;
     }
     const was = state.aligned;
@@ -403,6 +438,17 @@
         performance.now() - state.lastVibeAt > 1200) {
       navigator.vibrate(25);
       state.lastVibeAt = performance.now();
+    }
+
+    // 稳定对准 0.9 秒后锁定，出现光环和确认语
+    if (!state.aligned) {
+      state.alignSince = 0;
+      state.alignLocked = false;
+    } else if (!state.alignSince) {
+      state.alignSince = performance.now();
+    } else if (!state.alignLocked && performance.now() - state.alignSince > 900) {
+      state.alignLocked = true;
+      if (typeof navigator.vibrate === 'function') navigator.vibrate([15, 40, 15]);
     }
   }
 
@@ -516,6 +562,20 @@
 
     ctx.restore();
 
+    // 稳定对准：绿色光环
+    if (state.alignLocked) {
+      ctx.save();
+      ctx.translate(CC, CC);
+      ctx.beginPath();
+      ctx.arc(0, 0, CR + 10, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(121,180,115,.85)';
+      ctx.lineWidth = 3;
+      ctx.shadowColor = 'rgba(121,180,115,.9)';
+      ctx.shadowBlur = 24;
+      ctx.stroke();
+      ctx.restore();
+    }
+
     // 自由行：目标方位标记（相对手机顶部）
     if (state.mode === 'free' && state.target != null && live) {
       const rel = norm(state.target - h);
@@ -555,6 +615,7 @@
       wrap.classList.add('live');
     }
     $('align-badge').classList.toggle('on', state.aligned);
+    $('halo-text').classList.toggle('on', state.alignLocked);
   }
 
   let lastSaveAt = 0;
@@ -740,6 +801,10 @@
     state.hints = 0;
     state.hintShown = 0;
     state.asks = 0;
+    state.story = [];
+    state.stamps = [];
+    state.puzzleHints = 0;
+    state.optionalDone = false;
     state.usedSimulation = false;
     state.finished = false;
     state.score = 0;
@@ -775,6 +840,13 @@
     $('hint-box').hidden = true;
     $('btn-arrive').textContent = '我到了';
     $('stat-hints').hidden = true;
+    $('clue-type').textContent = '';
+    $('halo-text').textContent = `方向确认，去「${state.dest.name}」`;
+    $('halo-text').classList.remove('on');
+    $('btn-bonus').hidden = true;
+    state.bonusMode = false;
+    state.alignLocked = false;
+    state.alignSince = 0;
     paintFreeStatus();
     showScreen('play');
     requestAnimationFrame(fitCompass);
@@ -808,6 +880,7 @@
     $('end-score').textContent = String(state.score);
     $('end-rating').textContent = '到 了';
     $('stat-hints').hidden = true;
+    renderEndExtras();
 
     const debugEl = $('end-debug');
     debugEl.hidden = !practice;
@@ -817,7 +890,8 @@
       free: true,
       dest: state.dest,
       path: state.path,
-      practice
+      practice,
+      badges: earnedBadges()
     });
     showScreen('end');
     releaseWakeLock();
@@ -827,6 +901,7 @@
   function renderHints() {
     const lv = state.levels[state.level];
     const n = state.hintShown || 0;
+    const free = !!lv.freeHint || lv.type === 'tutorial';
     const box = $('hint-box');
 
     if (!n) {
@@ -835,14 +910,19 @@
     } else {
       box.hidden = false;
       const lines = lv.hints.slice(0, n).map((h, i) => `${i + 1}. ${h}`);
-      lines.push(`已用 ${n} 条 · 折算 +${n * CFG.hintSeconds} 秒`);
+      lines.push(free
+        ? `教学提示 · 不耗灯 · 折算 +${n * CFG.hintSeconds} 秒`
+        : `已用 ${n} 条 · 折算 +${n * CFG.hintSeconds} 秒 · 灯 ${state.lamps}`);
       box.textContent = lines.join('\n');
     }
 
     const btn = $('btn-hint');
     const exhausted = n >= lv.hints.length;
-    btn.disabled = exhausted;
-    btn.textContent = exhausted ? '没有更多提示' : '要提示';
+    const noLamp = !free && state.lamps <= 0;
+    btn.disabled = exhausted || noLamp;
+    if (exhausted) btn.textContent = '没有更多提示';
+    else if (noLamp) btn.textContent = '提示灯用完了';
+    else btn.textContent = free ? '要提示' : `要提示 · 灯 ${state.lamps}`;
   }
 
   function renderLevel() {
@@ -857,6 +937,13 @@
 
     const lv = state.levels[state.level];
     state.target = lv.bearing != null ? lv.bearing : null;
+    state.bonusMode = false;
+    state.alignLocked = false;
+    state.alignSince = 0;
+    $('clue-type').textContent = lv.typeLabel || '';
+    $('halo-text').textContent = lv.confirm || '';
+    $('halo-text').classList.remove('on');
+    $('btn-bonus').hidden = true;
     state.hintShown = 0;
     state.codeInput = '';
     state.checking = false;
@@ -957,6 +1044,14 @@
     state.mode = mode;
     state.levels = set.levels;
     state.par = set.par || 300;
+    state.story = [];
+    state.stamps = [];
+    state.lamps = 3;
+    state.puzzleHints = 0;
+    state.optionalDone = false;
+    state.bonusMode = false;
+    state.alignLocked = false;
+    state.alignSince = 0;
 
     // 重开必须清掉上一局的罗盘状态，否则断流时不会触发模拟兜底
     state.heading = null;
@@ -998,7 +1093,13 @@
   $('btn-hint').addEventListener('click', () => {
     const lv = state.levels[state.level];
     if (state.hintShown >= lv.hints.length) return;
+    const free = !!lv.freeHint || lv.type === 'tutorial';
+    if (!free && state.lamps <= 0) return;
 
+    if (!free) {
+      state.lamps--;
+      state.puzzleHints++;
+    }
     state.hintShown++;
     state.hints++;
     renderHints();
@@ -1023,9 +1124,27 @@
     clearTimeout(state.resetTimer);
     state.codeInput = '';
     state.checking = false;
+    state.bonusMode = false;
+    $('code-title').textContent = '输入纸上的四位码';
     $('code-msg').textContent = '';
+    const lv = state.levels[state.level];
+    $('btn-bonus').hidden = !(lv && lv.bonus && !state.optionalDone);
+    $('btn-bonus').disabled = false;
+    $('btn-bonus').textContent = '加试一题（可选）';
     renderCode();
     showScreen('code');
+  });
+
+  $('btn-bonus').addEventListener('click', () => {
+    const lv = state.levels[state.level];
+    if (!lv || !lv.bonus) return;
+    state.bonusMode = true;
+    state.codeInput = '';
+    state.checking = false;
+    $('code-title').textContent = lv.bonus.label || '加试题';
+    $('code-msg').textContent = '';
+    $('btn-bonus').hidden = true;
+    renderCode();
   });
 
   function renderCode() {
@@ -1033,21 +1152,19 @@
     $('code-display').textContent = s + '·'.repeat(4 - s.length);
   }
 
-  function checkCode() {
-    if (state.screen !== 'code') return;
-    if (state.checking || state.codeInput.length !== 4) return;
-    const lv = state.levels[state.level];
+  function showStamp(lv) {
+    const el = $('stamp');
+    $('stamp-mark').textContent = lv.stamp || '✓';
+    $('stamp-story').textContent = lv.story || '';
+    el.classList.add('on');
+    clearTimeout(state.stampTimer);
+    state.stampTimer = setTimeout(() => el.classList.remove('on'),
+      state.levels.length <= 3 ? 1100 : 1600);
+  }
 
-    if (state.codeInput === String(lv.code)) {
-      state.completed++;
-      state.level++;
-      if (state.level >= state.levels.length) finish();
-      else renderLevel();
-      return;
-    }
-
+  function shakeCode(message) {
     state.checking = true;
-    $('code-msg').textContent = '不对，再看看纸上的数字';
+    $('code-msg').textContent = message;
     $('code-display').classList.add('shake');
     clearTimeout(state.resetTimer);
     state.resetTimer = setTimeout(() => {
@@ -1057,6 +1174,45 @@
       $('code-msg').textContent = '';
       renderCode();
     }, 650);
+  }
+
+  function checkCode() {
+    if (state.screen !== 'code') return;
+    if (state.checking || state.codeInput.length !== 4) return;
+    const lv = state.levels[state.level];
+
+    if (state.bonusMode) {
+      if (state.codeInput === String(lv.bonus.code)) {
+        state.optionalDone = true;
+        state.bonusMode = false;
+        state.codeInput = '';
+        state.checking = false;
+        $('code-title').textContent = '输入纸上的四位码';
+        $('code-msg').textContent = '';
+        $('btn-bonus').hidden = false;
+        $('btn-bonus').disabled = true;
+        $('btn-bonus').textContent = '加试题已完成';
+        renderCode();
+        showToast('加试题完成 · 细节观察家');
+        saveProgress();
+        return;
+      }
+      shakeCode('再想想，加试题的答案不在纸上');
+      return;
+    }
+
+    if (state.codeInput === String(lv.code)) {
+      state.completed++;
+      if (lv.story) state.story.push(lv.story);
+      if (lv.stamp) state.stamps.push(lv.stamp);
+      showStamp(lv);
+      state.level++;
+      if (state.level >= state.levels.length) finish();
+      else renderLevel();
+      return;
+    }
+
+    shakeCode('不对，再看看纸上的数字');
   }
 
   document.querySelectorAll('.key').forEach((btn) => {
@@ -1120,6 +1276,28 @@
 
   /* ---------------- 结算 ---------------- */
 
+  function earnedBadges() {
+    const list = [];
+    if (state.mode !== 'free' && state.completed >= state.levels.length) list.push('记忆拼图');
+    if (state.puzzleHints === 0) list.push('独立寻路者');
+    if (state.optionalDone) list.push('细节观察家');
+    if (state.asks >= 3) list.push('同行向导');
+    if (state.score >= 850) list.push('活地图');
+    return list;
+  }
+
+  function renderEndExtras() {
+    const box = $('end-badges');
+    box.replaceChildren();
+    earnedBadges().forEach((name) => {
+      const chip = document.createElement('span');
+      chip.className = 'badge-chip';
+      chip.textContent = name;
+      box.appendChild(chip);
+    });
+    $('end-story').textContent = state.story.length ? state.story.join('\n') : '';
+  }
+
   function finish() {
     state.finished = true;
     state.free = false;
@@ -1139,6 +1317,7 @@
     $('end-asks').textContent = String(state.asks);
     $('end-score').textContent = String(state.score);
     $('end-rating').textContent = rating(state.score);
+    renderEndExtras();
 
     const practice = practiceRun();
     const reasons = [];
@@ -1152,7 +1331,9 @@
     drawCard(state.score, {
       startLevel: state.startLevelIndex,
       completed: state.completed,
-      practice
+      practice,
+      badges: earnedBadges(),
+      story: state.story
     });
     showScreen('end');
     releaseWakeLock();
@@ -1344,10 +1525,24 @@
     if (free) drawGpsPath(x, W / 2, 955, 470, 150, opts.path);
     else drawRoute(x, W / 2, 955, 470, 150, doneStart, doneEnd);
 
+    if (opts && opts.badges && opts.badges.length) {
+      x.fillStyle = 'rgba(232,176,75,.82)';
+      x.font = '400 19px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
+      x.fillText(opts.badges.join(' · '), W / 2, 1052);
+    }
+
+    if (opts && opts.story && opts.story.length) {
+      const last = opts.story[opts.story.length - 1] || '';
+      const short = last.length > 26 ? last.slice(0, 26) + '…' : last;
+      x.fillStyle = '#565d66';
+      x.font = '400 18px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
+      x.fillText(short, W / 2, 1082);
+    }
+
     x.fillStyle = '#565d66';
     x.font = '400 22px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
-    x.fillText(`${CFG.event} · ${CFG.venue}`, W / 2, 1096);
-    x.fillText(new Date().toLocaleDateString('zh-CN'), W / 2, 1136);
+    x.fillText(`${CFG.event} · ${CFG.venue}`, W / 2, 1128);
+    x.fillText(new Date().toLocaleDateString('zh-CN'), W / 2, 1162);
 
     $('btn-save').href = card.toDataURL('image/png');
   }
