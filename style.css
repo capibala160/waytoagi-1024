@@ -858,6 +858,20 @@ body {
 .compass-stage.layer-mode #compass { display: none; }
 .compass-stage.layer-mode .compass-layer { display: block; }
 
+/* 独立 iframe 罗盘：最小文档，和游戏页完全隔离 */
+.compass-frame {
+  width: min(64vw, 290px);
+  aspect-ratio: 1;
+  display: none;
+  border: 0;
+  background: transparent;
+  pointer-events: none;
+}
+.compass-stage.frame-mode #compass,
+.compass-stage.frame-mode .compass-layer { display: none; }
+.compass-stage.frame-mode .compass-frame { display: block; }
+.compass-stage.frame-mode { touch-action: none; }
+
 .compass-layer::before {
   content: '';
   position: absolute;
@@ -874,7 +888,6 @@ body {
   z-index: 1;
   transform-origin: 50% 50%;
   will-change: transform;
-  transition: transform 60ms linear;
 }
 
 .compass-dial {
@@ -891,12 +904,12 @@ body {
 .compass-needle {
   position: absolute;
   inset: 0;
+  z-index: 2;
   width: 100%;
   height: 100%;
   display: block;
   transform-origin: 50% 50%;
   will-change: transform;
-  transition: transform .45s ease;
   pointer-events: none;
 }
 .needle-main { fill: #d9534f; stroke: rgba(0, 0, 0, .35); stroke-width: 1; }
@@ -907,7 +920,7 @@ body {
   position: absolute;
   top: 2.6%;
   left: 50%;
-  z-index: 2;
+  z-index: 3;
   width: 0;
   height: 0;
   transform: translateX(-50%);
@@ -923,7 +936,7 @@ body {
   position: absolute;
   left: 50%;
   top: 50%;
-  z-index: 2;
+  z-index: 3;
   width: 2.8%;
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
@@ -937,7 +950,7 @@ body {
 .compass-halo {
   position: absolute;
   inset: 5%;
-  z-index: 2;
+  z-index: 3;
   border-radius: 50%;
   border: 2px solid rgba(121, 180, 115, .85);
   box-shadow: 0 0 0 4px rgba(121, 180, 115, .18);

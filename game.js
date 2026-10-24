@@ -629,28 +629,52 @@
   let smoothPending = false;
   let visualHeading = null;   // 只喂视觉层：绝对/相对都收
   let visualSmooth = null;    // 视觉层自己的平滑角
+  let visualTarget = null;    // 游戏层慢速送来的目的地方位
 
   const bearingNum = $('bearing-num');
   const bearingWrap = document.querySelector('.bearing');
   const alignBadge = $('align-badge');
   const haloTextEl = $('halo-text');
 
-  // 图层引擎：盘面和指针各一层，只改 CSS transform，交给 GPU 合成。
-  // 默认启用；?engine=canvas 可退回旧的 canvas 重绘。
-  const layerMode = params.get('engine') !== 'canvas';
+  // 默认：独立 iframe 罗盘（最接近 compass-test 的极简文档）
+  // ?engine=layer：同一页面里的图层罗盘；?engine=canvas：旧 canvas 重绘
+  const frameMode = params.get('engine') !== 'canvas' && params.get('engine') !== 'layer';
+  const layerMode = params.get('engine') === 'layer';
   const stageEl = document.querySelector('.compass-stage');
   const layerEl = $('compass-layer');
   const rotorEl = $('compass-rotor');
   const needleEl = $('compass-needle');
   const lubberEl = $('compass-lubber');
   const haloEl = $('compass-halo');
-  let lastNeedleTarget;
+  const compassFrame = $('compass-frame');
+  let frameLastHeading = null;
+  let frameReady = false;
+
+  function postFrame(msg) {
+    if (!frameMode || !compassFrame || !compassFrame.contentWindow) return;
+    try { compassFrame.contentWindow.postMessage(msg, '*'); } catch (e) { /* 忽略 */ }
+  }
+
+  if (compassFrame) {
+    compassFrame.addEventListener('load', () => {
+      frameReady = true;
+      postFrame({ type: 'resize' });
+      postFrame({ type: 'target', t: state.target });
+      postFrame({ type: 'aligned', v: state.aligned });
+      if (frameLastHeading != null) postFrame({ type: 'heading', h: frameLastHeading });
+    });
+  }
   let lastLayerLive;
   let lastLayerAligned;
   let lastLayerLocked;
 
   function fitCompass() {
-    if (layerMode) {
+    if (frameMode) {
+      if (stageEl) stageEl.classList.add('frame-mode');
+      if (layerEl) layerEl.hidden = true;
+      postFrame({ type: 'resize' });
+      postFrame({ type: 'target', t: state.target });
+    } else if (layerMode) {
       if (stageEl) stageEl.classList.add('layer-mode');
       if (layerEl) layerEl.hidden = false;
     } else {
@@ -660,11 +684,10 @@
       cv.height = cv.width;
       cscale = cv.width / CSIZE;
     }
-    buildDial();
+    if (!frameMode) buildDial();
     compassDirty = true;
     lastDrawnHeading = undefined;
     lastDrawnTarget = undefined;
-    lastNeedleTarget = undefined;
     lastLayerLive = undefined;
     lastLayerAligned = undefined;
     lastLayerLocked = undefined;
@@ -774,6 +797,8 @@
 
     // 视觉层：绝对/相对都先让表盘转起来，不参与目的地计算
     visualHeading = heading;
+    frameLastHeading = heading;
+    postFrame({ type: 'heading', h: heading });
 
     if (absolute) {
       state.heading = heading;
@@ -810,15 +835,10 @@
   }
 
   function drawLayerCompass() {
-    if (!needleEl) return;
-
-    // 指针属于游戏层：只在 target 变化时更新，CSS transition 慢慢转
-    const target = state.target;
-    if (target !== lastNeedleTarget) {
-      needleEl.hidden = target == null;
-      if (target != null) needleEl.style.transform = `rotate(${target}deg) translateZ(0)`;
-      lastNeedleTarget = target;
-    }
+    // 游戏层算出的方位，慢速送给视觉层；指针由视觉层每帧跟随盘面
+    visualTarget = state.target;
+    postFrame({ type: 'target', t: state.target });
+    postFrame({ type: 'aligned', v: state.aligned });
 
     const live = state.heading != null;
     if (lubberEl && live !== lastLayerLive) {
@@ -838,7 +858,7 @@
   // 视觉层：独立 rAF，只转盘面，不读游戏状态
   function visualLoop() {
     requestAnimationFrame(visualLoop);
-    if (state.screen !== 'play' || !rotorEl) return;
+    if (frameMode || state.screen !== 'play' || !rotorEl) return;
 
     let target = visualHeading;
     if (target == null) target = state.heading != null ? state.heading : 0;
@@ -850,6 +870,17 @@
       visualSmooth = norm(visualSmooth + delta * 0.5);
     }
     rotorEl.style.transform = `rotate(${-visualSmooth}deg) translateZ(0)`;
+
+    // 指针单独一层：屏幕角 = 目的地方位 - 盘面当前角
+    if (needleEl) {
+      if (visualTarget == null) {
+        if (!needleEl.hidden) needleEl.hidden = true;
+      } else {
+        if (needleEl.hidden) needleEl.hidden = false;
+        const needleAngle = norm(visualTarget - visualSmooth);
+        needleEl.style.transform = `rotate(${needleAngle}deg) translateZ(0)`;
+      }
+    }
   }
 
   function updateAlign() {
@@ -1018,8 +1049,8 @@
     requestAnimationFrame(loop);
     perf.frames++;
     if (state.screen !== 'play') return;       // 只有行进页需要刷新罗盘
-    if (layerMode) {
-      // 游戏层 8Hz：对准、指针目标、数字；表盘由 visualLoop 单独 60Hz 转
+    if (layerMode || frameMode) {
+      // 游戏层 8Hz：对准、指针目标、数字；表盘由 iframe / visualLoop 单独转
       if (t - lastGameTick < 125) return;
       lastGameTick = t;
       updateAlign();
@@ -1069,9 +1100,11 @@
       const fps = Math.round((perf.frames * 1000) / dt);
       const hz = Math.round((perf.orient * 1000) / dt);
       const ms = perf.draws ? (perf.drawMs / perf.draws).toFixed(1) : '0';
-      const canvasInfo = layerMode
-        ? `图层 ${dialCanvas ? dialCanvas.width : 0}×${dialCanvas ? dialCanvas.height : 0}`
-        : `画布 ${cv.width}×${cv.height}`;
+      const canvasInfo = frameMode
+        ? '罗盘 iframe'
+        : layerMode
+          ? `图层 ${dialCanvas ? dialCanvas.width : 0}×${dialCanvas ? dialCanvas.height : 0}`
+          : `画布 ${cv.width}×${cv.height}`;
       const src = state.headingAbsolute ? '绝对' : (state.relativeOnly ? '相对' : '无');
       perf.el.textContent =
         `FPS ${fps} · 方向 ${hz}Hz ${src} · 绘制 ${ms}ms · 长任务 ${perf.longTasks}\n` +
@@ -1149,7 +1182,10 @@
     }
     Object.keys(screens).forEach((k) => screens[k].classList.toggle('active', k === name));
     state.screen = name;
-    if (name === 'play') requestAnimationFrame(fitCompass);
+    if (name === 'play') {
+      if (frameMode) fitCompass();
+      else requestAnimationFrame(fitCompass);
+    }
     if (name === 'modes') refreshGameResume();
     if (name === 'end') renderEndActions();
     syncModeTabs();
@@ -3623,6 +3659,7 @@
 
   bindSimDrag(cv);
   bindSimDrag(layerEl);
+  bindSimDrag(stageEl);
 
   window.addEventListener('keydown', (e) => {
     if (!state.simulating) return;
