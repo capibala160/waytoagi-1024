@@ -840,7 +840,7 @@ body {
 }
 
 #compass {
-  width: min(64vw, 290px);
+  width: min(72vw, 330px);
   aspect-ratio: 1;
   display: block;
   touch-action: none;
@@ -850,7 +850,7 @@ body {
 
 .compass-layer {
   position: relative;
-  width: min(64vw, 290px);
+  width: min(72vw, 330px);
   aspect-ratio: 1;
   display: none;
   touch-action: none;
@@ -860,7 +860,7 @@ body {
 
 /* 独立 iframe 罗盘：最小文档，和游戏页完全隔离 */
 .compass-frame {
-  width: min(64vw, 290px);
+  width: min(72vw, 330px);
   aspect-ratio: 1;
   display: none;
   border: 0;

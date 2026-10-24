@@ -648,6 +648,7 @@
   const haloEl = $('compass-halo');
   const compassFrame = $('compass-frame');
   let frameLastHeading = null;
+  let frameLastHeadingAt = 0;
   let frameReady = false;
 
   function postFrame(msg) {
@@ -798,7 +799,13 @@
     // 视觉层：绝对/相对都先让表盘转起来，不参与目的地计算
     visualHeading = heading;
     frameLastHeading = heading;
-    postFrame({ type: 'heading', h: heading });
+
+    // 指针 10Hz 更新就够了，不必每个传感器事件都跨 iframe 发消息
+    const postAt = performance.now();
+    if (postAt - frameLastHeadingAt > 100) {
+      frameLastHeadingAt = postAt;
+      postFrame({ type: 'heading', h: heading });
+    }
 
     if (absolute) {
       state.heading = heading;
