@@ -41,6 +41,7 @@
     heading: null,
     headingAbsolute: false,
     relativeOnly: false,
+    lastOrientAt: 0,
     target: null,
     aligned: false,
     sensorSeen: false,
@@ -79,6 +80,7 @@
   const cv = $('compass');
   const ctx = cv.getContext('2d');
   const CSIZE = 600, CC = 300, CR = 258;
+  const HEADING_STALE_MS = 2500;
   let cscale = 1;
 
   function fitCompass() {
@@ -96,8 +98,7 @@
     if (forceDemo) return;
 
     const now = performance.now();
-    if (isAbs) lastAbs = now;
-    else if (now - lastAbs < 600) return;      // 有绝对事件时忽略相对事件
+    if (!isAbs && now - lastAbs < 600) return;  // 有绝对事件时忽略相对事件
 
     let h = null;
     let absolute = false;
@@ -115,10 +116,13 @@
       h = 360 - e.alpha;
     }
 
+    // 无效事件不能占用 lastAbs，否则会压掉随后到达的有效读数
     if (h === null) return;
+    if (absolute) lastAbs = now;
 
     state.heading = norm(h);
     state.headingAbsolute = true;
+    state.lastOrientAt = now;
     state.sensorSeen = true;
 
     if (state.simulating && !forceDemo) {
@@ -135,8 +139,25 @@
       state.aligned = false;
       return;
     }
+    // 断流：旧角度不再算“已对准”
+    if (performance.now() - state.lastOrientAt > HEADING_STALE_MS) {
+      state.aligned = false;
+      return;
+    }
     const diff = Math.abs(((state.heading - state.target + 540) % 360) - 180);
     state.aligned = diff <= 6;
+  }
+
+  function goSimulation(reason) {
+    if (!state.simulating) {
+      state.simulating = true;
+      state.heading = null;
+      state.headingAbsolute = false;
+      state.aligned = false;
+    }
+    const tip = $('sim-tip');
+    tip.hidden = false;
+    tip.textContent = reason || '拖动表盘模拟';
   }
 
   function drawCompass() {
@@ -265,6 +286,12 @@
     if (state.screen !== 'play' && state.screen !== 'code') return;
     if (!state.finished) state.elapsed = (Date.now() - state.startAt) / 1000;
     $('hud-time').textContent = fmtTime(state.elapsed);
+
+    // 罗盘断流：不再沿用旧角度，切模拟兜底
+    if (!forceDemo && !state.simulating && state.heading != null &&
+        performance.now() - state.lastOrientAt > HEADING_STALE_MS) {
+      goSimulation('罗盘数据中断：拖动表盘模拟');
+    }
   }, 250);
 
   /* ---------------- 屏幕 ---------------- */
@@ -308,12 +335,9 @@
 
     setTimeout(() => {
       if (state.sensorSeen || state.simulating) return;
-      state.simulating = true;
-      const tip = $('sim-tip');
-      tip.hidden = false;
-      tip.textContent = state.relativeOnly
+      goSimulation(state.relativeOnly
         ? '浏览器只给了相对方向，不能找北：换 Chrome，或拖动表盘模拟'
-        : '没检测到罗盘：拖动表盘模拟';
+        : '没检测到罗盘：拖动表盘模拟');
     }, 2500);
   }
 
@@ -336,13 +360,23 @@
   }
 
   let wakeLock = null;
+  let wantWakeLock = false;
+
   async function requestWakeLock() {
+    if (!wantWakeLock) return;
     try {
-      if (navigator.wakeLock) wakeLock = await navigator.wakeLock.request('screen');
+      if (!navigator.wakeLock) return;
+      const lock = await navigator.wakeLock.request('screen');
+      if (!wantWakeLock) {
+        lock.release().catch(() => {});
+        return;
+      }
+      wakeLock = lock;
     } catch (e) { /* 忽略 */ }
   }
 
   async function releaseWakeLock() {
+    wantWakeLock = false;
     try {
       if (wakeLock) {
         await wakeLock.release();
@@ -350,9 +384,13 @@
       }
     } catch (e) { /* 忽略 */ }
   }
+
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible' &&
-        (state.screen === 'play' || state.screen === 'code')) requestWakeLock();
+        (state.screen === 'play' || state.screen === 'code')) {
+      wantWakeLock = true;
+      requestWakeLock();
+    }
   });
 
   async function startGame(mode) {
@@ -365,6 +403,16 @@
 
     state.mode = mode;
     state.levels = set.levels;
+
+    // 重开必须清掉上一局的罗盘状态，否则断流时不会触发模拟兜底
+    state.heading = null;
+    state.headingAbsolute = false;
+    state.relativeOnly = false;
+    state.sensorSeen = false;
+    state.lastOrientAt = 0;
+    state.simulating = false;
+    state.aligned = false;
+    $('sim-tip').hidden = true;
 
     const lv = clamp(paramLevel, 0, set.levels.length - 1);
     state.level = lv;
@@ -385,6 +433,7 @@
     }
 
     renderLevel();
+    wantWakeLock = true;
     requestWakeLock();
   }
 

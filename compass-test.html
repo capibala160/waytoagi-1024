@@ -140,9 +140,10 @@
   /* ---------- 传感器 ---------- */
 
   function handle(e, isAbsolute) {
+    if (!st.running) return;
+
     var now = performance.now();
-    if (isAbsolute) st.lastAbs = now;
-    else if (now - st.lastAbs < 600) return;   // 有绝对事件时忽略相对事件
+    if (!isAbsolute && now - st.lastAbs < 600) return;   // 有绝对事件时忽略相对事件
 
     var h = null, src = '';
 
@@ -157,6 +158,7 @@
     }
 
     if (h === null) return;
+    if (isAbsolute) st.lastAbs = now;          // 无效事件不占用，避免压掉有效读数
 
     st.heading = norm(h);
     st.source = src;
