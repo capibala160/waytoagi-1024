@@ -6,25 +6,56 @@
 <meta name="theme-color" content="#0b0d10" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <link rel="icon" href="favicon.svg" type="image/svg+xml" />
-<title>问津 · 只带指南针</title>
+<title>犟针 · 只指方向，不指路</title>
 <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
 <div id="app">
 
-  <!-- 开始 -->
+  <!-- 首页：今天去哪 -->
   <section id="screen-start" class="screen active">
-    <div class="start-mark">問津</div>
-    <h1 class="start-title">只带指南针，<br/>自己找路</h1>
-    <p class="start-sub">没有地图，没有箭头，没有距离</p>
+    <div class="home-brand">犟针</div>
+    <p class="home-tag">只指方向，不指路</p>
+    <h1 class="home-q">今天去哪？</h1>
+    <p class="home-sub">说一个地方。罗盘只指方向，剩下的靠你和路人。</p>
 
+    <div class="search">
+      <input id="dest-input" type="search" placeholder="输入一个地方，比如：太古里" autocomplete="off" />
+      <button id="btn-search" class="btn primary small">搜</button>
+    </div>
+
+    <div id="dest-suggest" class="chips"></div>
+
+    <div class="home-block">
+      <div class="home-label">不知道去哪？</div>
+      <p class="home-hint">从附近挑一个，别查地图。</p>
+      <button id="btn-random" class="btn ghost">随便走走</button>
+    </div>
+
+    <div id="recent-block" class="home-block" hidden>
+      <div class="home-label">最近去过</div>
+      <div id="recent-list" class="recent-list"></div>
+    </div>
+
+    <button id="btn-resume" class="btn ghost resume" hidden>继续上次</button>
+    <p id="start-message" class="start-message" role="status" aria-live="polite"></p>
+
+    <button id="btn-hunt" class="link">会场寻宝模式</button>
+    <p class="fine">没有地图，没有路线，没有距离。</p>
+  </section>
+
+  <!-- 会场寻宝模式 -->
+  <section id="screen-modes" class="screen">
+    <div class="hud">
+      <button id="btn-modes-back" class="btn ghost small">‹</button>
+      <span>会场寻宝</span>
+      <span></span>
+    </div>
+    <h2 class="dest-title">会场寻宝</h2>
+    <p class="dest-sub">五站故事，或三站评委局。和自由行共用一台引擎。</p>
     <div class="mode-list">
-      <button id="btn-start-free" class="mode-btn primary">
-        <b>自由行</b>
-        <span>选一个目的地 · GPS 指方向 · 到了出证明</span>
-      </button>
-      <button id="btn-start" class="mode-btn">
+      <button id="btn-start" class="mode-btn primary">
         <b>出门玩</b>
         <span>5 站寻宝 · 约 5 分钟 · 会场周边</span>
       </button>
@@ -33,23 +64,45 @@
         <span>3 站寻宝 · 约 90 秒 · 摊位附近（评委用）</span>
       </button>
     </div>
-
-    <button id="btn-resume" class="btn ghost resume" hidden>继续上次</button>
-    <p id="start-message" class="start-message" role="status" aria-live="polite"></p>
-
-    <p class="fine">看不懂就抬头问人<br/>自由行需要定位 · 没有 GPS 用「不出门」</p>
+    <p class="dest-note">自由行在首页，不需要进这里。</p>
   </section>
 
-  <!-- 自由行：选目的地 -->
-  <section id="screen-dest" class="screen">
+  <!-- 确认目的地 -->
+  <section id="screen-confirm" class="screen">
     <div class="hud">
-      <span>自由行</span>
-      <button id="btn-dest-back" class="btn ghost small">返回</button>
+      <button id="btn-confirm-back" class="btn ghost small">‹</button>
+      <span>确认目的地</span>
+      <span></span>
     </div>
-    <h2 class="dest-title">今天去哪？</h2>
-    <p class="dest-sub">选一个地方，罗盘只指它。没有地图，没有路线。</p>
-    <div id="dest-list" class="dest-list"></div>
-    <p class="dest-note">需要定位权限 · 室内或没有 GPS 就用「不出门」模式</p>
+    <p class="confirm-label">你要去</p>
+    <h2 id="confirm-name" class="confirm-name"></h2>
+    <p id="confirm-blurb" class="confirm-blurb"></p>
+    <div class="confirm-meta"><span>步行可达</span><span>公共场所</span></div>
+    <p class="confirm-note">不显示距离。知道了就没意思了。</p>
+    <button id="btn-confirm-go" class="btn primary">出发</button>
+  </section>
+
+  <!-- 怎么走 -->
+  <section id="screen-how" class="screen">
+    <div class="hud">
+      <button id="btn-how-back" class="btn ghost small">‹</button>
+      <span>怎么走</span>
+      <span></span>
+    </div>
+    <p class="how-dest">目的地 · <b id="how-name"></b></p>
+    <h2 class="how-title">怎么走？</h2>
+    <p class="how-sub">同一个目的地，两种走法。</p>
+    <div class="mode-list">
+      <button id="btn-how-sim" class="mode-btn">
+        <b>在这台手机上模拟</b>
+        <span>3–6 分钟 · 评委和第一次玩的人用这个</span>
+      </button>
+      <button id="btn-how-real" class="mode-btn primary">
+        <b>去真实城市</b>
+        <span>需要定位和方向权限</span>
+      </button>
+    </div>
+    <p class="how-note">随时可以退出。没有人会扣分。</p>
   </section>
 
   <!-- 行进 -->
@@ -85,6 +138,7 @@
     <div class="actions">
       <button id="btn-hint" class="btn ghost">要提示</button>
       <button id="btn-ask" class="btn ghost ask">问了个人</button>
+      <button id="btn-forward" class="btn primary" hidden>前进</button>
       <button id="btn-arrive" class="btn primary">我到了</button>
     </div>
 

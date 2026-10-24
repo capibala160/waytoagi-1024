@@ -27,7 +27,9 @@
 
   const screens = {
     start: $('screen-start'),
-    dest: $('screen-dest'),
+    modes: $('screen-modes'),
+    confirm: $('screen-confirm'),
+    how: $('screen-how'),
     play: $('screen-play'),
     code: $('screen-code'),
     end: $('screen-end')
@@ -39,12 +41,15 @@
     levels: SETS.outdoor ? SETS.outdoor.levels : [],
     free: false,
     dest: null,
+    pendingDest: null,
     gps: null,
     gpsStatus: '',
     dist: null,
     path: [],
     lastPathAt: 0,
     watchId: null,
+    simPos: null,
+    simSteps: 0,
     level: 0,
     startAt: 0,
     elapsed: 0,
@@ -143,6 +148,7 @@
 
   function saveProgress() {
     if (!isPlaying()) return;
+    if (state.mode === 'sim') return;
     try {
       if (state.mode === 'free') {
         localStorage.setItem(SAVE_KEY, JSON.stringify({
@@ -577,7 +583,7 @@
     }
 
     // 自由行：目标方位标记（相对手机顶部）
-    if (state.mode === 'free' && state.target != null && live) {
+    if ((state.mode === 'free' || state.mode === 'sim') && state.target != null && live) {
       const rel = norm(state.target - h);
       ctx.save();
       ctx.translate(CC, CC);
@@ -757,35 +763,95 @@
     paintFreeStatus();
   }
 
-  function renderDestList() {
-    const list = $('dest-list');
-    list.replaceChildren();
-    (window.DESTINATIONS || []).forEach((d) => {
-      const btn = document.createElement('button');
-      btn.className = 'dest-item';
-      const name = document.createElement('b');
-      name.textContent = d.name;
-      const blurb = document.createElement('span');
-      blurb.textContent = d.blurb || '';
-      btn.appendChild(name);
-      btn.appendChild(blurb);
-      btn.addEventListener('click', () => startFree(d));
-      list.appendChild(btn);
+  function renderSuggestions(filter) {
+    const q = (filter || '').trim();
+    const list = (window.DESTINATIONS || [])
+      .filter((d) => !q || d.name.includes(q) || (d.blurb || '').includes(q))
+      .slice(0, 6);
+    const box = $('dest-suggest');
+    box.replaceChildren();
+    list.forEach((d) => {
+      const chip = document.createElement('button');
+      chip.className = 'chip';
+      chip.textContent = d.name;
+      chip.addEventListener('click', () => showConfirm(d));
+      box.appendChild(chip);
     });
   }
 
-  function showDestinations() {
-    const errors = validateDestinations();
-    if (errors.length) {
-      $('start-message').textContent = errors.slice(0, 3).join('\n');
-      return;
-    }
-    showScreen('dest');
+  function renderRecent() {
+    let recent = [];
+    try { recent = JSON.parse(localStorage.getItem('wenjin-recent') || '[]'); } catch (e) { recent = []; }
+    if (!Array.isArray(recent)) recent = [];
+
+    const items = recent
+      .map((r) => (window.DESTINATIONS || []).find((d) => d.id === r.id))
+      .filter(Boolean)
+      .slice(0, 3);
+
+    const block = $('recent-block');
+    const list = $('recent-list');
+    list.replaceChildren();
+    block.hidden = !items.length;
+
+    items.forEach((d) => {
+      const row = document.createElement('button');
+      row.className = 'recent-item';
+      const name = document.createElement('b');
+      name.textContent = d.name;
+      const when = document.createElement('span');
+      const at = recent.find((r) => r.id === d.id);
+      when.textContent = at && at.at
+        ? new Date(at.at).toLocaleDateString('zh-CN')
+        : '再去';
+      row.appendChild(name);
+      row.appendChild(when);
+      row.addEventListener('click', () => showConfirm(d));
+      list.appendChild(row);
+    });
+  }
+
+  function rememberDest(dest) {
+    let recent = [];
+    try { recent = JSON.parse(localStorage.getItem('wenjin-recent') || '[]'); } catch (e) { recent = []; }
+    if (!Array.isArray(recent)) recent = [];
+    recent = recent.filter((r) => r.id !== dest.id);
+    recent.unshift({ id: dest.id, name: dest.name, at: Date.now() });
+    recent = recent.slice(0, 5);
+    try { localStorage.setItem('wenjin-recent', JSON.stringify(recent)); } catch (e) { /* 忽略 */ }
+    renderRecent();
+  }
+
+  function renderHome() {
+    renderSuggestions('');
+    renderRecent();
+  }
+
+  function showConfirm(dest) {
+    if (!dest) return;
+    state.pendingDest = dest;
+    $('confirm-name').textContent = dest.name;
+    $('confirm-blurb').textContent = dest.blurb || '';
+    showScreen('confirm');
+  }
+
+  function showHow(dest) {
+    if (!dest) return;
+    state.pendingDest = dest;
+    $('how-name').textContent = dest.name;
+    showScreen('how');
+  }
+
+  function randomDest() {
+    const list = window.DESTINATIONS || [];
+    if (!list.length) return null;
+    return list[Math.floor(Math.random() * list.length)];
   }
 
   function startFree(dest) {
     if (!dest) return;
     requestMotionPermission();
+    rememberDest(dest);
 
     stopGps();
     clearProgress();
@@ -793,6 +859,8 @@
     state.mode = 'free';
     state.free = true;
     state.dest = dest;
+    state.simPos = null;
+    state.simSteps = 0;
     state.levels = [];
     state.par = FREE_PAR;
     state.level = 0;
@@ -838,6 +906,7 @@
     $('free-blurb').textContent = state.dest.blurb || '';
     $('btn-hint').hidden = true;
     $('hint-box').hidden = true;
+    $('btn-forward').hidden = true;
     $('btn-arrive').textContent = '我到了';
     $('stat-hints').hidden = true;
     $('clue-type').textContent = '';
@@ -898,6 +967,138 @@
     clearProgress();
   }
 
+  function renderSim() {
+    $('hud-level').textContent = '手机模拟';
+    $('clue-card').hidden = true;
+    $('free-card').hidden = false;
+    $('free-name').textContent = state.dest.name;
+    $('free-blurb').textContent = state.dest.blurb || '';
+    $('free-status').textContent = '模拟 · 已走 0 步';
+    $('btn-hint').hidden = true;
+    $('hint-box').hidden = true;
+    $('btn-forward').hidden = false;
+    $('btn-arrive').textContent = '我到了';
+    $('stat-hints').hidden = true;
+    $('clue-type').textContent = '';
+    $('halo-text').textContent = `方向确认，去「${state.dest.name}」`;
+    $('halo-text').classList.remove('on');
+    $('btn-bonus').hidden = true;
+    state.bonusMode = false;
+    state.alignLocked = false;
+    state.alignSince = 0;
+    showScreen('play');
+    requestAnimationFrame(fitCompass);
+  }
+
+  function startSim(dest) {
+    if (!dest) return;
+    requestMotionPermission();
+    rememberDest(dest);
+    stopGps();
+    clearProgress();
+
+    state.mode = 'sim';
+    state.free = false;
+    state.dest = dest;
+    state.levels = [];
+    state.par = FREE_PAR;
+    state.level = 0;
+    state.startLevelIndex = 0;
+    state.completed = 0;
+    state.hints = 0;
+    state.hintShown = 0;
+    state.asks = 0;
+    state.story = [];
+    state.stamps = [];
+    state.puzzleHints = 0;
+    state.optionalDone = false;
+    state.usedSimulation = true;
+    state.finished = false;
+    state.score = 0;
+    state.elapsed = 0;
+    state.startAt = Date.now();
+    state.path = [];
+    state.gps = null;
+    state.dist = null;
+    state.gpsStatus = '';
+
+    state.simPos = { lat: dest.lat - 0.0027, lon: dest.lon };
+    state.simSteps = 0;
+    state.path.push({ lat: state.simPos.lat, lon: state.simPos.lon });
+    state.target = bearingTo(state.simPos.lat, state.simPos.lon, dest.lat, dest.lon);
+    state.dist = distanceMeters(state.simPos.lat, state.simPos.lon, dest.lat, dest.lon);
+
+    state.heading = null;
+    state.headingAbsolute = false;
+    state.relativeOnly = false;
+    state.sensorSeen = false;
+    state.lastOrientAt = 0;
+    state.simulating = false;
+    state.aligned = false;
+    state.alignLocked = false;
+    state.alignSince = 0;
+    $('sim-tip').hidden = true;
+
+    renderSim();
+    setTimeout(() => {
+      if (state.sensorSeen || state.simulating) return;
+      goSimulation('没检测到罗盘：拖动表盘模拟');
+    }, 2500);
+
+    wantWakeLock = true;
+    requestWakeLock();
+  }
+
+  function simStep() {
+    if (state.mode !== 'sim' || state.finished) return;
+    const h = state.heading != null ? state.heading : state.target;
+    const rad = h * Math.PI / 180;
+    const lat = state.simPos.lat + Math.cos(rad) * 18 / 111320;
+    const lon = state.simPos.lon + Math.sin(rad) * 18 /
+      (111320 * Math.cos(state.simPos.lat * Math.PI / 180));
+
+    state.simPos = { lat, lon };
+    state.simSteps++;
+    state.path.push({ lat, lon });
+    state.target = bearingTo(lat, lon, state.dest.lat, state.dest.lon);
+    state.dist = distanceMeters(lat, lon, state.dest.lat, state.dest.lon);
+    $('free-status').textContent = `模拟 · 已走 ${state.simSteps} 步`;
+    if (state.dist <= ARRIVE_METERS) finishSim();
+  }
+
+  function finishSim() {
+    if (state.finished) return;
+    state.finished = true;
+    state.elapsed = Math.max(0, (Date.now() - state.startAt) / 1000);
+    state.usedSimulation = true;
+    state.score = Math.max(100, Math.min(1000, Math.round(
+      1000 - 250 * (state.elapsed / FREE_PAR)
+    )));
+
+    $('end-time').textContent = fmtTime(state.elapsed);
+    $('end-hints').textContent = '0';
+    $('end-asks').textContent = String(state.asks);
+    $('end-score').textContent = String(state.score);
+    $('end-rating').textContent = '到 了';
+    $('stat-hints').hidden = true;
+    renderEndExtras();
+
+    const debugEl = $('end-debug');
+    debugEl.hidden = false;
+    debugEl.textContent = '模拟成绩 · 不计入活动（手机模拟）';
+
+    drawCard(state.score, {
+      free: true,
+      dest: state.dest,
+      path: state.path,
+      practice: true,
+      badges: earnedBadges()
+    });
+    showScreen('end');
+    releaseWakeLock();
+    clearProgress();
+  }
+
   function renderHints() {
     const lv = state.levels[state.level];
     const n = state.hintShown || 0;
@@ -932,6 +1133,7 @@
     $('clue-card').hidden = false;
     $('free-card').hidden = true;
     $('btn-hint').hidden = false;
+    $('btn-forward').hidden = true;
     $('btn-arrive').textContent = '我到了';
     $('stat-hints').hidden = false;
 
@@ -1115,6 +1317,11 @@
   /* ---------------- 输码 ---------------- */
 
   $('btn-arrive').addEventListener('click', () => {
+    if (state.mode === 'sim') {
+      if (state.dist != null && state.dist <= 80) finishSim();
+      else showToast('还没到，跟着指针走');
+      return;
+    }
     if (state.mode === 'free') {
       if (state.dist != null && state.dist <= 80) finishFree(state.dist <= ARRIVE_METERS);
       else showToast('还没到，跟着指针走');
@@ -1278,7 +1485,7 @@
 
   function earnedBadges() {
     const list = [];
-    if (state.mode !== 'free' && state.completed >= state.levels.length) list.push('记忆拼图');
+    if (state.mode !== 'free' && state.mode !== 'sim' && state.completed >= state.levels.length) list.push('记忆拼图');
     if (state.puzzleHints === 0) list.push('独立寻路者');
     if (state.optionalDone) list.push('细节观察家');
     if (state.asks >= 3) list.push('同行向导');
@@ -1449,7 +1656,7 @@
 
     x.fillStyle = '#e8b04b';
     x.font = '700 96px "Songti SC","SimSun",serif';
-    x.fillText('問 津', W / 2, 190);
+    x.fillText('犟 针', W / 2, 190);
 
     x.fillStyle = '#8a8578';
     x.font = '400 26px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
@@ -1551,18 +1758,44 @@
 
   $('btn-start').addEventListener('click', () => startGame('outdoor'));
   $('btn-start-indoor').addEventListener('click', () => startGame('indoor'));
-  $('btn-start-free').addEventListener('click', showDestinations);
-  $('btn-dest-back').addEventListener('click', () => showScreen('start'));
+
+  $('btn-search').addEventListener('click', () => renderSuggestions($('dest-input').value));
+  $('dest-input').addEventListener('input', (e) => renderSuggestions(e.target.value));
+  $('btn-random').addEventListener('click', () => {
+    const d = randomDest();
+    if (d) showConfirm(d);
+  });
+  $('btn-hunt').addEventListener('click', () => showScreen('modes'));
+  $('btn-modes-back').addEventListener('click', () => showScreen('start'));
+  $('btn-confirm-back').addEventListener('click', () => showScreen('start'));
+  $('btn-confirm-go').addEventListener('click', () => {
+    if (state.pendingDest) showHow(state.pendingDest);
+  });
+  $('btn-how-back').addEventListener('click', () => {
+    if (state.pendingDest) showConfirm(state.pendingDest);
+    else showScreen('start');
+  });
+  $('btn-how-sim').addEventListener('click', () => {
+    if (state.pendingDest) startSim(state.pendingDest);
+  });
+  $('btn-how-real').addEventListener('click', () => {
+    if (state.pendingDest) startFree(state.pendingDest);
+  });
+
   $('btn-resume').addEventListener('click', resumeGame);
+  $('btn-forward').addEventListener('click', simStep);
 
   $('btn-free-exit').addEventListener('click', () => {
     stopGps();
     state.finished = true;
     state.free = false;
     state.dest = null;
+    state.simPos = null;
+    state.simSteps = 0;
     state.mode = 'outdoor';
     clearProgress();
     showScreen('start');
+    $('btn-forward').hidden = true;
     refreshResume();
   });
 
@@ -1576,7 +1809,7 @@
   window.addEventListener('resize', fitCompass);
   window.addEventListener('orientationchange', () => setTimeout(fitCompass, 150));
 
-  renderDestList();
+  renderHome();
   refreshResume();
   const configErrors = validateAll();
   if (configErrors.length) {
