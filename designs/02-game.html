@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark" data-width="390">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>犟针 · 设计稿 02 · 游戏</title>
+<link rel="stylesheet" href="assets/mockup.css">
+</head>
+<body>
+
+<header class="deck-header">
+  <div>
+    <div class="brand">犟针<small>只指方向，不指路 · 设计稿 02 · 雾城</small></div>
+  </div>
+  <div class="deck-note">
+    游戏屏是产品的核心。罗盘在上，迷雾网格在中，方向键在下。手机里的按钮是视觉元素；
+    本页真正可点的只有右上角的主题和宽度切换。
+  </div>
+  <div class="controls">
+    <button class="toggle" type="button" data-theme-set="dark">深色</button>
+    <button class="toggle" type="button" data-theme-set="light">浅色</button>
+    <button class="toggle" type="button" data-width-set="390">390 × 844</button>
+    <button class="toggle" type="button" data-width-set="430">430 × 932</button>
+  </div>
+</header>
+
+<main class="deck">
+
+  <!-- 08 游戏主界面 -->
+  <section class="frame">
+    <div class="frame-label"><b>08 · 雾城</b><span data-size-label>390 × 844</span></div>
+    <div class="phone">
+      <div class="island"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="status-icons"><span class="signal"><i></i><i></i><i></i><i></i></span><span class="battery"><i></i></span></span></div>
+
+        <div class="game-top">
+          <div class="dest">老邮局<small>雾城 · 第 1 局</small></div>
+          <div class="icon-btn">?</div>
+        </div>
+
+        <div class="compass-wrap">
+          <div class="compass compass-game" aria-hidden="true">
+            <svg viewBox="0 0 200 200">
+              <circle class="dial" cx="100" cy="100" r="96"/>
+              <circle class="rim" cx="100" cy="100" r="94"/>
+              <circle class="rim2" cx="100" cy="100" r="84"/>
+              <circle class="ticks" cx="100" cy="100" r="78" stroke-dasharray="1 7"/>
+              <circle class="ticks-major" cx="100" cy="100" r="78" stroke-dasharray="2 24"/>
+              <text class="north" x="100" y="17" text-anchor="middle">北</text>
+              <g transform="rotate(-38 100 100)">
+                <polygon class="needle" points="100,24 107,100 93,100"/>
+                <polygon class="needle-tail" points="100,176 105,100 95,100"/>
+              </g>
+              <circle class="cap" cx="100" cy="100" r="7"/>
+            </svg>
+          </div>
+          <span class="speech">往那边。</span>
+        </div>
+
+        <div class="map map-game mt-12" aria-label="雾城地图，只能看见周围一格">
+          <div class="tile fog"></div><div class="tile fog"></div><div class="tile fog"></div><div class="tile fog"></div><div class="tile fog"></div><div class="tile fog"></div><div class="tile fog"></div>
+          <div class="tile fog"></div><div class="tile building"></div><div class="tile building"></div><div class="tile explored"><span class="street">梧桐街</span></div><div class="tile fog"></div><div class="tile fog"></div><div class="tile fog"></div>
+          <div class="tile fog"></div><div class="tile building"></div><div class="tile explored"><span class="street">邮局路</span></div><div class="tile explored"></div><div class="tile landmark"><span class="mark">钟</span></div><div class="tile fog"></div><div class="tile fog"></div>
+          <div class="tile fog"></div><div class="tile explored"><span class="street">梧桐街</span></div><div class="tile explored"></div><div class="tile player"></div><div class="tile explored"></div><div class="tile explored"><span class="street">茶馆巷</span></div><div class="tile fog"></div>
+          <div class="tile fog"></div><div class="tile fog"></div><div class="tile explored"><span class="street">茶馆巷</span></div><div class="tile npc"></div><div class="tile building"></div><div class="tile fog"></div><div class="tile fog"></div>
+          <div class="tile fog"></div><div class="tile fog"></div><div class="tile explored"></div><div class="tile explored"></div><div class="tile water"></div><div class="tile fog"></div><div class="tile fog"></div>
+          <div class="tile fog"></div><div class="tile fog"></div><div class="tile fog"></div><div class="tile water"></div><div class="tile fog"></div><div class="tile fog"></div><div class="tile fog"></div>
+        </div>
+        <div class="map-caption"><span>已走 38 步</span><span>北 ↑</span></div>
+
+        <div class="dpad" aria-label="方向键">
+          <div class="key up">↑</div>
+          <div class="key left">←</div>
+          <div class="key center">·</div>
+          <div class="key right">→</div>
+          <div class="key down">↓</div>
+        </div>
+
+        <div class="stats">
+          <div class="stat"><div class="num">01:42</div><div class="label">用时</div></div>
+          <div class="stat"><div class="num">38</div><div class="label">步数</div></div>
+          <div class="stat"><div class="num">3</div><div class="label">问路</div></div>
+          <div class="stat"><div class="num">87</div><div class="label">迷路</div></div>
+        </div>
+        <div class="sheet-handle">日记</div>
+        <div class="homebar"><i></i></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 09 问路 -->
+  <section class="frame">
+    <div class="frame-label"><b>09 · 问路</b><span data-size-label>390 × 844</span></div>
+    <div class="phone">
+      <div class="island"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="status-icons"><span class="signal"><i></i><i></i><i></i><i></i></span><span class="battery"><i></i></span></span></div>
+        <div class="game-top">
+          <div class="dest">老邮局<small>雾城 · 第 1 局</small></div>
+          <div class="icon-btn">?</div>
+        </div>
+        <div class="compass-wrap">
+          <div class="compass compass-game" aria-hidden="true">
+            <svg viewBox="0 0 200 200">
+              <circle class="dial" cx="100" cy="100" r="96"/>
+              <circle class="rim" cx="100" cy="100" r="94"/>
+              <circle class="rim2" cx="100" cy="100" r="84"/>
+              <circle class="ticks" cx="100" cy="100" r="78" stroke-dasharray="1 7"/>
+              <circle class="ticks-major" cx="100" cy="100" r="78" stroke-dasharray="2 24"/>
+              <text class="north" x="100" y="17" text-anchor="middle">北</text>
+              <g transform="rotate(-38 100 100)">
+                <polygon class="needle" points="100,24 107,100 93,100"/>
+                <polygon class="needle-tail" points="100,176 105,100 95,100"/>
+              </g>
+              <circle class="cap" cx="100" cy="100" r="7"/>
+            </svg>
+          </div>
+        </div>
+
+        <div class="sheet">
+          <div class="grab"></div>
+          <div class="eyebrow">问路 · 第 1 个人</div>
+          <div style="display:flex;gap:12px;align-items:center;margin-top:12px">
+            <div class="npc-face">棋</div>
+            <div>
+              <div class="title-sm serif">下棋大爷</div>
+              <div class="micro mt-4">这条路他熟</div>
+            </div>
+          </div>
+          <p class="body mt-16" style="font-family:var(--serif);font-size:17px;line-height:1.7">
+            老邮局啊。从这儿往东，过两个路口，看见钟楼再往北。我年轻的时候，那一片还是稻田。
+          </p>
+          <div class="micro mt-12">他看起来很有把握。</div>
+          <div class="divider mt-16"></div>
+          <div class="micro mt-12">问路会记进日记。人情味 +1。</div>
+          <div class="spacer"></div>
+          <div class="btn btn-primary" style="margin-bottom:16px">记下了</div>
+        </div>
+        <div class="homebar"><i></i></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 日记抽屉 -->
+  <section class="frame">
+    <div class="frame-label"><b>10 · 日记抽屉</b><span data-size-label>390 × 844</span></div>
+    <div class="phone">
+      <div class="island"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="status-icons"><span class="signal"><i></i><i></i><i></i><i></i></span><span class="battery"><i></i></span></span></div>
+        <div class="game-top">
+          <div class="dest">老邮局<small>雾城 · 第 1 局</small></div>
+          <div class="icon-btn">?</div>
+        </div>
+        <div class="compass-wrap">
+          <div class="compass compass-game" aria-hidden="true">
+            <svg viewBox="0 0 200 200">
+              <circle class="dial" cx="100" cy="100" r="96"/>
+              <circle class="rim" cx="100" cy="100" r="94"/>
+              <circle class="rim2" cx="100" cy="100" r="84"/>
+              <circle class="ticks" cx="100" cy="100" r="78" stroke-dasharray="1 7"/>
+              <circle class="ticks-major" cx="100" cy="100" r="78" stroke-dasharray="2 24"/>
+              <text class="north" x="100" y="17" text-anchor="middle">北</text>
+              <g transform="rotate(-38 100 100)">
+                <polygon class="needle" points="100,24 107,100 93,100"/>
+                <polygon class="needle-tail" points="100,176 105,100 95,100"/>
+              </g>
+              <circle class="cap" cx="100" cy="100" r="7"/>
+            </svg>
+          </div>
+        </div>
+
+        <div class="sheet">
+          <div class="grab"></div>
+          <div class="sheet-head">
+            <div>
+              <div class="title-md serif">今天的路</div>
+              <div class="micro mt-4">老邮局 · 10:42 · 晴</div>
+            </div>
+            <div style="font-size:13px;min-height:44px;display:flex;align-items:center;color:var(--brass-bright)">编辑</div>
+          </div>
+          <div class="sheet-stats">
+            <div><div class="num">01:42</div><div class="label">用时</div></div>
+            <div><div class="num">38</div><div class="label">步数</div></div>
+            <div><div class="num">3</div><div class="label">问路</div></div>
+            <div><div class="num">87</div><div class="label">迷路</div></div>
+          </div>
+          <div class="timeline">
+            <div class="entry">
+              <div class="time">09:00 · 出发</div>
+              <div class="text">从<b>梧桐街</b>和<b>南仓街</b>的路口出发。阿针睁眼，指向东北。</div>
+            </div>
+            <div class="entry">
+              <div class="time">09:12 · 问路</div>
+              <div class="text"><b>下棋大爷</b>说：往东，过两个路口，看见钟楼再往北。</div>
+            </div>
+            <div class="entry photo">
+              <div class="time">09:26 · 照片</div>
+              <div class="text">最迷茫的时候。梧桐街拐角。</div>
+            </div>
+          </div>
+          <div class="photo-row mt-12">
+            <div class="photo" style="border-style:solid;background:linear-gradient(145deg,rgba(200,162,74,.22),rgba(31,38,43,.9))"><b>照</b><span>已拍</span></div>
+            <div class="photo"><b>＋</b><span>最迷茫</span></div>
+            <div class="photo"><b>＋</b><span>抵达时</span></div>
+          </div>
+          <div class="spacer"></div>
+          <div class="input" style="margin-bottom:12px">
+            <span class="placeholder">记一句。不用长。</span>
+            <span class="spacer"></span>
+            <span class="brass" style="font-size:18px">＋</span>
+          </div>
+          <div class="micro center" style="margin-bottom:14px">自动保存 · 只在这台手机上</div>
+        </div>
+        <div class="homebar"><i></i></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 抵达 -->
+  <section class="frame">
+    <div class="frame-label"><b>11 · 抵达</b><span data-size-label>390 × 844</span></div>
+    <div class="phone">
+      <div class="arrival-glow"></div>
+      <div class="island"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="status-icons"><span class="signal"><i></i><i></i><i></i><i></i></span><span class="battery"><i></i></span></span></div>
+
+        <div class="center mt-8">
+          <div class="eyebrow">抵达 · 雾城</div>
+          <h1 class="title-xl mt-8" style="font-size:46px">到了。</h1>
+          <p class="serif mt-8" style="font-size:18px;color:var(--text-2)">我早说过。</p>
+        </div>
+
+        <div style="position:relative;margin:22px auto 0;width:calc(var(--compass) + 28px)">
+          <div style="position:absolute;inset:0;border-radius:50%;border:1px solid rgba(200,162,74,.30)"></div>
+          <div style="position:absolute;inset:-14px;border-radius:50%;border:1px solid rgba(200,162,74,.12)"></div>
+          <div class="compass compass-game" aria-hidden="true">
+            <svg viewBox="0 0 200 200">
+              <circle class="dial" cx="100" cy="100" r="96"/>
+              <circle class="rim" cx="100" cy="100" r="94"/>
+              <circle class="rim2" cx="100" cy="100" r="84"/>
+              <circle class="ticks" cx="100" cy="100" r="78" stroke-dasharray="1 7"/>
+              <circle class="ticks-major" cx="100" cy="100" r="78" stroke-dasharray="2 24"/>
+              <text class="north" x="100" y="17" text-anchor="middle">北</text>
+              <g transform="rotate(0 100 100)">
+                <polygon class="needle" points="100,24 107,100 93,100"/>
+                <polygon class="needle-tail" points="100,176 105,100 95,100"/>
+              </g>
+              <circle class="cap" cx="100" cy="100" r="7"/>
+            </svg>
+          </div>
+        </div>
+
+        <div class="stats" style="margin-top:20px;border-top:none">
+          <div class="stat"><div class="num">01:42</div><div class="label">用时</div></div>
+          <div class="stat"><div class="num">38</div><div class="label">步数</div></div>
+          <div class="stat"><div class="num">3</div><div class="label">问了</div></div>
+          <div class="stat"><div class="num">87</div><div class="label">迷路</div></div>
+        </div>
+
+        <div class="card-flat mt-12" style="padding:14px 16px">
+          <div class="sub" style="font-size:14px;line-height:1.65">你从梧桐街出发，绕了 87% 的远路。阿针全程只说了一句：“往那边。”</div>
+        </div>
+
+        <div class="spacer"></div>
+        <div class="btn btn-primary">写进日记</div>
+        <div class="btn btn-ghost mt-8">再玩一局</div>
+        <div class="btn-text">分享抵达证明</div>
+        <div class="homebar"><i></i></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 结果 -->
+  <section class="frame">
+    <div class="frame-label"><b>12 · 结果</b><span data-size-label>390 × 844</span></div>
+    <div class="phone">
+      <div class="island"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="status-icons"><span class="signal"><i></i><i></i><i></i><i></i></span><span class="battery"><i></i></span></span></div>
+
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-top:6px">
+          <div>
+            <div class="eyebrow">抵达 · 老邮局</div>
+            <h1 class="title-lg mt-6">这一局</h1>
+            <div class="micro mt-4">2026-10-25 · 阿针·北</div>
+          </div>
+          <div class="dest-seal" style="width:44px;height:44px;font-size:16px;transform:rotate(-8deg)">邮</div>
+        </div>
+
+        <div class="route-line mt-12">
+          <svg viewBox="0 0 280 76" aria-hidden="true">
+            <path d="M18 62 L64 62 L64 42 L112 42 L112 24 L168 24 L168 38 L214 38 L214 16 L262 16"
+                  fill="none" stroke="var(--brass)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="18" cy="62" r="4" fill="var(--brass-bright)"/>
+            <circle cx="262" cy="16" r="5" fill="var(--needle)"/>
+            <text x="18" y="74" fill="var(--text-3)" font-size="8" font-family="var(--mono)">起点</text>
+            <text x="226" y="34" fill="var(--text-3)" font-size="8" font-family="var(--mono)">老邮局</text>
+          </svg>
+        </div>
+        <div style="display:flex;justify-content:space-between" class="micro">
+          <span>你走过的路</span><span>1.2 公里</span>
+        </div>
+
+        <div class="stats mt-16" style="border-top:1px solid var(--line)">
+          <div class="stat"><div class="num">01:42</div><div class="label">用时</div></div>
+          <div class="stat"><div class="num">38</div><div class="label">步数</div></div>
+          <div class="stat"><div class="num">3</div><div class="label">问路</div></div>
+          <div class="stat"><div class="num">87</div><div class="label">迷路</div></div>
+        </div>
+
+        <div class="mt-16">
+          <div class="stars"><span>★</span><span>★</span><span>★</span></div>
+          <div class="micro center mt-6">抵达 · 用时 ≤ 3:13 · 问路 ≥ 2 人</div>
+        </div>
+
+        <div class="pill-row mt-12" style="justify-content:center">
+          <span class="chip brass">城市漫游者</span>
+          <span class="chip">社交达人</span>
+        </div>
+
+        <div class="spacer"></div>
+        <div class="btn btn-primary">写进日记</div>
+        <div class="row-2 mt-8">
+          <div class="btn btn-ghost">再玩一局</div>
+          <div class="btn btn-ghost">挑战朋友</div>
+        </div>
+        <div class="homebar"><i></i></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<div class="page-note">
+  设计说明：罗盘是页面上最重的元素，迷雾网格是第二层。方向键 44×44，底部统计用等宽数字。
+  抵达屏是唯一的"奖励时刻"，用暖光和锁定指针，不用彩色纸屑。
+</div>
+
+<script src="assets/mockup.js"></script>
+</body>
+</html>

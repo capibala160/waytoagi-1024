@@ -119,3 +119,25 @@ compass-test.html 指南针体检页（第 0 步，保留）
 - 防作弊靠人：玩家可以偷偷用导航，游戏不做裁判
 - 采样率低（1 Hz）时，走路读数会滞后；最好站定再读
 - 会场 Wi-Fi 可能拦隧道，备手机热点
+
+---
+
+## 产品文档与设计稿（犟针 · 另一版方案）
+
+这套文档是产品方案的完整版，名字暂定《犟针》，核心是"演练模式（雾城）+ 实战模式（真实城市）"。
+当前仓库的实现叫《问津》，是"真实城市 + 关卡码"的版本。两套名字和玩法需要团队二选一，再统一代码、文案和提交物。
+
+- [产品文档索引](docs/README.md)
+- [产品需求文档](docs/PRD.md)
+- [游戏设计](docs/GAME-DESIGN.md)
+- [技术方案](docs/TECH-SPEC.md)
+- [黑客松计划](docs/HACKATHON.md)
+- [三人分工](docs/TEAM.md)
+- [中文文案](docs/COPY.md)
+- [设计稿说明](designs/README.md)
+- [设计稿 01 · 入门](designs/01-onboarding.html)
+- [设计稿 02 · 游戏](designs/02-game.html)
+- [设计稿 03 · 日记与分享](designs/03-journal-share.html)
+- [设计稿 04 · 实战与设置](designs/04-real-settings.html)
+
+设计稿支持深色/浅色、390×844 / 430×932 切换，直接用浏览器打开。

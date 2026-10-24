@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark" data-width="390">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>犟针 · 设计稿 04 · 实战与设置</title>
+<link rel="stylesheet" href="assets/mockup.css">
+</head>
+<body>
+
+<header class="deck-header">
+  <div>
+    <div class="brand">犟针<small>只指方向，不指路 · 设计稿 04 · 实战与设置</small></div>
+  </div>
+  <div class="deck-note">
+    实战模式是产品的主场，但不进黑客松提交物：评委在桌前玩雾城，视频里看真实城市。
+    手机里的按钮是视觉元素，本页真正可点的只有右上角的主题和宽度切换。
+  </div>
+  <div class="controls">
+    <button class="toggle" type="button" data-theme-set="dark">深色</button>
+    <button class="toggle" type="button" data-theme-set="light">浅色</button>
+    <button class="toggle" type="button" data-width-set="390">390 × 844</button>
+    <button class="toggle" type="button" data-width-set="430">430 × 932</button>
+  </div>
+</header>
+
+<main class="deck">
+
+  <!-- 17 实战罗盘 -->
+  <section class="frame">
+    <div class="frame-label"><b>17 · 实战罗盘</b><span data-size-label>390 × 844</span></div>
+    <div class="phone">
+      <div class="arrival-glow" style="opacity:.55"></div>
+      <div class="island"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="status-icons"><span class="signal"><i></i><i></i><i></i><i></i></span><span class="battery"><i></i></span></span></div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;padding-top:2px">
+          <div class="icon-btn" style="width:40px;height:40px">‹</div>
+          <div class="center">
+            <div class="micro">实战 · 成都</div>
+            <div class="title-sm serif mt-4">鹤鸣茶社</div>
+          </div>
+          <div class="icon-btn" style="width:40px;height:40px">⋯</div>
+        </div>
+
+        <div class="center mt-16">
+          <div class="eyebrow" style="letter-spacing:.08em">已走</div>
+          <div class="mono mt-6" style="font-size:36px;letter-spacing:.04em">00:42:18</div>
+          <div class="micro mt-4">从人民公园东门出发</div>
+        </div>
+
+        <div class="compass mt-16" style="--compass:300px" aria-hidden="true">
+          <svg viewBox="0 0 200 200">
+            <circle class="dial" cx="100" cy="100" r="96"/>
+            <circle class="rim" cx="100" cy="100" r="94"/>
+            <circle class="rim2" cx="100" cy="100" r="84"/>
+            <circle class="ticks" cx="100" cy="100" r="78" stroke-dasharray="1 7"/>
+            <circle class="ticks-major" cx="100" cy="100" r="78" stroke-dasharray="2 24"/>
+            <text class="north" x="100" y="17" text-anchor="middle">北</text>
+            <g transform="rotate(-64 100 100)">
+              <polygon class="needle" points="100,24 107,100 93,100"/>
+              <polygon class="needle-tail" points="100,176 105,100 95,100"/>
+            </g>
+            <circle class="cap" cx="100" cy="100" r="7"/>
+          </svg>
+        </div>
+
+        <div class="center mt-8">
+          <span class="speech">往那边。别飘。</span>
+        </div>
+        <div class="center mt-8"><span class="micro">把手机放平，转动身体。</span></div>
+
+        <div class="spacer"></div>
+
+        <div style="display:flex;justify-content:center;align-items:center;gap:6px;margin-bottom:10px">
+          <span style="width:6px;height:6px;border-radius:50%;background:var(--success);display:inline-block"></span>
+          <span class="micro">定位正常 · 罗盘已校准</span>
+        </div>
+
+        <div class="btn btn-primary">我问了个人</div>
+        <div class="row-2 mt-8">
+          <div class="btn btn-ghost" style="min-height:48px">日记</div>
+          <div class="btn btn-ghost" style="min-height:48px">退出</div>
+        </div>
+        <div class="center mt-8"><span class="micro">过马路别看手机。随时可以退出。</span></div>
+        <div class="homebar"><i></i></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 18 设置 -->
+  <section class="frame">
+    <div class="frame-label"><b>18 · 设置与安全</b><span data-size-label>390 × 844</span></div>
+    <div class="phone">
+      <div class="island"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="status-icons"><span class="signal"><i></i><i></i><i></i><i></i></span><span class="battery"><i></i></span></span></div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;padding-top:2px">
+          <div class="icon-btn" style="width:40px;height:40px">‹</div>
+          <div class="micro">设置</div>
+          <div style="width:40px"></div>
+        </div>
+
+        <div class="card-flat mt-12" style="padding:12px 14px;border-color:var(--brass)">
+          <div class="eyebrow">走路第一</div>
+          <div class="sub mt-6" style="font-size:13px">过马路别看手机。不要进私人地方。天黑前回家。</div>
+        </div>
+
+        <div class="mt-16">
+          <div class="micro">外观</div>
+          <div class="row">
+            <div><div class="label">深色模式</div><div class="note">默认。夜里走路不刺眼。</div></div>
+            <div class="switch on"></div>
+          </div>
+          <div class="row">
+            <div><div class="label">声音</div><div class="note">抵达时响一下。</div></div>
+            <div class="switch on"></div>
+          </div>
+          <div class="row">
+            <div><div class="label">震动</div><div class="note">靠近目的地时短震。</div></div>
+            <div class="switch on"></div>
+          </div>
+          <div class="row">
+            <div><div class="label">显示远近</div><div class="note">只显示"远 / 近"，不显示米数。</div></div>
+            <div class="switch"></div>
+          </div>
+        </div>
+
+        <div class="mt-12">
+          <div class="micro">安全</div>
+          <div class="row">
+            <div><div class="label">实时位置共享</div><div class="note">发给一个你信的人。</div></div>
+            <div class="switch"></div>
+          </div>
+          <div class="row">
+            <div><div class="label">夜间提醒</div><div class="note">日落后提醒一次。</div></div>
+            <div class="switch on"></div>
+          </div>
+          <div class="row">
+            <div><div class="label">安全说明</div><div class="note">哪些地方不该去。</div></div>
+            <div class="value">›</div>
+          </div>
+        </div>
+
+        <div class="mt-12">
+          <div class="micro">数据</div>
+          <div class="row">
+            <div><div class="label">导出全部日记</div><div class="note">JSON 或图片。</div></div>
+            <div class="value">›</div>
+          </div>
+          <div class="row">
+            <div><div class="label" style="color:var(--danger)">清除本地数据</div><div class="note">不能恢复。</div></div>
+            <div class="value">›</div>
+          </div>
+        </div>
+
+        <div class="spacer"></div>
+        <div class="micro center">版本 0.9 · 隐私 · 关于</div>
+        <div class="homebar"><i></i></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 19 错误 -->
+  <section class="frame">
+    <div class="frame-label"><b>19 · 定位失败</b><span data-size-label>390 × 844</span></div>
+    <div class="phone">
+      <div class="island"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="status-icons"><span class="signal"><i></i><i></i><i></i><i></i></span><span class="battery"><i></i></span></span></div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;padding-top:2px">
+          <div class="icon-btn" style="width:40px;height:40px">‹</div>
+          <div class="micro">实战模式</div>
+          <div style="width:40px"></div>
+        </div>
+
+        <div class="spacer"></div>
+
+        <div class="center">
+          <div style="width:72px;height:72px;border-radius:50%;border:1px dashed var(--needle);display:flex;align-items:center;justify-content:center;margin:0 auto;color:var(--needle);font-family:var(--serif);font-size:30px">!</div>
+          <h1 class="title-lg mt-20">没有定位，<br>罗盘转不起来。</h1>
+          <p class="body muted mt-12">去浏览器设置里打开定位，再试一次。</p>
+        </div>
+
+        <div class="card-flat mt-20" style="padding:13px 14px">
+          <div class="micro">如果只是网断了：罗盘还能用，日记先存在手机里。</div>
+        </div>
+
+        <div class="spacer"></div>
+        <div class="btn btn-primary">重试</div>
+        <div class="btn btn-ghost mt-8">先玩演练模式</div>
+        <div class="center mt-8"><span class="micro">演练模式不需要定位。</span></div>
+        <div class="homebar"><i></i></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 20 空状态 -->
+  <section class="frame">
+    <div class="frame-label"><b>20 · 空状态</b><span data-size-label>390 × 844</span></div>
+    <div class="phone">
+      <div class="island"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="status-icons"><span class="signal"><i></i><i></i><i></i><i></i></span><span class="battery"><i></i></span></span></div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;padding-top:2px">
+          <div class="icon-btn" style="width:40px;height:40px">‹</div>
+          <div class="micro">我的冒险</div>
+          <div style="width:40px"></div>
+        </div>
+
+        <div class="spacer"></div>
+
+        <div class="center">
+          <div class="compass" style="--compass:150px;opacity:.55" aria-hidden="true">
+            <svg viewBox="0 0 200 200">
+              <circle class="dial" cx="100" cy="100" r="96"/>
+              <circle class="rim" cx="100" cy="100" r="94"/>
+              <circle class="rim2" cx="100" cy="100" r="84"/>
+              <circle class="ticks" cx="100" cy="100" r="78" stroke-dasharray="1 7"/>
+              <circle class="ticks-major" cx="100" cy="100" r="78" stroke-dasharray="2 24"/>
+              <text class="north" x="100" y="17" text-anchor="middle">北</text>
+              <g transform="rotate(-38 100 100)">
+                <polygon class="needle" points="100,24 107,100 93,100"/>
+                <polygon class="needle-tail" points="100,176 105,100 95,100"/>
+              </g>
+              <circle class="cap" cx="100" cy="100" r="7"/>
+            </svg>
+          </div>
+          <h1 class="title-lg mt-16">还没有冒险。</h1>
+          <p class="sub mt-8">第一局，从楼下开始。</p>
+        </div>
+
+        <div class="spacer"></div>
+        <div class="btn btn-primary">开始一局</div>
+        <div class="center mt-8"><span class="micro">走完一局，这里会多一篇日记。</span></div>
+        <div class="homebar"><i></i></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<div class="page-note">
+  设计说明：实战模式只有一个罗盘、一个计时、三个动作：问人、写日记、退出。设置页把安全放在最上面，
+  不藏在二级菜单。错误页明确说"怎么办"，不道歉、不卖萌。
+</div>
+
+<script src="assets/mockup.js"></script>
+</body>
+</html>

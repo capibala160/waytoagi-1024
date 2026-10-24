@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark" data-width="390">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>犟针 · 设计稿 01 · 入门</title>
+<link rel="stylesheet" href="assets/mockup.css">
+</head>
+<body>
+
+<header class="deck-header">
+  <div>
+    <div class="brand">犟针<small>只指方向，不指路 · 设计稿 01 · 入门</small></div>
+  </div>
+  <div class="deck-note">
+    手机里的按钮是视觉元素，不是可交互控件。本页真正可点的只有右上角的主题和宽度切换。
+    素材位用印章与线稿占位，正式版替换为 AI 生图。
+  </div>
+  <div class="controls">
+    <button class="toggle" type="button" data-theme-set="dark">深色</button>
+    <button class="toggle" type="button" data-theme-set="light">浅色</button>
+    <button class="toggle" type="button" data-width-set="390">390 × 844</button>
+    <button class="toggle" type="button" data-width-set="430">430 × 932</button>
+  </div>
+</header>
+
+<main class="deck">
+
+  <!-- 01 首页 -->
+  <section class="frame">
+    <div class="frame-label"><b>01 · 首页</b><span data-size-label>390 × 844</span></div>
+    <div class="phone">
+      <div class="island"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="status-icons"><span class="signal"><i></i><i></i><i></i><i></i></span><span class="battery"><i></i></span></span></div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;padding-top:2px">
+          <div class="serif" style="font-size:21px;letter-spacing:.1em">犟针</div>
+          <div class="icon-btn" style="width:40px;height:40px">☾</div>
+        </div>
+
+        <div class="mt-16">
+          <div class="eyebrow">只指方向，不指路</div>
+          <h1 class="title-xl mt-8">目的地是确定的。<br>路线不是。</h1>
+          <p class="body muted mt-12">选一个目的地。罗盘只指方向。剩下的靠你和路人。</p>
+        </div>
+
+        <div class="compass mt-16" aria-hidden="true">
+          <svg viewBox="0 0 200 200">
+            <circle class="dial" cx="100" cy="100" r="96"/>
+            <circle class="rim" cx="100" cy="100" r="94"/>
+            <circle class="rim2" cx="100" cy="100" r="84"/>
+            <circle class="ticks" cx="100" cy="100" r="78" stroke-dasharray="1 7"/>
+            <circle class="ticks-major" cx="100" cy="100" r="78" stroke-dasharray="2 24"/>
+            <text class="north" x="100" y="17" text-anchor="middle">北</text>
+            <g transform="rotate(-38 100 100)">
+              <polygon class="needle" points="100,24 107,100 93,100"/>
+              <polygon class="needle-tail" points="100,176 105,100 95,100"/>
+            </g>
+            <circle class="cap" cx="100" cy="100" r="7"/>
+          </svg>
+        </div>
+        <div style="display:flex;justify-content:center;margin-top:6px"><span class="speech">往那边。</span></div>
+
+        <div class="spacer"></div>
+
+        <div class="btn btn-primary">开始一局</div>
+        <div class="btn-text">看别人的冒险</div>
+
+        <div class="mt-8">
+          <div class="divider"></div>
+          <div class="mt-12" style="display:flex;align-items:baseline;justify-content:space-between">
+            <span class="title-sm serif">我的冒险</span><span class="micro">0 篇</span>
+          </div>
+          <div class="card-flat mt-8 center" style="padding:18px 12px">
+            <div class="micro">还没有冒险。第一局，从楼下开始。</div>
+          </div>
+        </div>
+
+        <div class="micro center mt-12">安全 · 隐私 · 关于</div>
+        <div class="homebar"><i></i></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02 铸造输入 -->
+  <section class="frame">
+    <div class="frame-label"><b>02 · 铸造</b><span data-size-label>390 × 844</span></div>
+    <div class="phone">
+      <div class="island"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="status-icons"><span class="signal"><i></i><i></i><i></i><i></i></span><span class="battery"><i></i></span></span></div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;padding-top:2px">
+          <div class="icon-btn" style="width:40px;height:40px">‹</div>
+          <div class="micro">铸造旅伴</div>
+          <div style="width:40px"></div>
+        </div>
+
+        <div class="mt-16">
+          <div class="eyebrow">一句话</div>
+          <h1 class="title-lg mt-8">用一句话，<br>造一个旅伴。</h1>
+        </div>
+        <p class="sub mt-10">它会陪你走完这一局。只指方向，不给路线。</p>
+
+        <div class="input mt-20">
+          <span class="placeholder">比如：一个嘴硬心软的铜罗盘</span><span class="caret"></span>
+        </div>
+
+        <div class="pill-row mt-10">
+          <span class="chip">嘴硬心软的铜罗盘</span>
+          <span class="chip">见过世面的老怀表</span>
+          <span class="chip">刚出厂、方向感天才</span>
+        </div>
+
+        <div class="card mt-20" style="display:flex;gap:12px;align-items:center;padding:14px">
+          <div class="azhen azhen-sm" aria-hidden="true">
+            <div class="scratch"></div><div class="brow"></div><div class="eye"><i></i></div><div class="mouth"></div>
+          </div>
+          <div>
+            <div class="micro">它会变成</div>
+            <div class="title-sm serif mt-4">一个只认方向的旅伴</div>
+            <div class="micro mt-4">名字、脾气、口头禅，都由这句话决定。</div>
+          </div>
+        </div>
+
+        <div class="spacer"></div>
+        <div class="btn btn-primary">铸造</div>
+        <div class="btn-text">先用默认的阿针</div>
+        <div class="homebar"><i></i></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03 铸造加载 -->
+  <section class="frame">
+    <div class="frame-label"><b>03 · 装配</b><span data-size-label>390 × 844</span></div>
+    <div class="phone">
+      <div class="island"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="status-icons"><span class="signal"><i></i><i></i><i></i><i></i></span><span class="battery"><i></i></span></span></div>
+
+        <div class="spacer"></div>
+
+        <div class="assembly" aria-hidden="true">
+          <div class="ring"></div>
+          <div class="ring"></div>
+          <div class="ring"></div>
+          <div class="ring"></div>
+          <div class="core" style="display:flex;align-items:center;justify-content:center">
+            <div class="azhen azhen-sm" aria-hidden="true">
+              <div class="scratch"></div><div class="brow"></div><div class="eye"><i></i></div><div class="mouth"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="center mt-24">
+          <h1 class="title-lg">正在装配……</h1>
+          <p class="sub mt-8">铜壳、指针、一点脾气。</p>
+        </div>
+
+        <div class="card-flat mt-20" style="padding:14px 16px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span class="micro">铜壳</span><span class="mono micro brass">完成</span>
+          </div>
+          <div class="divider mt-8"></div>
+          <div class="mt-8" style="display:flex;justify-content:space-between;align-items:center">
+            <span class="micro">指针</span><span class="mono micro brass">校准中</span>
+          </div>
+          <div class="divider mt-8"></div>
+          <div class="mt-8" style="display:flex;justify-content:space-between;align-items:center">
+            <span class="micro">脾气</span><span class="mono micro dim">等待</span>
+          </div>
+        </div>
+
+        <div class="center mt-16"><span class="micro">它有点认生。再等等。</span></div>
+        <div class="spacer"></div>
+        <div class="homebar"><i></i></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 04 角色卡 -->
+  <section class="frame">
+    <div class="frame-label"><b>04 · 角色卡</b><span data-size-label>390 × 844</span></div>
+    <div class="phone">
+      <div class="island"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="status-icons"><span class="signal"><i></i><i></i><i></i><i></i></span><span class="battery"><i></i></span></span></div>
+
+        <div class="center mt-8">
+          <div class="eyebrow">它醒了</div>
+          <h1 class="title-lg mt-6">阿针·北</h1>
+          <p class="sub mt-6">一枚只认一个方向的铜罗盘。</p>
+        </div>
+
+        <div class="card mt-16" style="padding:20px 18px;position:relative;overflow:hidden">
+          <div style="position:absolute;right:-30px;top:-30px;width:110px;height:110px;border-radius:50%;border:1px solid var(--line);"></div>
+          <div class="center">
+            <div class="azhen azhen-lg" style="margin:0 auto" aria-hidden="true">
+              <div class="scratch"></div><div class="brow"></div><div class="eye"><i></i></div><div class="mouth"></div>
+            </div>
+          </div>
+          <div class="center mt-16">
+            <div class="title-md serif">嘴硬 · 心软 · 方向感极好</div>
+            <div class="body mt-10" style="font-family:var(--serif);font-size:18px">“往那边。”</div>
+          </div>
+          <div class="divider mt-16"></div>
+          <div class="mt-12" style="display:flex;justify-content:space-between;align-items:center">
+            <span class="micro">铸造于 2026-10-25</span>
+            <span class="micro">犟针</span>
+          </div>
+        </div>
+
+        <div class="spacer"></div>
+        <div class="row-2">
+          <div class="btn btn-ghost">换一个</div>
+          <div class="btn btn-primary">就它了</div>
+        </div>
+        <div class="btn-text">保存主角卡</div>
+        <div class="homebar"><i></i></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 05 模式 -->
+  <section class="frame">
+    <div class="frame-label"><b>05 · 模式</b><span data-size-label>390 × 844</span></div>
+    <div class="phone">
+      <div class="island"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="status-icons"><span class="signal"><i></i><i></i><i></i><i></i></span><span class="battery"><i></i></span></span></div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;padding-top:2px">
+          <div class="icon-btn" style="width:40px;height:40px">‹</div>
+          <div class="micro">怎么走</div>
+          <div style="width:40px"></div>
+        </div>
+
+        <div class="mt-16">
+          <h1 class="title-lg">怎么走？</h1>
+          <p class="sub mt-8">第一次，建议先在小城练一局。</p>
+        </div>
+
+        <div class="dest-card selected mt-20" style="display:block;padding:16px">
+          <div style="display:flex;gap:12px;align-items:center">
+            <div class="dest-seal">练</div>
+            <div style="flex:1">
+              <div class="name">演练模式</div>
+              <div class="desc">在雾城里走一局。3-6 分钟。</div>
+            </div>
+          </div>
+          <div class="pill-row mt-12"><span class="tag brass">第一次玩</span><span class="tag">桌前可玩</span></div>
+          <div class="check">✓</div>
+        </div>
+
+        <div class="dest-card mt-12" style="display:block;padding:16px;opacity:.62">
+          <div style="display:flex;gap:12px;align-items:center">
+            <div class="dest-seal">实</div>
+            <div style="flex:1">
+              <div class="name">实战模式</div>
+              <div class="desc">去真实城市走一趟。需要定位和方向权限。</div>
+            </div>
+          </div>
+          <div class="pill-row mt-12"><span class="tag">内测版</span><span class="tag">30-90 分钟</span></div>
+        </div>
+
+        <div class="card-flat mt-16" style="padding:13px 14px">
+          <div class="micro">演练模式不是假游戏。先在小城学会看罗盘、问人、认路，再去真实城市。</div>
+        </div>
+
+        <div class="spacer"></div>
+        <div class="btn btn-primary">进雾城</div>
+        <div class="homebar"><i></i></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 06 目的地 -->
+  <section class="frame">
+    <div class="frame-label"><b>06 · 目的地</b><span data-size-label>390 × 844</span></div>
+    <div class="phone">
+      <div class="island"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="status-icons"><span class="signal"><i></i><i></i><i></i><i></i></span><span class="battery"><i></i></span></span></div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;padding-top:2px">
+          <div class="icon-btn" style="width:40px;height:40px">‹</div>
+          <div class="micro">今天去哪</div>
+          <div style="width:40px"></div>
+        </div>
+
+        <div class="mt-12">
+          <h1 class="title-lg">今天去哪？</h1>
+          <p class="sub mt-6">选一个。别查地图。</p>
+        </div>
+
+        <div class="stack-10 mt-16">
+          <div class="dest-card selected">
+            <div class="dest-seal">邮</div>
+            <div>
+              <div class="name">老邮局</div>
+              <div class="desc">绿漆木门，门口有两个邮筒，其中一个不能用。</div>
+              <div class="meta"><span class="tag">近</span><span class="tag">步行</span></div>
+            </div>
+            <div class="check">✓</div>
+          </div>
+
+          <div class="dest-card">
+            <div class="dest-seal">茶</div>
+            <div>
+              <div class="name">老茶馆</div>
+              <div class="desc">竹椅、盖碗茶，下午三点有人掏耳朵。</div>
+              <div class="meta"><span class="tag">中</span><span class="tag">步行</span></div>
+            </div>
+          </div>
+
+          <div class="dest-card">
+            <div class="dest-seal">表</div>
+            <div>
+              <div class="name">修表铺</div>
+              <div class="desc">开了 27 年，师傅只修机械表。</div>
+              <div class="meta"><span class="tag">远</span><span class="tag">步行</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="spacer"></div>
+        <div class="row-2">
+          <div class="btn btn-ghost">换一批</div>
+          <div class="btn btn-primary">就它了</div>
+        </div>
+        <div class="center mt-8"><span class="micro">目的地不显示距离。知道了就没意思了。</span></div>
+        <div class="homebar"><i></i></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 07 出发说明 -->
+  <section class="frame">
+    <div class="frame-label"><b>07 · 出发</b><span data-size-label>390 × 844</span></div>
+    <div class="phone">
+      <div class="island"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="status-icons"><span class="signal"><i></i><i></i><i></i><i></i></span><span class="battery"><i></i></span></span></div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;padding-top:2px">
+          <div class="icon-btn" style="width:40px;height:40px">‹</div>
+          <div class="micro">出发</div>
+          <div style="width:40px"></div>
+        </div>
+
+        <div class="mt-16">
+          <div class="eyebrow">目的地 · 老邮局</div>
+          <h1 class="title-lg mt-6">三条规则</h1>
+        </div>
+
+        <div class="mt-12">
+          <div class="rule">
+            <div class="no">01</div>
+            <div><div class="t">罗盘只指目的地，不指路。</div><div class="d">没有地图，没有"前方右转"，也没有距离。</div></div>
+          </div>
+          <div class="rule">
+            <div class="no">02</div>
+            <div><div class="t">走到路人旁边，点他，问一次路。</div><div class="d">有人指得对，有人指得特别自信，但完全是反的。</div></div>
+          </div>
+          <div class="rule">
+            <div class="no">03</div>
+            <div><div class="t">走到目的地那格，就到了。</div><div class="d">撞墙不会扣分。绕路也不会。</div></div>
+          </div>
+        </div>
+
+        <div class="card-flat mt-16" style="display:flex;gap:12px;align-items:center;padding:12px 14px">
+          <div class="azhen azhen-sm" aria-hidden="true">
+            <div class="scratch"></div><div class="brow"></div><div class="eye"><i></i></div><div class="mouth"></div>
+          </div>
+          <div>
+            <div class="micro">阿针</div>
+            <div class="serif mt-4" style="font-size:15px">“我只负责指，不负责走。”</div>
+          </div>
+        </div>
+
+        <div class="spacer"></div>
+        <div class="btn btn-primary">出发</div>
+        <div class="center mt-8"><span class="micro">随时可以退出。没有人会扣分。</span></div>
+        <div class="homebar"><i></i></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<div class="page-note">
+  设计说明：本页是《犟针》入门流程的 7 个屏幕。深色是默认；右上角可切浅色与 430 × 932。
+  所有手机内文案为中文，按钮为视觉元素。素材位用"印章 + 线稿"占位，正式版替换为 AI 生图。
+</div>
+
+<script src="assets/mockup.js"></script>
+</body>
+</html>
