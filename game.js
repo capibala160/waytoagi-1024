@@ -851,7 +851,8 @@
         name: names[(h + i * 7) % names.length],
         trait: traits[(h + i * 3) % traits.length],
         color: colors[(h + i) % colors.length],
-        lines: pools[(h + i * 3) % pools.length]
+        lines: pools[(h + i * 3) % pools.length],
+        origin: sentence || '一个嘴硬心软的铜罗盘。'
       });
     }
     return out;
@@ -880,6 +881,8 @@
     });
     box.hidden = false;
     $('btn-forge-done').hidden = false;
+    $('btn-char-save').hidden = false;
+    $('char-preview').hidden = true;
   }
 
   function applyVariant(v) {
@@ -901,6 +904,132 @@
     } catch (e) {
       updateForgeLink();
     }
+  }
+
+  function drawCharAvatar(x, cx, cy, r) {
+    x.beginPath();
+    x.arc(cx, cy, r, 0, Math.PI * 2);
+    x.fillStyle = '#14110b';
+    x.fill();
+    x.strokeStyle = '#e8b04b';
+    x.lineWidth = 8;
+    x.stroke();
+
+    x.beginPath();
+    x.arc(cx, cy, r * 0.82, 0, Math.PI * 2);
+    x.strokeStyle = 'rgba(232,176,75,.3)';
+    x.lineWidth = 2;
+    x.stroke();
+
+    for (let d = 0; d < 360; d += 15) {
+      const a = (d - 90) * Math.PI / 180;
+      const major = d % 90 === 0;
+      const outer = r - 14;
+      const inner = r - (major ? 36 : 20);
+      x.beginPath();
+      x.moveTo(cx + Math.cos(a) * outer, cy + Math.sin(a) * outer);
+      x.lineTo(cx + Math.cos(a) * inner, cy + Math.sin(a) * inner);
+      x.strokeStyle = major ? '#e6e0d2' : 'rgba(232,176,75,.35)';
+      x.lineWidth = major ? 4 : 1.5;
+      x.stroke();
+    }
+
+    x.beginPath();
+    x.moveTo(cx, cy - r * 0.62);
+    x.lineTo(cx - 14, cy + 8);
+    x.lineTo(cx + 14, cy + 8);
+    x.closePath();
+    x.fillStyle = '#d9534f';
+    x.fill();
+
+    x.beginPath();
+    x.moveTo(cx, cy + r * 0.62);
+    x.lineTo(cx - 14, cy - 8);
+    x.lineTo(cx + 14, cy - 8);
+    x.closePath();
+    x.fillStyle = '#8a8578';
+    x.fill();
+
+    x.beginPath();
+    x.arc(cx - 34, cy - 26, 8, 0, Math.PI * 2);
+    x.fillStyle = '#e8b04b';
+    x.fill();
+    x.beginPath();
+    x.arc(cx + 34, cy - 26, 8, 0, Math.PI * 2);
+    x.fillStyle = '#e8b04b';
+    x.fill();
+    x.beginPath();
+    x.arc(cx, cy + 10, 18, 0.15 * Math.PI, 0.85 * Math.PI);
+    x.strokeStyle = '#e8b04b';
+    x.lineWidth = 3;
+    x.stroke();
+
+    x.beginPath();
+    x.arc(cx, cy, 7, 0, Math.PI * 2);
+    x.fillStyle = '#e8b04b';
+    x.fill();
+  }
+
+  function drawCharCard(v) {
+    const W = 1080, H = 1350;
+    const cv = document.createElement('canvas');
+    cv.width = W;
+    cv.height = H;
+    const x = cv.getContext('2d');
+
+    const bg = x.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, '#12161b');
+    bg.addColorStop(1, '#080a0d');
+    x.fillStyle = bg;
+    x.fillRect(0, 0, W, H);
+    x.strokeStyle = 'rgba(232,176,75,.22)';
+    x.lineWidth = 3;
+    x.strokeRect(36, 36, W - 72, H - 72);
+
+    x.textAlign = 'center';
+    x.fillStyle = '#e8b04b';
+    x.font = '700 84px "Songti SC","SimSun",serif';
+    x.fillText('犟 针', W / 2, 150);
+    x.fillStyle = '#8a8578';
+    x.font = '400 26px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
+    x.fillText('主 角 卡', W / 2, 198);
+
+    drawCharAvatar(x, W / 2, 470, 200);
+
+    x.fillStyle = '#f0ece3';
+    x.font = '700 88px "Songti SC","SimSun",serif';
+    x.fillText(v.name, W / 2, 780);
+
+    x.fillStyle = '#8a8578';
+    x.font = '400 32px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
+    x.fillText(v.trait + ' · ' + v.color + '罗盘', W / 2, 838);
+
+    x.fillStyle = '#e8b04b';
+    x.font = '400 42px "Songti SC","SimSun",serif';
+    x.fillText('“' + v.lines[0] + '”', W / 2, 925);
+
+    x.fillStyle = '#c9c4b8';
+    x.font = '400 28px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
+    wrapText(x, v.origin || '一个嘴硬心软的铜罗盘。', W / 2, 1000, 760, 42, 3);
+
+    x.strokeStyle = 'rgba(232,176,75,.35)';
+    x.lineWidth = 3;
+    const pts = [[W / 2 - 120, 1180], [W / 2 - 40, 1130], [W / 2 + 30, 1160], [W / 2 + 120, 1100]];
+    x.beginPath();
+    pts.forEach((p, i) => { if (i) x.lineTo(p[0], p[1]); else x.moveTo(p[0], p[1]); });
+    x.stroke();
+    pts.forEach((p) => {
+      x.beginPath();
+      x.arc(p[0], p[1], 8, 0, Math.PI * 2);
+      x.fillStyle = '#e8b04b';
+      x.fill();
+    });
+
+    x.fillStyle = '#565d66';
+    x.font = '400 24px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
+    x.fillText('WaytoAGI 1024 · 游戏赛道 · 犟针', W / 2, 1270);
+
+    return cv.toDataURL('image/png');
   }
 
   /* ---------------- 日记 / 抵达证明 ---------------- */
@@ -2542,6 +2671,22 @@
     applyVariant(v);
     showToast('旅伴已定 · ' + v.name);
     showScreen('start');
+  });
+
+  $('btn-char-save').addEventListener('click', () => {
+    const v = state.forgeVariants[state.forgePick];
+    if (!v) return;
+    const url = drawCharCard(v);
+    const img = $('char-preview');
+    img.src = url;
+    img.hidden = false;
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = '犟针-主角卡.png';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    showToast('主角卡已生成');
   });
 
   document.querySelectorAll('.dpad-btn').forEach((btn) => {
