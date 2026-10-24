@@ -119,6 +119,22 @@
   const paramLevel = parseInt(params.get('level') || '0', 10) || 0;
   const forceDemo = params.get('demo') === '1';
 
+  // ?perf=1 打开罗盘体检：FPS、传感器频率、绘制耗时、长任务、画布尺寸
+  const perfMode = params.get('perf') === '1';
+  const perf = { frames: 0, orient: 0, draws: 0, drawMs: 0, longTasks: 0, lastAt: 0, el: null };
+  if (perfMode) {
+    perf.el = document.createElement('div');
+    perf.el.id = 'perf-hud';
+    perf.el.style.cssText = 'position:fixed;left:8px;top:8px;z-index:9999;max-width:calc(100vw - 16px);padding:6px 8px;border-radius:8px;background:rgba(0,0,0,.8);color:#8ef58e;font:12px/1.45 ui-monospace,Menlo,monospace;white-space:pre-wrap;pointer-events:none';
+    document.body.appendChild(perf.el);
+    if ('PerformanceObserver' in window) {
+      try {
+        new PerformanceObserver((list) => { perf.longTasks += list.getEntries().length; })
+          .observe({ entryTypes: ['longtask'] });
+      } catch (e) { /* 浏览器不支持 longtask 时忽略 */ }
+    }
+  }
+
   /* ---------------- 工具 ---------------- */
 
   function clamp(n, lo, hi) { return Math.max(lo, Math.min(hi, n)); }
@@ -601,23 +617,46 @@
   const alignBadge = $('align-badge');
   const haloTextEl = $('halo-text');
 
+  // 图层引擎：盘面和指针各一层，只改 CSS transform，交给 GPU 合成。
+  // 默认启用；?engine=canvas 可退回旧的 canvas 重绘。
+  const layerMode = params.get('engine') !== 'canvas';
+  const stageEl = document.querySelector('.compass-stage');
+  const layerEl = $('compass-layer');
+  const rotorEl = $('compass-rotor');
+  const needleEl = $('compass-needle');
+  const lubberEl = $('compass-lubber');
+  const haloEl = $('compass-halo');
+  let lastNeedleTarget;
+  let lastLayerLive;
+  let lastLayerAligned;
+  let lastLayerLocked;
+
   function fitCompass() {
-    const rect = cv.getBoundingClientRect();
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    cv.width = Math.max(1, Math.round(rect.width * dpr));
-    cv.height = cv.width;
-    cscale = cv.width / CSIZE;
+    if (layerMode) {
+      if (stageEl) stageEl.classList.add('layer-mode');
+      if (layerEl) layerEl.hidden = false;
+    } else {
+      const rect = cv.getBoundingClientRect();
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      cv.width = Math.max(1, Math.round(rect.width * dpr));
+      cv.height = cv.width;
+      cscale = cv.width / CSIZE;
+    }
     buildDial();
     compassDirty = true;
     lastDrawnHeading = undefined;
     lastDrawnTarget = undefined;
+    lastNeedleTarget = undefined;
+    lastLayerLive = undefined;
+    lastLayerAligned = undefined;
+    lastLayerLocked = undefined;
     smoothHeading = null;
     smoothPending = false;
   }
 
   function buildDial() {
     const size = Math.round(CSIZE * 1.5);
-    const d = document.createElement('canvas');
+    const d = $('compass-dial') || document.createElement('canvas');
     d.width = size;
     d.height = size;
     const c = d.getContext('2d');
@@ -710,6 +749,7 @@
     // 无效事件不能占用 lastAbs，否则会压掉随后到达的有效读数
     if (h === null) return;
     if (absolute) lastAbs = now;
+    perf.orient++;
 
     state.heading = norm(h);
     compassDirty = true;
@@ -737,6 +777,39 @@
     const remain = ((target - smoothHeading + 540) % 360) - 180;
     smoothPending = Math.abs(remain) > 0.2;
     return smoothHeading;
+  }
+
+  function drawLayerCompass() {
+    if (!rotorEl || !needleEl) return;
+    const live = state.heading != null;
+    const h = live ? dampHeading(state.heading) : 0;
+    if (!live) {
+      smoothHeading = null;
+      smoothPending = false;
+    }
+
+    // 盘面转 -heading；指针绝对角 target，叠在盘面坐标系里
+    rotorEl.style.transform = `rotate(${-h}deg)`;
+
+    const target = state.target;
+    if (target !== lastNeedleTarget) {
+      needleEl.hidden = target == null;
+      if (target != null) needleEl.style.transform = `rotate(${target}deg)`;
+      lastNeedleTarget = target;
+    }
+
+    if (live !== lastLayerLive) {
+      lubberEl.classList.toggle('live', live);
+      lastLayerLive = live;
+    }
+    if (state.aligned !== lastLayerAligned) {
+      lubberEl.classList.toggle('aligned', state.aligned);
+      lastLayerAligned = state.aligned;
+    }
+    if (state.alignLocked !== lastLayerLocked) {
+      haloEl.classList.toggle('on', state.alignLocked);
+      lastLayerLocked = state.alignLocked;
+    }
   }
 
   function updateAlign() {
@@ -834,8 +907,8 @@
     ctx.fillStyle = state.aligned ? '#79b473' : (live ? '#8b806c' : '#3a3f47');
     ctx.fill();
 
-    // 主指针：指向目的地（相对手机顶部）
-    if (live && state.target != null) {
+    // 主指针：指向目的地（相对手机顶部）；没有传感器时按正北 0° 画
+    if (state.target != null) {
       const rel = norm(state.target - h);
       ctx.save();
       ctx.translate(CC, CC);
@@ -902,7 +975,19 @@
   let lastDraw = 0;
   function loop(t) {
     requestAnimationFrame(loop);
+    perf.frames++;
     if (state.screen !== 'play') return;       // 只有行进页需要刷新罗盘
+    if (layerMode) {
+      updateAlign();
+      const drawAt = perfMode ? performance.now() : 0;
+      drawLayerCompass();
+      if (perfMode) {
+        perf.drawMs += performance.now() - drawAt;
+        perf.draws++;
+      }
+      paintHUD();
+      return;
+    }
     if (t - lastDraw < 33) return;
     lastDraw = t;
 
@@ -917,12 +1002,42 @@
       state.alignLocked !== prevLocked;
 
     if (changed) {
+      const drawAt = perfMode ? performance.now() : 0;
       drawCompass();
+      if (perfMode) {
+        perf.drawMs += performance.now() - drawAt;
+        perf.draws++;
+      }
       lastDrawnHeading = state.heading;
       lastDrawnTarget = state.target;
       compassDirty = smoothPending;
     }
     paintHUD();
+  }
+
+  // 独立于 rAF 更新体检面板：rAF 被卡住时也能看到 FPS 掉到 0
+  if (perfMode) {
+    setInterval(() => {
+      const now = performance.now();
+      if (!perf.lastAt) { perf.lastAt = now; return; }
+      const dt = now - perf.lastAt;
+      if (dt < 900) return;
+      const fps = Math.round((perf.frames * 1000) / dt);
+      const hz = Math.round((perf.orient * 1000) / dt);
+      const ms = perf.draws ? (perf.drawMs / perf.draws).toFixed(1) : '0';
+      const canvasInfo = layerMode
+        ? `图层 ${dialCanvas ? dialCanvas.width : 0}×${dialCanvas ? dialCanvas.height : 0}`
+        : `画布 ${cv.width}×${cv.height}`;
+      perf.el.textContent =
+        `FPS ${fps} · 方向 ${hz}Hz · 绘制 ${ms}ms · 长任务 ${perf.longTasks}\n` +
+        `${canvasInfo} · DPR ${window.devicePixelRatio}`;
+      perf.frames = 0;
+      perf.orient = 0;
+      perf.draws = 0;
+      perf.drawMs = 0;
+      perf.longTasks = 0;
+      perf.lastAt = now;
+    }, 500);
   }
 
   function paintHUD() {
@@ -3216,23 +3331,27 @@
 
   let dragX = null;
 
-  cv.addEventListener('pointerdown', (e) => {
-    if (!state.simulating) return;
-    dragX = e.clientX;
-    try { cv.setPointerCapture(e.pointerId); } catch (err) {}
-  });
+  function bindSimDrag(el) {
+    if (!el) return;
+    el.addEventListener('pointerdown', (e) => {
+      if (!state.simulating) return;
+      dragX = e.clientX;
+      try { el.setPointerCapture(e.pointerId); } catch (err) {}
+    });
+    el.addEventListener('pointermove', (e) => {
+      if (!state.simulating || dragX === null) return;
+      const dx = e.clientX - dragX;
+      dragX = e.clientX;
+      state.heading = norm((state.heading == null ? 0 : state.heading) + dx * 0.7);
+      state.headingAbsolute = true;
+      compassDirty = true;
+    });
+    el.addEventListener('pointerup', () => { dragX = null; });
+    el.addEventListener('pointercancel', () => { dragX = null; });
+  }
 
-  cv.addEventListener('pointermove', (e) => {
-    if (!state.simulating || dragX === null) return;
-    const dx = e.clientX - dragX;
-    dragX = e.clientX;
-    state.heading = norm((state.heading == null ? 0 : state.heading) + dx * 0.7);
-    state.headingAbsolute = true;
-    compassDirty = true;
-  });
-
-  cv.addEventListener('pointerup', () => { dragX = null; });
-  cv.addEventListener('pointercancel', () => { dragX = null; });
+  bindSimDrag(cv);
+  bindSimDrag(layerEl);
 
   window.addEventListener('keydown', (e) => {
     if (!state.simulating) return;
@@ -3809,8 +3928,11 @@
     else showScreen('modes');
   });
 
-  window.addEventListener('resize', fitCompass);
-  window.addEventListener('orientationchange', () => setTimeout(fitCompass, 150));
+  // 图层模式只靠 CSS 尺寸，地址栏伸缩/转屏不需要重建 900px 盘面
+  window.addEventListener('resize', () => { if (!layerMode) fitCompass(); });
+  window.addEventListener('orientationchange', () => {
+    if (!layerMode) setTimeout(fitCompass, 150);
+  });
 
   loadTheme();
   loadVariant();

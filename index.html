@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <link rel="icon" href="favicon.svg" type="image/svg+xml" />
 <title>犟针 · 只指方向，不指路</title>
-<link rel="stylesheet" href="style.css?v=20261024j" />
+<link rel="stylesheet" href="style.css?v=20261024m" />
 </head>
 <body>
 
@@ -219,6 +219,19 @@
 
     <div class="compass-stage">
       <canvas id="compass"></canvas>
+      <div id="compass-layer" class="compass-layer" hidden>
+        <div id="compass-rotor" class="compass-rotor">
+          <canvas id="compass-dial" class="compass-dial"></canvas>
+          <svg id="compass-needle" class="compass-needle" viewBox="0 0 600 600" aria-hidden="true">
+            <polygon class="needle-tail" points="300,312 306,524 294,524"></polygon>
+            <polygon class="needle-main" points="300,60 309,318 300,306 291,318"></polygon>
+            <circle class="needle-tip" cx="300" cy="60" r="5"></circle>
+          </svg>
+        </div>
+        <div id="compass-lubber" class="compass-lubber"></div>
+        <div class="compass-cap"></div>
+        <div id="compass-halo" class="compass-halo"></div>
+      </div>
       <div class="bearing"><span id="bearing-num">--</span><i>°</i></div>
       <div id="halo-text" class="halo-text"></div>
       <div id="align-badge" class="align-badge">已对准</div>
@@ -399,11 +412,11 @@
 
 </div>
 
-<script src="destinations.js?v=20261024j"></script>
-<script src="destinations-city.js?v=20261024j"></script>
-<script src="levels.js?v=20261024j"></script>
-<script src="packs.js?v=20261024j"></script>
-<script src="game.js?v=20261024j"></script>
-<script src="companion.js?v=20261024j"></script>
+<script src="destinations.js?v=20261024m"></script>
+<script src="destinations-city.js?v=20261024m"></script>
+<script src="levels.js?v=20261024m"></script>
+<script src="packs.js?v=20261024m"></script>
+<script src="game.js?v=20261024m"></script>
+<script src="companion.js?v=20261024m"></script>
 </body>
 </html>
