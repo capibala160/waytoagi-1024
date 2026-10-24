@@ -378,13 +378,96 @@
   const ARRIVE_METERS = 30;
   const FREE_PAR = 600;
   let cscale = 1;
+  let dialCanvas = null;
+  let compassDirty = true;
+  let lastDrawnHeading;
+  let lastDrawnTarget;
+  let hudRounded;
+  let hudAligned;
+  let hudLocked;
+
+  const bearingNum = $('bearing-num');
+  const bearingWrap = document.querySelector('.bearing');
+  const alignBadge = $('align-badge');
+  const haloTextEl = $('halo-text');
 
   function fitCompass() {
     const rect = cv.getBoundingClientRect();
-    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
     cv.width = Math.max(1, Math.round(rect.width * dpr));
     cv.height = cv.width;
     cscale = cv.width / CSIZE;
+    buildDial();
+    compassDirty = true;
+    lastDrawnHeading = undefined;
+    lastDrawnTarget = undefined;
+  }
+
+  function buildDial() {
+    const size = Math.round(CSIZE * 2);
+    const d = document.createElement('canvas');
+    d.width = size;
+    d.height = size;
+    const c = d.getContext('2d');
+    const s = size / CSIZE;
+    c.setTransform(s, 0, 0, s, 0, 0);
+
+    const g = c.createRadialGradient(CC, CC - CR * 0.3, 20, CC, CC, CR);
+    g.addColorStop(0, '#1b2027');
+    g.addColorStop(0.7, '#12161b');
+    g.addColorStop(1, '#0c0f13');
+    c.beginPath();
+    c.arc(CC, CC, CR, 0, Math.PI * 2);
+    c.fillStyle = g;
+    c.fill();
+    c.strokeStyle = '#2c333b';
+    c.lineWidth = 3;
+    c.stroke();
+
+    for (let deg = 0; deg < 360; deg += 5) {
+      const a = (deg - 90) * Math.PI / 180;
+      const major = deg % 90 === 0;
+      const mid = deg % 30 === 0;
+      const outer = CR - 10;
+      const inner = CR - (major ? 36 : mid ? 24 : 13);
+      c.beginPath();
+      c.moveTo(Math.cos(a) * outer, Math.sin(a) * outer);
+      c.lineTo(Math.cos(a) * inner, Math.sin(a) * inner);
+      c.strokeStyle = major ? '#e6e0d2' : mid ? '#79828d' : '#39404a';
+      c.lineWidth = major ? 5 : mid ? 3 : 1.5;
+      c.lineCap = 'round';
+      c.stroke();
+    }
+
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.font = '500 20px ui-monospace, Menlo, Consolas, monospace';
+    for (let deg = 0; deg < 360; deg += 30) {
+      if (deg % 90 === 0) continue;
+      const a = (deg - 90) * Math.PI / 180;
+      const rr = CR - 74;
+      c.save();
+      c.translate(CC + Math.cos(a) * rr, CC + Math.sin(a) * rr);
+      c.rotate(deg * Math.PI / 180);
+      c.fillStyle = '#6b7480';
+      c.fillText(String(deg), 0, 0);
+      c.restore();
+    }
+
+    const cards = [['N', 0, '#d6d0c2'], ['E', 90, '#d6d0c2'], ['S', 180, '#d6d0c2'], ['W', 270, '#d6d0c2']];
+    for (const [t, deg, col] of cards) {
+      const a = (deg - 90) * Math.PI / 180;
+      const rr = CR - 52;
+      c.save();
+      c.translate(CC + Math.cos(a) * rr, CC + Math.sin(a) * rr);
+      c.rotate(deg * Math.PI / 180);
+      c.fillStyle = col;
+      c.font = '700 40px -apple-system, "PingFang SC", sans-serif';
+      c.fillText(t, 0, 0);
+      c.restore();
+    }
+
+    dialCanvas = d;
   }
 
   let lastAbs = 0;
@@ -417,6 +500,7 @@
     if (absolute) lastAbs = now;
 
     state.heading = norm(h);
+    compassDirty = true;
     state.headingAbsolute = true;
     state.lastOrientAt = now;
     state.sensorSeen = true;
@@ -481,14 +565,14 @@
   }
 
   function drawCompass() {
-    if (!cscale) return;
+    if (!cscale || !dialCanvas) return;
     const live = state.heading != null;
     const h = live ? state.heading : 0;
 
     ctx.setTransform(cscale, 0, 0, cscale, 0, 0);
     ctx.clearRect(0, 0, CSIZE, CSIZE);
 
-    // 外圈
+    // 外圈固定在手机上
     ctx.beginPath();
     ctx.arc(CC, CC, CR + 22, 0, Math.PI * 2);
     ctx.fillStyle = '#080a0d';
@@ -497,114 +581,83 @@
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    // 顶端固定指标
-    ctx.beginPath();
-    ctx.moveTo(CC, CC - CR - 2);
-    ctx.lineTo(CC - 14, CC - CR - 28);
-    ctx.lineTo(CC + 14, CC - CR - 28);
-    ctx.closePath();
-    ctx.fillStyle = state.aligned ? '#79b473' : (live ? '#e8b04b' : '#3a3f47');
-    ctx.fill();
-
+    // 旋转盘面：一次 drawImage，替代每帧 72 条刻度和文字
     ctx.save();
     ctx.translate(CC, CC);
     ctx.rotate(-h * Math.PI / 180);
-
-    // 盘面
-    const g = ctx.createRadialGradient(0, -CR * 0.3, 20, 0, 0, CR);
-    g.addColorStop(0, '#1b2027');
-    g.addColorStop(0.7, '#12161b');
-    g.addColorStop(1, '#0c0f13');
-    ctx.beginPath();
-    ctx.arc(0, 0, CR, 0, Math.PI * 2);
-    ctx.fillStyle = g;
-    ctx.fill();
-    ctx.strokeStyle = '#2c333b';
-    ctx.lineWidth = 3;
-    ctx.stroke();
-
-    // 刻度
-    for (let d = 0; d < 360; d += 5) {
-      const a = (d - 90) * Math.PI / 180;
-      const major = d % 90 === 0;
-      const mid = d % 30 === 0;
-      const outer = CR - 10;
-      const inner = CR - (major ? 36 : mid ? 24 : 13);
-      ctx.beginPath();
-      ctx.moveTo(Math.cos(a) * outer, Math.sin(a) * outer);
-      ctx.lineTo(Math.cos(a) * inner, Math.sin(a) * inner);
-      ctx.strokeStyle = major ? '#e6e0d2' : mid ? '#79828d' : '#39404a';
-      ctx.lineWidth = major ? 5 : mid ? 3 : 1.5;
-      ctx.lineCap = 'round';
-      ctx.stroke();
-    }
-
-    // 度数
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.font = '500 20px ui-monospace, Menlo, Consolas, monospace';
-    for (let d = 0; d < 360; d += 30) {
-      if (d % 90 === 0) continue;
-      const a = (d - 90) * Math.PI / 180;
-      const rr = CR - 74;
-      ctx.save();
-      ctx.translate(Math.cos(a) * rr, Math.sin(a) * rr);
-      ctx.rotate(d * Math.PI / 180);
-      ctx.fillStyle = '#6b7480';
-      ctx.fillText(String(d), 0, 0);
-      ctx.restore();
-    }
-
-    // 方位字
-    const cards = [['N', 0, '#d9534f'], ['E', 90, '#d6d0c2'], ['S', 180, '#d6d0c2'], ['W', 270, '#d6d0c2']];
-    for (const [t, deg, col] of cards) {
-      const a = (deg - 90) * Math.PI / 180;
-      const rr = CR - 52;
-      ctx.save();
-      ctx.translate(Math.cos(a) * rr, Math.sin(a) * rr);
-      ctx.rotate(deg * Math.PI / 180);
-      ctx.fillStyle = col;
-      ctx.font = '700 40px -apple-system, "PingFang SC", sans-serif';
-      ctx.fillText(t, 0, 0);
-      ctx.restore();
-    }
-
-    // 中心
-    ctx.beginPath();
-    ctx.arc(0, 0, 6, 0, Math.PI * 2);
-    ctx.fillStyle = live ? '#e8b04b' : '#3a3f47';
-    ctx.fill();
-
+    ctx.drawImage(dialCanvas, -CC, -CC, CSIZE, CSIZE);
     ctx.restore();
 
-    // 稳定对准：绿色光环
+    // 顶端固定指标：手机正前方
+    ctx.beginPath();
+    ctx.moveTo(CC, CC - CR - 2);
+    ctx.lineTo(CC - 12, CC - CR - 26);
+    ctx.lineTo(CC + 12, CC - CR - 26);
+    ctx.closePath();
+    ctx.fillStyle = state.aligned ? '#79b473' : (live ? '#8b806c' : '#3a3f47');
+    ctx.fill();
+
+    // 主指针：指向目的地（相对手机顶部）
+    if (live && state.target != null) {
+      const rel = norm(state.target - h);
+      ctx.save();
+      ctx.translate(CC, CC);
+      ctx.rotate(rel * Math.PI / 180);
+
+      // 尾针
+      ctx.beginPath();
+      ctx.moveTo(0, 12);
+      ctx.lineTo(6, CR - 34);
+      ctx.lineTo(-6, CR - 34);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(232, 176, 75, 0.28)';
+      ctx.fill();
+
+      // 红针
+      ctx.beginPath();
+      ctx.moveTo(0, -CR + 18);
+      ctx.lineTo(9, 18);
+      ctx.lineTo(0, 6);
+      ctx.lineTo(-9, 18);
+      ctx.closePath();
+      ctx.fillStyle = '#d9534f';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.35)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      // 目标点
+      ctx.beginPath();
+      ctx.arc(0, -CR + 18, 5, 0, Math.PI * 2);
+      ctx.strokeStyle = '#e8b04b';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // 中心帽
+    ctx.beginPath();
+    ctx.arc(CC, CC, 8, 0, Math.PI * 2);
+    ctx.fillStyle = '#e8b04b';
+    ctx.fill();
+    ctx.strokeStyle = '#4a3a18';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // 稳定对准：绿色光环（不用 shadowBlur）
     if (state.alignLocked) {
       ctx.save();
       ctx.translate(CC, CC);
       ctx.beginPath();
       ctx.arc(0, 0, CR + 10, 0, Math.PI * 2);
-      ctx.strokeStyle = 'rgba(121,180,115,.85)';
+      ctx.strokeStyle = 'rgba(121, 180, 115, 0.85)';
       ctx.lineWidth = 3;
-      ctx.shadowColor = 'rgba(121,180,115,.9)';
-      ctx.shadowBlur = 24;
       ctx.stroke();
-      ctx.restore();
-    }
-
-    // 自由行：目标方位标记（相对手机顶部）
-    if ((state.mode === 'free' || state.mode === 'sim' || state.mode === 'fog') &&
-        state.target != null && live) {
-      const rel = norm(state.target - h);
-      ctx.save();
-      ctx.translate(CC, CC);
-      ctx.rotate(rel * Math.PI / 180);
       ctx.beginPath();
-      ctx.moveTo(0, -CR - 4);
-      ctx.lineTo(-12, -CR - 26);
-      ctx.lineTo(12, -CR - 26);
-      ctx.closePath();
-      ctx.fillStyle = state.aligned ? '#79b473' : '#e8b04b';
-      ctx.fill();
+      ctx.arc(0, 0, CR + 16, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(121, 180, 115, 0.25)';
+      ctx.lineWidth = 6;
+      ctx.stroke();
       ctx.restore();
     }
   }
@@ -615,23 +668,46 @@
     if (state.screen !== 'play') return;       // 只有行进页需要刷新罗盘
     if (t - lastDraw < 33) return;
     lastDraw = t;
+
+    const prevAligned = state.aligned;
+    const prevLocked = state.alignLocked;
     updateAlign();
-    drawCompass();
+
+    const changed = compassDirty ||
+      state.heading !== lastDrawnHeading ||
+      state.target !== lastDrawnTarget ||
+      state.aligned !== prevAligned ||
+      state.alignLocked !== prevLocked;
+
+    if (changed) {
+      drawCompass();
+      lastDrawnHeading = state.heading;
+      lastDrawnTarget = state.target;
+      compassDirty = false;
+    }
     paintHUD();
   }
 
   function paintHUD() {
-    const num = $('bearing-num');
-    const wrap = document.querySelector('.bearing');
-    if (state.heading == null) {
-      num.textContent = '--';
-      wrap.classList.remove('live');
-    } else {
-      num.textContent = String(Math.round(state.heading) % 360).padStart(3, '0');
-      wrap.classList.add('live');
+    const rounded = state.heading == null ? null : Math.round(state.heading) % 360;
+    if (rounded !== hudRounded) {
+      if (rounded == null) {
+        bearingNum.textContent = '--';
+        bearingWrap.classList.remove('live');
+      } else {
+        bearingNum.textContent = String(rounded).padStart(3, '0');
+        bearingWrap.classList.add('live');
+      }
+      hudRounded = rounded;
     }
-    $('align-badge').classList.toggle('on', state.aligned);
-    $('halo-text').classList.toggle('on', state.alignLocked);
+    if (state.aligned !== hudAligned) {
+      alignBadge.classList.toggle('on', state.aligned);
+      hudAligned = state.aligned;
+    }
+    if (state.alignLocked !== hudLocked) {
+      haloTextEl.classList.toggle('on', state.alignLocked);
+      hudLocked = state.alignLocked;
+    }
   }
 
   let lastSaveAt = 0;
@@ -2316,6 +2392,7 @@
     const dx = e.clientX - dragX;
     dragX = e.clientX;
     state.heading = norm((state.heading == null ? 0 : state.heading) + dx * 0.7);
+    compassDirty = true;
   });
 
   cv.addEventListener('pointerup', () => { dragX = null; });
@@ -2325,6 +2402,7 @@
     if (!state.simulating) return;
     if (e.key === 'ArrowLeft') state.heading = norm((state.heading || 0) - 5);
     if (e.key === 'ArrowRight') state.heading = norm((state.heading || 0) + 5);
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') compassDirty = true;
   });
 
   /* ---------------- 结算 ---------------- */
