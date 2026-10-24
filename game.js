@@ -4262,6 +4262,7 @@
   renderHome();
   refreshResume();
   refreshGameResume();
+  if (params.get('resume') === '1') resumeGame();
   const configErrors = validateAll();
   if (configErrors.length) {
     $('start-message').textContent = configErrors.slice(0, 3).join('\n');
