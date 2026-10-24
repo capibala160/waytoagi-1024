@@ -1127,6 +1127,14 @@ body::after {
 }
 .theme-toggle:active { transform: scale(.96); }
 
+.home-tools { display: flex; gap: 8px; }
+
+.pack-toggle {
+  color: var(--amber);
+  font-size: 12px;
+  letter-spacing: .08em;
+}
+
 .home-brand {
   margin: 0 0 4px;
   font-size: 60px;

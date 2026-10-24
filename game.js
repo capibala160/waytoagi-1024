@@ -8,7 +8,7 @@
   'use strict';
 
   const SETS = window.LEVEL_SETS || {};
-  if (!SETS.outdoor && window.LEVELS) {
+  if (!window.ACTIVE_PACK && !SETS.outdoor && window.LEVELS) {
     SETS.outdoor = { key: 'outdoor', name: '出门玩', desc: '', levels: window.LEVELS };
   }
 
@@ -123,6 +123,11 @@
     if (score >= 700) return '老 向 导';
     if (score >= 500) return '认 得 路';
     return '第 一 次 来';
+  }
+
+  function destSnapshot(d) {
+    if (!d) return null;
+    return { id: d.id, name: d.name, blurb: d.blurb || '', lat: d.lat, lon: d.lon };
   }
 
   function levelData(lv) {
@@ -1030,6 +1035,13 @@
     applyTheme(t);
   }
 
+  function updatePackUI() {
+    const pack = window.ACTIVE_PACK;
+    const btn = $('btn-pack');
+    if (btn) btn.textContent = pack ? pack.name : '会场';
+    $('btn-hunt').hidden = Object.keys(SETS).length === 0;
+  }
+
   function loadVariant() {
     try {
       const v = JSON.parse(localStorage.getItem('wenjin-variant') || 'null');
@@ -1370,9 +1382,10 @@
     x.fillText(v ? `旅伴 · ${v.name}：“${v.lines[0]}”` : '旅伴 · 阿针：“往那边。”', W / 2, 1420);
 
     const finishCert = () => {
+      const packKey = s.pack || (window.ACTIVE_PACK ? window.ACTIVE_PACK.key : 'venue');
       const link = s.mode === 'fog' && s.dest
-        ? `${location.origin}${location.pathname}?d=${s.dest.id}&seed=${s.seed}`
-        : `${location.origin}${location.pathname}`;
+        ? `${location.origin}${location.pathname}?pack=${packKey}&d=${s.dest.id}&seed=${s.seed}`
+        : `${location.origin}${location.pathname}?pack=${packKey}`;
       x.fillStyle = '#565d66';
       x.font = '400 22px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
       x.fillText('挑战我走过的路', W / 2, 1800);
@@ -1629,6 +1642,7 @@
       text: '',
       stats: j.diaryStats || {
         mode: j.mode,
+        pack: j.pack || (window.ACTIVE_PACK ? window.ACTIVE_PACK.key : 'venue'),
         dest: j.dest || null,
         name: j.name || '',
         elapsed: j.time || 0,
@@ -1860,7 +1874,8 @@
 
     logDiary('抵达');
     state.diary.stats = {
-      mode: 'free', dest: state.dest, elapsed: state.elapsed,
+      mode: 'free', pack: window.ACTIVE_PACK ? window.ACTIVE_PACK.key : 'venue',
+      dest: state.dest, elapsed: state.elapsed,
       asks: state.asks, path: state.path.slice()
     };
 
@@ -1882,8 +1897,9 @@
       id: Date.now(),
       date: new Date().toISOString(),
       mode: 'free',
+      pack: window.ACTIVE_PACK ? window.ACTIVE_PACK.key : 'venue',
       name: state.dest.name,
-      dest: { id: state.dest.id, name: state.dest.name },
+      dest: destSnapshot(state.dest),
       time: state.elapsed,
       asks: state.asks,
       hints: 0,
@@ -2336,7 +2352,8 @@
 
     logDiary('抵达');
     state.diary.stats = {
-      mode: 'fog', dest: state.dest, elapsed: state.elapsed,
+      mode: 'fog', pack: window.ACTIVE_PACK ? window.ACTIVE_PACK.key : 'venue',
+      dest: state.dest, elapsed: state.elapsed,
       steps: f.steps, asked: f.asked, lost, stars, score: state.score,
       seed: f.seed, path: f.path.slice()
     };
@@ -2357,8 +2374,9 @@
       id: Date.now(),
       date: new Date().toISOString(),
       mode: 'fog',
+      pack: window.ACTIVE_PACK ? window.ACTIVE_PACK.key : 'venue',
       name: state.dest.name,
-      dest: { id: state.dest.id, name: state.dest.name },
+      dest: destSnapshot(state.dest),
       time: state.elapsed,
       steps: f.steps,
       asks: f.asked,
@@ -2897,7 +2915,8 @@
 
     logDiary('抵达');
     state.diary.stats = {
-      mode: 'hunt', name: (SETS[state.mode] && SETS[state.mode].name) || '会场寻宝',
+      mode: 'hunt', pack: window.ACTIVE_PACK ? window.ACTIVE_PACK.key : 'venue',
+      name: (SETS[state.mode] && SETS[state.mode].name) || '会场寻宝',
       elapsed: state.elapsed, hints: state.hints, asks: state.asks,
       completed: state.completed, startLevel: state.startLevelIndex
     };
@@ -2932,6 +2951,7 @@
       id: Date.now(),
       date: new Date().toISOString(),
       mode: 'hunt',
+      pack: window.ACTIVE_PACK ? window.ACTIVE_PACK.key : 'venue',
       huntMode: state.mode,
       name: (SETS[state.mode] && SETS[state.mode].name) || '会场寻宝',
       time: state.elapsed,
@@ -3243,6 +3263,13 @@
     applyTheme(cur === 'light' ? 'dark' : 'light');
   });
 
+  $('btn-pack').addEventListener('click', () => {
+    const p = new URLSearchParams(location.search);
+    const cur = window.ACTIVE_PACK ? window.ACTIVE_PACK.key : 'venue';
+    p.set('pack', cur === 'venue' ? 'city' : 'venue');
+    location.search = p.toString();
+  });
+
   $('btn-char-save').addEventListener('click', () => {
     const v = state.forgeVariants[state.forgePick];
     if (!v) return;
@@ -3347,6 +3374,7 @@
   loadVariant();
   loadChallenge();
   loadJourneys();
+  updatePackUI();
   renderHome();
   refreshResume();
   const configErrors = validateAll();
