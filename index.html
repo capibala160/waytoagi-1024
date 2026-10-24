@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0b0d10" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<title>问津 · 只带指南针</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div id="app">
+
+  <!-- 开始 -->
+  <section id="screen-start" class="screen active">
+    <div class="start-mark">問津</div>
+    <h1 class="start-title">只带指南针，<br/>自己找路</h1>
+    <p class="start-sub">五站 · 约 5 分钟 · 会场内</p>
+    <button id="btn-start" class="btn primary">出发</button>
+    <p class="fine">没有地图，没有箭头，没有距离。<br/>看不懂就抬头问人。</p>
+  </section>
+
+  <!-- 行进 -->
+  <section id="screen-play" class="screen">
+    <div class="hud">
+      <span id="hud-level">第 1 / 5 站</span>
+      <span id="hud-time" class="mono">00:00</span>
+    </div>
+
+    <div class="clue">
+      <div class="clue-tag">线索</div>
+      <p id="clue-text" class="clue-text"></p>
+      <div id="clue-meta" class="clue-meta"></div>
+    </div>
+
+    <div class="compass-stage">
+      <canvas id="compass"></canvas>
+      <div class="bearing"><span id="bearing-num">--</span><i>°</i></div>
+      <div id="align-badge" class="align-badge">已对准</div>
+    </div>
+
+    <div id="sim-tip" class="sim-tip" hidden>没检测到罗盘：拖动表盘模拟</div>
+
+    <div class="actions">
+      <button id="btn-hint" class="btn ghost">要提示</button>
+      <button id="btn-arrive" class="btn primary">我到了</button>
+    </div>
+
+    <div id="hint-box" class="hint-box" hidden></div>
+  </section>
+
+  <!-- 输码 -->
+  <section id="screen-code" class="screen">
+    <div class="code-head">
+      <div class="code-title">输入纸上的四位码</div>
+      <div id="code-display" class="code-display">····</div>
+      <div id="code-msg" class="code-msg"></div>
+    </div>
+
+    <div class="keypad">
+      <button class="key" data-k="1">1</button>
+      <button class="key" data-k="2">2</button>
+      <button class="key" data-k="3">3</button>
+      <button class="key" data-k="4">4</button>
+      <button class="key" data-k="5">5</button>
+      <button class="key" data-k="6">6</button>
+      <button class="key" data-k="7">7</button>
+      <button class="key" data-k="8">8</button>
+      <button class="key" data-k="9">9</button>
+      <button class="key fn" data-k="clear">清除</button>
+      <button class="key" data-k="0">0</button>
+      <button class="key fn" data-k="back">返回</button>
+    </div>
+  </section>
+
+  <!-- 结算 -->
+  <section id="screen-end" class="screen">
+    <div class="end-head">
+      <div class="end-title">到了</div>
+      <div class="end-sub">没有导航，你也到了</div>
+    </div>
+
+    <div class="stats">
+      <div><b id="end-time">00:00</b><span>用时</span></div>
+      <div><b id="end-hints">0</b><span>提示</span></div>
+      <div><b id="end-score">0</b><span>得分</span></div>
+    </div>
+
+    <div id="end-rating" class="rating"></div>
+
+    <canvas id="card" class="card"></canvas>
+
+    <div class="actions">
+      <a id="btn-save" class="btn primary" download="问津-旅程卡.png">保存旅程卡</a>
+      <button id="btn-again" class="btn ghost">再走一次</button>
+    </div>
+  </section>
+
+</div>
+
+<script src="levels.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
