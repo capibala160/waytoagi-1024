@@ -65,14 +65,19 @@
     }).observe(hintBox, { attributes: true, attributeFilter: ['hidden'] });
   }
 
-  // 第一次进行页出现时，主动开口一句
+  // 进行页出现时：露出阿针，并主动开口一句
   if (play) {
-    new MutationObserver(() => {
-      if (!closed && !greeted && play.classList.contains('active')) {
+    const app = document.getElementById('app');
+    const syncPlaying = () => {
+      const active = play.classList.contains('active');
+      if (app) app.classList.toggle('playing', active);
+      if (active && !closed && !greeted) {
         greeted = true;
         setTimeout(() => say(LINES[(next++) % LINES.length]), GREET_DELAY_MS);
       }
-    }).observe(play, { attributes: true, attributeFilter: ['class'] });
+    };
+    new MutationObserver(syncPlaying).observe(play, { attributes: true, attributeFilter: ['class'] });
+    syncPlaying();
   }
 
   // 小指针跟着大罗盘读数转：读屏幕上的度数文字，不读引擎内部

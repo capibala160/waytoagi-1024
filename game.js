@@ -396,6 +396,7 @@
   let hudRounded;
   let hudAligned;
   let hudLocked;
+  let hudTextAt = 0;
 
   const bearingNum = $('bearing-num');
   const bearingWrap = document.querySelector('.bearing');
@@ -415,7 +416,7 @@
   }
 
   function buildDial() {
-    const size = Math.round(CSIZE * 2);
+    const size = Math.round(CSIZE * 1.5);
     const d = document.createElement('canvas');
     d.width = size;
     d.height = size;
@@ -684,7 +685,7 @@
   function loop(t) {
     requestAnimationFrame(loop);
     if (state.screen !== 'play') return;       // 只有行进页需要刷新罗盘
-    if (t - lastDraw < 33) return;
+    if (t - lastDraw < 16) return;
     lastDraw = t;
 
     const prevAligned = state.aligned;
@@ -707,8 +708,10 @@
   }
 
   function paintHUD() {
+    const now = performance.now();
     const rounded = state.heading == null ? null : Math.round(state.heading) % 360;
-    if (rounded !== hudRounded) {
+    // 大数字只做 10fps 更新；红针仍然 60fps
+    if (rounded !== hudRounded && now - hudTextAt > 90) {
       if (rounded == null) {
         bearingNum.textContent = '--';
         bearingWrap.classList.remove('live');
@@ -717,6 +720,7 @@
         bearingWrap.classList.add('live');
       }
       hudRounded = rounded;
+      hudTextAt = now;
     }
     if (state.aligned !== hudAligned) {
       alignBadge.classList.toggle('on', state.aligned);
@@ -734,7 +738,7 @@
     if (!state.paused) state.elapsed = Math.max(0, (Date.now() - state.startAt) / 1000);
     $('hud-time').textContent = fmtTime(state.elapsed);
 
-    if (performance.now() - lastSaveAt > 1000) {
+    if (performance.now() - lastSaveAt > 4000) {
       saveProgress();
       lastSaveAt = performance.now();
     }
