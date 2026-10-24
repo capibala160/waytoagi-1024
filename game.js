@@ -594,23 +594,46 @@
   const alignBadge = $('align-badge');
   const haloTextEl = $('halo-text');
 
+  // 图层引擎：盘面和指针各一层，只改 CSS transform，交给 GPU 合成。
+  // 默认启用；?engine=canvas 可退回旧的 canvas 重绘。
+  const layerMode = params.get('engine') !== 'canvas';
+  const stageEl = document.querySelector('.compass-stage');
+  const layerEl = $('compass-layer');
+  const rotorEl = $('compass-rotor');
+  const needleEl = $('compass-needle');
+  const lubberEl = $('compass-lubber');
+  const haloEl = $('compass-halo');
+  let lastNeedleTarget;
+  let lastLayerLive;
+  let lastLayerAligned;
+  let lastLayerLocked;
+
   function fitCompass() {
-    const rect = cv.getBoundingClientRect();
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    cv.width = Math.max(1, Math.round(rect.width * dpr));
-    cv.height = cv.width;
-    cscale = cv.width / CSIZE;
+    if (layerMode) {
+      if (stageEl) stageEl.classList.add('layer-mode');
+      if (layerEl) layerEl.hidden = false;
+    } else {
+      const rect = cv.getBoundingClientRect();
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      cv.width = Math.max(1, Math.round(rect.width * dpr));
+      cv.height = cv.width;
+      cscale = cv.width / CSIZE;
+    }
     buildDial();
     compassDirty = true;
     lastDrawnHeading = undefined;
     lastDrawnTarget = undefined;
+    lastNeedleTarget = undefined;
+    lastLayerLive = undefined;
+    lastLayerAligned = undefined;
+    lastLayerLocked = undefined;
     smoothHeading = null;
     smoothPending = false;
   }
 
   function buildDial() {
     const size = Math.round(CSIZE * 1.5);
-    const d = document.createElement('canvas');
+    const d = $('compass-dial') || document.createElement('canvas');
     d.width = size;
     d.height = size;
     const c = d.getContext('2d');
@@ -733,6 +756,39 @@
     return smoothHeading;
   }
 
+  function drawLayerCompass() {
+    if (!rotorEl || !needleEl) return;
+    const live = state.heading != null;
+    const h = live ? dampHeading(state.heading) : 0;
+    if (!live) {
+      smoothHeading = null;
+      smoothPending = false;
+    }
+
+    // 盘面转 -heading；指针绝对角 target，叠在盘面坐标系里
+    rotorEl.style.transform = `rotate(${-h}deg)`;
+
+    const target = state.target;
+    if (target !== lastNeedleTarget) {
+      needleEl.hidden = target == null;
+      if (target != null) needleEl.style.transform = `rotate(${target}deg)`;
+      lastNeedleTarget = target;
+    }
+
+    if (live !== lastLayerLive) {
+      lubberEl.classList.toggle('live', live);
+      lastLayerLive = live;
+    }
+    if (state.aligned !== lastLayerAligned) {
+      lubberEl.classList.toggle('aligned', state.aligned);
+      lastLayerAligned = state.aligned;
+    }
+    if (state.alignLocked !== lastLayerLocked) {
+      haloEl.classList.toggle('on', state.alignLocked);
+      lastLayerLocked = state.alignLocked;
+    }
+  }
+
   function updateAlign() {
     if (!state.headingAbsolute || state.target == null || state.heading == null) {
       state.aligned = false;
@@ -828,8 +884,8 @@
     ctx.fillStyle = state.aligned ? '#79b473' : (live ? '#8b806c' : '#3a3f47');
     ctx.fill();
 
-    // 主指针：指向目的地（相对手机顶部）
-    if (live && state.target != null) {
+    // 主指针：指向目的地（相对手机顶部）；没有传感器时按正北 0° 画
+    if (state.target != null) {
       const rel = norm(state.target - h);
       ctx.save();
       ctx.translate(CC, CC);
@@ -898,6 +954,17 @@
     requestAnimationFrame(loop);
     perf.frames++;
     if (state.screen !== 'play') return;       // 只有行进页需要刷新罗盘
+    if (layerMode) {
+      updateAlign();
+      const drawAt = perfMode ? performance.now() : 0;
+      drawLayerCompass();
+      if (perfMode) {
+        perf.drawMs += performance.now() - drawAt;
+        perf.draws++;
+      }
+      paintHUD();
+      return;
+    }
     if (t - lastDraw < 33) return;
     lastDraw = t;
 
@@ -935,9 +1002,12 @@
       const fps = Math.round((perf.frames * 1000) / dt);
       const hz = Math.round((perf.orient * 1000) / dt);
       const ms = perf.draws ? (perf.drawMs / perf.draws).toFixed(1) : '0';
+      const canvasInfo = layerMode
+        ? `图层 ${dialCanvas ? dialCanvas.width : 0}×${dialCanvas ? dialCanvas.height : 0}`
+        : `画布 ${cv.width}×${cv.height}`;
       perf.el.textContent =
         `FPS ${fps} · 方向 ${hz}Hz · 绘制 ${ms}ms · 长任务 ${perf.longTasks}\n` +
-        `画布 ${cv.width}×${cv.height} · DPR ${window.devicePixelRatio}`;
+        `${canvasInfo} · DPR ${window.devicePixelRatio}`;
       perf.frames = 0;
       perf.orient = 0;
       perf.draws = 0;
