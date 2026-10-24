@@ -7,3 +7,5 @@ node_modules/
 assets/source/
 .claude/settings.local.json
 projectprompt-v2.txt
+.playwright-cli/
+output/
