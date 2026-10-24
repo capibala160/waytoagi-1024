@@ -7,7 +7,11 @@
 (() => {
   'use strict';
 
-  const LEVELS = window.LEVELS || [];
+  const SETS = window.LEVEL_SETS || {};
+  if (!SETS.outdoor && window.LEVELS) {
+    SETS.outdoor = { key: 'outdoor', name: '出门玩', desc: '', levels: window.LEVELS };
+  }
+
   const CFG = Object.assign({
     venue: '会场',
     event: '问津',
@@ -27,6 +31,8 @@
 
   const state = {
     screen: 'start',
+    mode: 'outdoor',
+    levels: SETS.outdoor ? SETS.outdoor.levels : [],
     level: 0,
     startAt: 0,
     elapsed: 0,
@@ -50,7 +56,7 @@
   };
 
   const params = new URLSearchParams(location.search);
-  const startLevel = clamp(parseInt(params.get('level') || '0', 10) || 0, 0, Math.max(0, LEVELS.length - 1));
+  const paramLevel = parseInt(params.get('level') || '0', 10) || 0;
   const forceDemo = params.get('demo') === '1';
 
   /* ---------------- 工具 ---------------- */
@@ -279,14 +285,14 @@
   /* ---------------- 关卡 ---------------- */
 
   function renderLevel() {
-    const lv = LEVELS[state.level];
+    const lv = state.levels[state.level];
     state.target = lv.bearing != null ? lv.bearing : null;
     state.hintShown = 0;
     state.codeInput = '';
     state.checking = false;
     state.aligned = false;
 
-    $('hud-level').textContent = `第 ${state.level + 1} / ${LEVELS.length} 站`;
+    $('hud-level').textContent = `第 ${state.level + 1} / ${state.levels.length} 站`;
     $('clue-text').textContent = lv.clue;
     $('clue-meta').textContent = lv.bearing != null
       ? `目标方位 ${String(Math.round(lv.bearing)).padStart(3, '0')}° · 约 ${lv.steps} 步`
@@ -349,15 +355,20 @@
         (state.screen === 'play' || state.screen === 'code')) requestWakeLock();
   });
 
-  async function startGame() {
-    if (!LEVELS.length) {
+  async function startGame(mode) {
+    const set = SETS[mode] || SETS.outdoor;
+    if (!set || !set.levels.length) {
       alert('levels.js 里还没有关卡');
       return;
     }
     await requestMotionPermission();
 
-    state.level = startLevel;
-    state.startLevelIndex = startLevel;
+    state.mode = mode;
+    state.levels = set.levels;
+
+    const lv = clamp(paramLevel, 0, set.levels.length - 1);
+    state.level = lv;
+    state.startLevelIndex = lv;
     state.completed = 0;
     state.hints = 0;
     state.hintShown = 0;
@@ -380,7 +391,7 @@
   /* ---------------- 提示 ---------------- */
 
   $('btn-hint').addEventListener('click', () => {
-    const lv = LEVELS[state.level];
+    const lv = state.levels[state.level];
     if (state.hintShown >= lv.hints.length) return;
 
     const text = lv.hints[state.hintShown++];
@@ -413,12 +424,12 @@
   function checkCode() {
     if (state.screen !== 'code') return;
     if (state.checking || state.codeInput.length !== 4) return;
-    const lv = LEVELS[state.level];
+    const lv = state.levels[state.level];
 
     if (state.codeInput === String(lv.code)) {
       state.completed++;
       state.level++;
-      if (state.level >= LEVELS.length) finish();
+      if (state.level >= state.levels.length) finish();
       else renderLevel();
       return;
     }
@@ -552,7 +563,7 @@
 
   function drawCard(score, opts) {
     const doneStart = opts ? opts.startLevel : 0;
-    const doneEnd = opts ? opts.startLevel + opts.completed : LEVELS.length;
+    const doneEnd = opts ? opts.startLevel + opts.completed : state.levels.length;
     const W = 750, H = 1200;
     const card = $('card');
     card.width = W;
@@ -615,7 +626,7 @@
     x.fillText(rating(score), W / 2, 748);
 
     // 五站圆点
-    const n = LEVELS.length;
+    const n = state.levels.length;
     const gap = Math.min(86, 520 / Math.max(1, n - 1));
     const startX = W / 2 - (n - 1) * gap / 2;
     for (let i = 0; i < n; i++) {
@@ -652,12 +663,13 @@
 
   /* ---------------- 事件 ---------------- */
 
-  $('btn-start').addEventListener('click', startGame);
+  $('btn-start').addEventListener('click', () => startGame('outdoor'));
+  $('btn-start-indoor').addEventListener('click', () => startGame('indoor'));
 
   $('btn-again').addEventListener('click', () => {
     state.finished = false;
     state.elapsed = 0;
-    startGame();
+    startGame(state.mode);
   });
 
   window.addEventListener('resize', fitCompass);

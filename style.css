@@ -79,6 +79,48 @@ body {
   line-height: 1.9;
 }
 
+.mode-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 330px;
+  margin-top: 6px;
+}
+
+.mode-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 5px;
+  padding: 17px 20px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: transform .12s, background .15s;
+}
+.mode-btn:active { transform: scale(.98); }
+.mode-btn b {
+  color: var(--amber);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: .1em;
+}
+.mode-btn span {
+  color: var(--dim);
+  font-size: 12px;
+  letter-spacing: .06em;
+}
+.mode-btn.primary {
+  border-color: #3a3020;
+  background: linear-gradient(180deg, #2a2318, #15120c);
+  box-shadow: 0 8px 26px rgba(232, 176, 75, .1);
+}
+
 /* ---------- 按钮 ---------- */
 
 .btn {
