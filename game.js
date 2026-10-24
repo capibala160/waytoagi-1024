@@ -16,8 +16,8 @@
     venue: '会场',
     event: '问津',
     baseScore: 1000,
-    timePenalty: 1.2,
-    hintPenalty: 40
+    timePenalty: 250,
+    hintSeconds: 6
   }, window.GAME_CONFIG || {});
 
   const $ = (id) => document.getElementById(id);
@@ -49,6 +49,7 @@
     codeInput: '',
     checking: false,
     startLevelIndex: 0,
+    par: 300,
     completed: 0,
     checkTimer: null,
     resetTimer: null,
@@ -403,6 +404,7 @@
 
     state.mode = mode;
     state.levels = set.levels;
+    state.par = set.par || 300;
 
     // 重开必须清掉上一局的罗盘状态，否则断流时不会触发模拟兜底
     state.heading = null;
@@ -560,9 +562,12 @@
   function finish() {
     state.finished = true;
     state.elapsed = (Date.now() - state.startAt) / 1000;
-    state.score = Math.max(100, Math.round(
-      CFG.baseScore - state.elapsed * CFG.timePenalty - state.hints * CFG.hintPenalty
-    ));
+    // 按模式的目标时间（par）计分：正常发挥 ≈ 750，快 ≈ 850+
+    const par = state.par || 300;
+    const effective = state.elapsed + state.hints * CFG.hintSeconds;
+    state.score = Math.max(100, Math.min(CFG.baseScore, Math.round(
+      CFG.baseScore - CFG.timePenalty * (effective / par)
+    )));
 
     $('end-time').textContent = fmtTime(state.elapsed);
     $('end-hints').textContent = String(state.hints);
@@ -573,7 +578,7 @@
     const debugEl = $('end-debug');
     debugEl.hidden = !debug;
     debugEl.textContent = debug
-      ? `调试模式 · 从第 ${state.startLevelIndex + 1} 站开始，只完成 ${state.completed} 站`
+      ? `调试模式 · 不计入活动成绩（第 ${state.startLevelIndex + 1} 站起，完成 ${state.completed} 站）`
       : '';
 
     drawCard(state.score, {
@@ -633,7 +638,7 @@
       x.fillStyle = 'rgba(232,176,75,.55)';
       x.font = '400 20px -apple-system,"PingFang SC",sans-serif';
       x.textAlign = 'right';
-      x.fillText('调试成绩', W - 56, 78);
+      x.fillText('调试成绩 · 不计入', W - 56, 78);
     }
 
     x.textAlign = 'center';

@@ -14,8 +14,8 @@ window.GAME_CONFIG = {
   venue: '科梦OPC 社区',
   event: 'WaytoAGI 1024',
   baseScore: 1000,
-  timePenalty: 1.2,
-  hintPenalty: 40
+  timePenalty: 250,   // 一个 par 扣多少分
+  hintSeconds: 6      // 每条提示折算多少秒
 };
 
 window.LEVEL_SETS = {
@@ -24,6 +24,7 @@ window.LEVEL_SETS = {
     key: 'outdoor',
     name: '出门玩',
     desc: '5 站 · 约 5 分钟 · 会场周边',
+    par: 300,
     levels: [
       {
         id: 1,
@@ -102,6 +103,7 @@ window.LEVEL_SETS = {
     key: 'indoor',
     name: '不出门',
     desc: '3 站 · 约 90 秒 · 摊位附近',
+    par: 90,
     levels: [
       {
         id: 1,
