@@ -50,6 +50,10 @@
     pendingDest: null,
     gps: null,
     gpsStatus: '',
+    gpsAt: 0,
+    gpsAccuracy: null,
+    gpsError: '',
+    arriveStreak: 0,
     dist: null,
     path: [],
     lastPathAt: 0,
@@ -67,6 +71,7 @@
     firstClear: false,
     journeys: [],
     savedJourney: null,
+    currentJourneyId: null,
     level: 0,
     startAt: 0,
     elapsed: 0,
@@ -410,6 +415,10 @@
   const CSIZE = 600, CC = 300, CR = 258;
   const HEADING_STALE_MS = 2500;
   const ARRIVE_METERS = 30;
+  const GPS_ACCURACY_LIMIT = 50;    // 米；精度差于这个值的采样不参与自动抵达
+  const GPS_SAMPLE_MAX_AGE = 15000; // 毫秒；超过 15 秒的采样视为过期
+  const GPS_STALE_MS = 12000;       // 毫秒；界面超过 12 秒没新采样就提示定位暂停
+  const GPS_ARRIVE_SAMPLES = 3;     // 连续 3 次有效采样都在范围内才自动结算
   const FREE_PAR = 600;
   let cscale = 1;
   let dialCanvas = null;
@@ -782,6 +791,7 @@
     if (!isPlaying()) return;
     if (!state.paused) state.elapsed = Math.max(0, (Date.now() - state.startAt) / 1000);
     $('hud-time').textContent = fmtTime(state.elapsed);
+    if (state.mode === 'free') paintFreeStatus();
 
     if (performance.now() - lastSaveAt > 4000) {
       saveProgress();
@@ -869,11 +879,19 @@
 
   function paintFreeStatus() {
     if (state.mode !== 'free') return;
-    let text = state.gpsStatus || '定位中…';
-    if (state.gps && state.dist != null) {
-      if (state.dist <= ARRIVE_METERS) text = '到了';
-      else if (state.dist <= 80) text = '很近了';
-      else text = '跟着指针走';
+    let text;
+    if (state.gpsError) {
+      // 错误优先：定位失败时不再用旧坐标做“跟着指针走”的提示
+      text = state.gpsError;
+    } else if (state.gpsAt && Date.now() - state.gpsAt > GPS_STALE_MS) {
+      text = '定位暂停，正在重试…';
+    } else {
+      text = state.gpsStatus || '定位中…';
+      if (state.gps && state.dist != null && state.gpsStatus === '已定位') {
+        if (state.dist <= ARRIVE_METERS) text = '到了';
+        else if (state.dist <= 80) text = '很近了';
+        else text = '跟着指针走';
+      }
     }
     const el = $('free-status');
     if (el.textContent !== text) el.textContent = text;
@@ -894,6 +912,10 @@
     }
     stopGps();
     state.gpsStatus = '定位中…';
+    state.gpsError = '';
+    state.gpsAt = 0;
+    state.gpsAccuracy = null;
+    state.arriveStreak = 0;
     paintFreeStatus();
     state.watchId = navigator.geolocation.watchPosition(onPos, onGpsErr, {
       enableHighAccuracy: true,
@@ -905,10 +927,30 @@
   function onPos(pos) {
     if (state.mode !== 'free' || state.finished) return;
     const c = pos.coords;
+    const stamp = Number.isFinite(pos.timestamp) ? pos.timestamp : Date.now();
+    const age = Math.max(0, Date.now() - stamp);
+    // 过期采样不参与导航，也不刷新位置
+    if (age > GPS_SAMPLE_MAX_AGE) {
+      state.gpsStatus = '定位数据过期，正在重试…';
+      paintFreeStatus();
+      return;
+    }
+
+    state.gpsError = '';
+    state.gpsAt = Date.now();
+    state.gpsAccuracy = Number.isFinite(c.accuracy) ? c.accuracy : null;
     state.gps = { lat: c.latitude, lon: c.longitude };
     state.dist = distanceMeters(c.latitude, c.longitude, state.dest.lat, state.dest.lon);
     state.target = bearingTo(c.latitude, c.longitude, state.dest.lat, state.dest.lon);
-    state.gpsStatus = c.accuracy > 60 ? '信号弱，走两步再看看' : '已定位';
+
+    const accurate = state.gpsAccuracy != null && state.gpsAccuracy <= GPS_ACCURACY_LIMIT;
+    if (!accurate) {
+      state.gpsStatus = '信号弱，走两步再看看';
+      state.arriveStreak = 0;
+    } else {
+      state.gpsStatus = '已定位';
+      state.arriveStreak = state.dist <= ARRIVE_METERS ? state.arriveStreak + 1 : 0;
+    }
 
     const now = performance.now();
     if (!state.path.length || now - state.lastPathAt > 5000) {
@@ -918,14 +960,22 @@
     }
 
     paintFreeStatus();
-    if (state.dist <= ARRIVE_METERS) finishFree(true);
+    if (accurate && state.arriveStreak >= GPS_ARRIVE_SAMPLES) finishFree(true);
   }
 
   function onGpsErr(err) {
     if (state.mode !== 'free') return;
-    state.gpsStatus = err && err.code === 1
+    state.gpsError = err && err.code === 1
       ? '定位权限被拒绝'
       : '定位失败，换个开阔处再试';
+    state.gpsStatus = state.gpsError;
+    // 旧坐标不再作为有效导航依据
+    state.gps = null;
+    state.dist = null;
+    state.target = null;
+    state.gpsAt = 0;
+    state.gpsAccuracy = null;
+    state.arriveStreak = 0;
     paintFreeStatus();
   }
 
@@ -1305,6 +1355,7 @@
     (state.diary.events || []).forEach((e) => lines.push(`${fmtTime(e.t)}  ${e.text}`));
 
     state.diary.text = lines.join('\n');
+    updateJourneyDiary({ note: state.diary.note, text: state.diary.text });
     const box = $('diary-text');
     box.textContent = state.diary.text;
     box.hidden = false;
@@ -1571,7 +1622,24 @@
     const trimmed = list.slice(0, 5);
     try { localStorage.setItem(JOURNEY_KEY, JSON.stringify(trimmed)); } catch (e) { /* 忽略 */ }
     state.journeys = trimmed;
+    state.currentJourneyId = entry.id;
+    state.savedJourney = entry;
     updateJourneyLink();
+  }
+
+  // 日记是在结算之后写的，按旅程 id 回写同一条记录，刷新后才不会丢。
+  function updateJourneyDiary(patch) {
+    const id = state.currentJourneyId;
+    if (id == null) return;
+    const list = readJourneys();
+    const target = list.find((j) => j.id === id);
+    if (!target) return;
+    target.diary = Object.assign({}, target.diary || {}, patch);
+    try { localStorage.setItem(JOURNEY_KEY, JSON.stringify(list)); } catch (e) { /* 忽略 */ }
+    state.journeys = list;
+    if (state.savedJourney && state.savedJourney.id === id) {
+      state.savedJourney.diary = target.diary;
+    }
   }
 
   function updateJourneyLink() {
@@ -1657,6 +1725,7 @@
 
   function openJourney(j) {
     state.savedJourney = j;
+    state.currentJourneyId = j.id;
     state.mode = j.mode === 'fog' ? 'fog' : j.mode === 'free' ? 'free' : (j.huntMode || 'outdoor');
     state.dest = j.dest
       ? (window.DESTINATIONS || []).find((d) => d.id === j.dest.id) || j.dest
@@ -1847,6 +1916,10 @@
     state.gps = null;
     state.dist = null;
     state.gpsStatus = '定位中…';
+    state.gpsAt = 0;
+    state.gpsAccuracy = null;
+    state.gpsError = '';
+    state.arriveStreak = 0;
     state.target = null;
     state.heading = null;
     state.headingAbsolute = false;
@@ -3353,6 +3426,11 @@
   $('btn-diary').addEventListener('click', openDiary);
   $('btn-diary-back').addEventListener('click', () => showScreen('end'));
   $('btn-diary-gen').addEventListener('click', generateDiary);
+  $('diary-note').addEventListener('input', (e) => {
+    if (!state.diary) return;
+    state.diary.note = e.target.value;
+    updateJourneyDiary({ note: e.target.value });
+  });
   $('btn-diary-cert').addEventListener('click', drawCert);
 
   document.querySelectorAll('.photo-slot input[type=file]').forEach((input) => {
