@@ -1045,3 +1045,398 @@ body {
   .bearing { font-size: 40px; }
   .clue-text { font-size: 15px; }
 }
+
+/* ============================================================
+   Visual refresh v2 · 层次 / 颜色 / 排版
+   ============================================================ */
+
+:root {
+  --bg: #080a0d;
+  --surface-1: #0f1319;
+  --surface-2: #141a21;
+  --surface-3: #1a222b;
+  --line: rgba(232, 176, 75, .14);
+  --line-soft: rgba(255, 255, 255, .06);
+  --text: #f2efe8;
+  --text-2: #b9b3a6;
+  --text-3: #7c766b;
+  --amber: #e8b04b;
+  --amber-2: #f0c66f;
+  --amber-deep: #b9771f;
+  --paper: #f2e9d6;
+  --paper-2: #e9dcbf;
+  --paper-ink: #2b2722;
+  --radius-lg: 18px;
+  --radius-md: 14px;
+  --shadow-1: 0 10px 30px rgba(0, 0, 0, .38);
+  --shadow-2: 0 18px 50px rgba(0, 0, 0, .5);
+  --serif: "Songti SC", "SimSun", "Noto Serif CJK SC", serif;
+}
+
+body { font-size: 15px; }
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(900px 420px at 50% -8%, rgba(232, 176, 75, .12), transparent 70%),
+    radial-gradient(600px 320px at 100% 100%, rgba(121, 180, 115, .05), transparent 70%),
+    linear-gradient(180deg, #0c0f13, #080a0d 60%);
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image: repeating-linear-gradient(0deg, rgba(255, 255, 255, .012) 0 1px, transparent 1px 3px);
+  opacity: .5;
+  pointer-events: none;
+}
+
+/* ---------- 首页 hero ---------- */
+
+.home-eyebrow {
+  margin: 6px 0 10px;
+  color: var(--amber);
+  font-size: 11px;
+  letter-spacing: .28em;
+}
+
+.home-brand {
+  margin: 0 0 4px;
+  font-size: 60px;
+  text-shadow: 0 0 60px rgba(232, 176, 75, .22);
+}
+.home-brand::after {
+  content: '';
+  display: block;
+  width: 46px;
+  height: 2px;
+  margin-top: 12px;
+  background: linear-gradient(90deg, var(--amber), transparent);
+}
+
+.home-q {
+  font-family: var(--serif);
+  font-size: 36px;
+  letter-spacing: .03em;
+}
+.home-sub { color: var(--text-2); font-size: 14px; }
+
+.search input {
+  background: linear-gradient(180deg, var(--surface-2), var(--surface-1));
+  border: 1px solid var(--line-soft);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .03), 0 8px 24px rgba(0, 0, 0, .32);
+}
+.search .btn {
+  width: 56px;
+  min-width: 56px;
+  padding: 0;
+  border-radius: var(--radius-md);
+  font-size: 15px;
+}
+
+.dest-cards { gap: 12px; }
+
+.dest-item {
+  position: relative;
+  padding: 17px 46px 17px 20px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line-soft);
+  background:
+    linear-gradient(120deg, rgba(232, 176, 75, .06), transparent 42%),
+    linear-gradient(180deg, var(--surface-2), var(--surface-1));
+  box-shadow: var(--shadow-1), inset 0 1px 0 rgba(255, 255, 255, .03);
+  transition: transform .15s, border-color .15s, box-shadow .15s;
+}
+.dest-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 18px;
+  bottom: 18px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: linear-gradient(180deg, var(--amber-2), var(--amber-deep));
+}
+.dest-item::after {
+  content: '›';
+  position: absolute;
+  right: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--amber);
+  font-size: 24px;
+  font-weight: 300;
+}
+.dest-item:active { transform: scale(.985); border-color: rgba(232, 176, 75, .35); }
+.dest-item b { font-family: var(--serif); font-size: 21px; letter-spacing: .06em; }
+.dest-item span { color: var(--text-3); font-size: 12.5px; }
+
+#btn-reroll {
+  margin-top: 10px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line-soft);
+  background: var(--surface-1);
+  color: var(--text-2);
+  text-decoration: none;
+}
+#btn-reroll::before { content: '↻ '; color: var(--amber); }
+
+.home-block {
+  padding: 16px 18px;
+  border-radius: var(--radius-lg);
+  border: 1px dashed rgba(232, 176, 75, .16);
+  background: rgba(232, 176, 75, .025);
+}
+.home-label { color: var(--amber); font-size: 10px; }
+.home-hint { color: var(--text-3); font-size: 12.5px; }
+#btn-random { min-height: 44px; border-color: var(--line); }
+
+#btn-forge-link,
+#btn-hunt {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--line-soft);
+  background: var(--surface-1);
+  color: var(--text-2);
+  text-decoration: none;
+}
+#screen-start #btn-hunt { align-self: center; }
+#btn-forge-link::before { content: '✦'; color: var(--amber); }
+#btn-hunt::before { content: '⌖'; color: var(--amber); }
+
+/* ---------- 线索卡 ---------- */
+
+.clue {
+  border-radius: var(--radius-md);
+  background:
+    repeating-linear-gradient(0deg, rgba(120, 90, 40, .025) 0 1px, transparent 1px 4px),
+    radial-gradient(circle at 12% 10%, rgba(255, 255, 255, .55), transparent 46%),
+    linear-gradient(180deg, #f7efdc, #eadcbc);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .5);
+}
+.clue::after {
+  width: 4px;
+  background: linear-gradient(180deg, var(--amber-2), var(--amber-deep));
+}
+.clue-tag { color: #9a8358; }
+.clue-type {
+  padding: 2px 9px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--amber-deep);
+  color: #fff7e6;
+  font-size: 10px;
+  letter-spacing: .12em;
+}
+.clue-text {
+  font-family: var(--serif);
+  font-size: 18px;
+  line-height: 1.8;
+  color: #241f19;
+}
+.arrive-clue {
+  margin-top: 12px;
+  padding: 11px 13px;
+  border: 1px solid rgba(185, 119, 31, .28);
+  border-radius: 10px;
+  background: rgba(232, 176, 75, .14);
+  color: #4a3a1c;
+  font-size: 14.5px;
+}
+.clue-meta { color: #8b7a5c; }
+
+/* ---------- 罗盘 ---------- */
+
+.compass-stage { position: relative; }
+.compass-stage::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  width: min(86vw, 360px);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(232, 176, 75, .13), rgba(232, 176, 75, .03) 45%, transparent 68%);
+  filter: blur(6px);
+  pointer-events: none;
+  z-index: 0;
+}
+.compass-stage canvas { position: relative; z-index: 1; }
+.bearing,
+.halo-text,
+.align-badge { position: relative; z-index: 1; }
+.bearing span { text-shadow: 0 0 30px rgba(232, 176, 75, .15); }
+.halo-text {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(121, 180, 115, .28);
+  background: rgba(121, 180, 115, .08);
+}
+
+/* ---------- 按钮 / 卡片 ---------- */
+
+.primary {
+  background: linear-gradient(180deg, #f3c96f, #d99a2b 55%, #c98a20);
+  box-shadow: 0 8px 24px rgba(232, 176, 75, .24), inset 0 1px 0 rgba(255, 255, 255, .45);
+}
+.ghost {
+  background: linear-gradient(180deg, var(--surface-2), var(--surface-1));
+  border-color: var(--line-soft);
+}
+
+.free-card {
+  border-color: rgba(232, 176, 75, .2);
+  background:
+    linear-gradient(120deg, rgba(232, 176, 75, .06), transparent 45%),
+    linear-gradient(180deg, var(--surface-2), var(--surface-1));
+  box-shadow: var(--shadow-1);
+}
+
+.hint-box {
+  border-left: 3px solid rgba(232, 176, 75, .5);
+  background: rgba(232, 176, 75, .06);
+}
+
+.key {
+  background: linear-gradient(180deg, var(--surface-2), var(--surface-1));
+  border-color: var(--line-soft);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .03);
+}
+
+/* ---------- 通关卡 ---------- */
+
+.stamp {
+  background: radial-gradient(circle at 50% 38%, rgba(232, 176, 75, .1), rgba(6, 8, 11, .88) 62%);
+  backdrop-filter: blur(6px);
+}
+.stamp-seal {
+  width: 132px;
+  height: 132px;
+  border-width: 2px;
+  box-shadow:
+    0 0 0 7px rgba(232, 176, 75, .06),
+    0 0 0 14px rgba(232, 176, 75, .03),
+    0 0 60px rgba(232, 176, 75, .28) inset;
+}
+.stamp-station { color: var(--amber); font-size: 11px; }
+.stamp-story { font-size: 15.5px; color: #d8d2c6; }
+.stamp-piece {
+  padding: 6px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(232, 176, 75, .3);
+  background: rgba(232, 176, 75, .08);
+  font-size: 20px;
+}
+
+/* ---------- 确认 / 怎么走 ---------- */
+
+.confirm-name {
+  font-size: 52px;
+  text-shadow: 0 0 50px rgba(232, 176, 75, .18);
+}
+.confirm-meta span {
+  border-color: var(--line-soft);
+  background: var(--surface-1);
+  color: var(--text-2);
+}
+.how-title { font-family: var(--serif); font-size: 34px; }
+
+.mode-btn {
+  border-color: var(--line-soft);
+  background: linear-gradient(180deg, var(--surface-2), var(--surface-1));
+  box-shadow: var(--shadow-1), inset 0 1px 0 rgba(255, 255, 255, .03);
+}
+.mode-btn.primary {
+  border-color: rgba(232, 176, 75, .35);
+  background:
+    linear-gradient(120deg, rgba(232, 176, 75, .1), transparent 55%),
+    linear-gradient(180deg, var(--surface-2), var(--surface-1));
+}
+
+/* ---------- 结算 ---------- */
+
+.stats {
+  width: 100%;
+  max-width: 380px;
+  padding: 16px 20px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line-soft);
+  background: linear-gradient(180deg, var(--surface-2), var(--surface-1));
+  box-shadow: var(--shadow-1);
+}
+.end-title {
+  font-size: 52px;
+  text-shadow: 0 0 50px rgba(232, 176, 75, .2);
+}
+.rating {
+  font-family: var(--serif);
+  font-size: 18px;
+  letter-spacing: .3em;
+}
+.card { border: 1px solid rgba(232, 176, 75, .18); }
+
+/* ---------- 日记 ---------- */
+
+.diary-timeline { position: relative; padding-left: 18px; }
+.diary-timeline::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 6px;
+  bottom: 6px;
+  width: 1px;
+  background: linear-gradient(180deg, var(--amber), rgba(232, 176, 75, .08));
+}
+.timeline-row { position: relative; }
+.timeline-row::before {
+  content: '';
+  position: absolute;
+  left: -17px;
+  top: 7px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--amber);
+  box-shadow: 0 0 10px rgba(232, 176, 75, .6);
+}
+.diary-text {
+  background:
+    repeating-linear-gradient(0deg, rgba(120, 90, 40, .025) 0 1px, transparent 1px 4px),
+    linear-gradient(180deg, #f7efdc, #eadcbc);
+  color: var(--paper-ink);
+  font-size: 13.5px;
+  line-height: 2;
+}
+
+@media (max-height: 700px) {
+  .home-brand { font-size: 48px; }
+  .home-q { font-size: 30px; }
+  .clue-text { font-size: 16px; }
+}
+
+@media (max-height: 740px) {
+  .clue { padding: 12px 15px 10px; }
+  .clue-text { font-size: 16px; line-height: 1.65; }
+  .arrive-clue { margin-top: 8px; padding: 8px 10px; font-size: 13px; }
+  .clue-meta { margin-top: 6px; font-size: 11px; }
+  #compass { width: min(52vw, 214px); }
+  .bearing { font-size: 38px; }
+  .halo-text { margin-top: 3px; padding: 3px 9px; font-size: 11px; }
+  .align-badge { padding: 4px 8px; font-size: 10px; }
+  .sim-tip { margin: 0 0 4px; font-size: 10px; }
+  .actions { padding-top: 6px; }
+  .actions .btn { min-height: 46px; }
+}
