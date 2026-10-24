@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <link rel="icon" href="favicon.svg" type="image/svg+xml" />
 <title>犟针 · 只指方向，不指路</title>
-<link rel="stylesheet" href="style.css?v=20261024e" />
+<link rel="stylesheet" href="style.css?v=20261024f" />
 </head>
 <body>
 
@@ -22,6 +22,11 @@
         <button id="btn-theme" class="theme-toggle" aria-label="切换明暗">☾</button>
       </div>
     </div>
+    <div class="mode-switch" role="tablist" aria-label="模式">
+      <button class="mode-tab active" data-mode-tab="explore" role="tab" aria-selected="true">探索</button>
+      <button class="mode-tab" data-mode-tab="game" role="tab" aria-selected="false">游戏</button>
+    </div>
+
     <div class="home-brand">犟针</div>
     <p class="home-tag">只指方向，不指路</p>
     <h1 class="home-q">今天去哪？</h1>
@@ -57,7 +62,6 @@
     <p id="start-message" class="start-message" role="status" aria-live="polite"></p>
 
     <button id="btn-forge-link" class="link">旅伴 · 阿针</button>
-    <button id="btn-hunt" class="link">会场寻宝模式</button>
     <p class="fine">没有地图，没有路线，没有距离。</p>
   </section>
 
@@ -65,11 +69,15 @@
   <section id="screen-modes" class="screen">
     <div class="hud">
       <button id="btn-modes-back" class="btn ghost small">‹</button>
-      <span>会场寻宝</span>
+      <span>游戏模式</span>
       <span></span>
     </div>
+    <div class="mode-switch" role="tablist" aria-label="模式">
+      <button class="mode-tab" data-mode-tab="explore" role="tab" aria-selected="false">探索</button>
+      <button class="mode-tab active" data-mode-tab="game" role="tab" aria-selected="true">游戏</button>
+    </div>
     <h2 class="dest-title">会场寻宝</h2>
-    <p class="dest-sub">五站故事，或三站评委局。和自由行共用一台引擎。</p>
+    <p class="dest-sub">五站故事，或三站评委局。和探索模式共用一台引擎。</p>
     <div class="mode-list">
       <button id="btn-start" class="mode-btn primary">
         <b>出门玩</b>
@@ -80,7 +88,7 @@
         <span>3 站寻宝 · 约 90 秒 · 摊位附近（评委用）</span>
       </button>
     </div>
-    <p class="dest-note">自由行在首页，不需要进这里。</p>
+    <p class="dest-note">探索模式在首页，不需要进这里。</p>
   </section>
 
   <!-- 确认目的地 -->
@@ -340,11 +348,11 @@
 
 </div>
 
-<script src="destinations.js?v=20261024e"></script>
-<script src="destinations-city.js?v=20261024e"></script>
-<script src="levels.js?v=20261024e"></script>
-<script src="packs.js?v=20261024e"></script>
-<script src="game.js?v=20261024e"></script>
-<script src="companion.js?v=20261024e"></script>
+<script src="destinations.js?v=20261024f"></script>
+<script src="destinations-city.js?v=20261024f"></script>
+<script src="levels.js?v=20261024f"></script>
+<script src="packs.js?v=20261024f"></script>
+<script src="game.js?v=20261024f"></script>
+<script src="companion.js?v=20261024f"></script>
 </body>
 </html>

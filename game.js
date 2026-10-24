@@ -39,6 +39,8 @@
     journeys: $('screen-journeys')
   };
 
+  const modeTabs = document.querySelectorAll('[data-mode-tab]');
+
   const state = {
     screen: 'start',
     mode: 'outdoor',
@@ -814,6 +816,19 @@
     Object.keys(screens).forEach((k) => screens[k].classList.toggle('active', k === name));
     state.screen = name;
     if (name === 'play') requestAnimationFrame(fitCompass);
+    syncModeTabs();
+  }
+
+  // 探索 = 自由行（首页），游戏 = 会场寻宝；城市包没有寻宝时隐藏游戏标签。
+  function syncModeTabs() {
+    const hasGame = Object.keys(SETS).length > 0;
+    modeTabs.forEach((tab) => {
+      const isGame = tab.dataset.modeTab === 'game';
+      tab.hidden = isGame && !hasGame;
+      const active = isGame ? state.screen === 'modes' : state.screen === 'start';
+      tab.classList.toggle('active', active);
+      tab.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
   }
 
   /* ---------------- 关卡 ---------------- */
@@ -1061,7 +1076,7 @@
     const pack = window.ACTIVE_PACK;
     const btn = $('btn-pack');
     if (btn) btn.textContent = pack ? pack.name : '会场';
-    $('btn-hunt').hidden = Object.keys(SETS).length === 0;
+    syncModeTabs();
   }
 
   function loadVariant() {
@@ -3240,7 +3255,16 @@
     const d = randomDest();
     if (d) showConfirm(d);
   });
-  $('btn-hunt').addEventListener('click', () => showScreen('modes'));
+  modeTabs.forEach((tab) => {
+    tab.addEventListener('click', () => {
+      if (tab.dataset.modeTab === 'game') {
+        if (!Object.keys(SETS).length) return;
+        showScreen('modes');
+      } else {
+        showScreen('start');
+      }
+    });
+  });
   $('btn-modes-back').addEventListener('click', () => showScreen('start'));
   $('btn-confirm-back').addEventListener('click', () => showScreen('start'));
   $('btn-confirm-go').addEventListener('click', () => {
