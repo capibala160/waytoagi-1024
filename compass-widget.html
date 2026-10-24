@@ -23,6 +23,12 @@
     color: #e8b04b; font: 600 16px -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
     box-shadow: 0 0 0 8px rgba(232, 176, 75, .04), 0 10px 34px rgba(0, 0, 0, .65);
   }
+  .status { min-height: 18px; margin: 8px 0 0; color: #8a8578; font: 13px/1.4 -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif; }
+  .back {
+    min-height: 44px; margin-top: 14px; padding: 0 20px;
+    border: 1px solid #2c323a; border-radius: 999px; background: #11151a;
+    color: #a8a296; font: 600 14px -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+  }
   [hidden] { display: none !important; }
 </style>
 </head>
@@ -32,6 +38,8 @@
   <button id="start" class="start" hidden>开始</button>
 </div>
 <p id="name" class="name" hidden></p>
+<p id="status" class="status" hidden></p>
+<button id="back" class="back" hidden>返回游戏</button>
 <script>
 (function () {
   'use strict';
@@ -54,7 +62,11 @@
   var solo = window.parent === window;
   var startBtn = document.getElementById('start');
   var nameEl = document.getElementById('name');
+  var statusEl = document.getElementById('status');
+  var backBtn = document.getElementById('back');
   var query = new URLSearchParams(location.search);
+  var destLat = parseFloat(query.get('destLat') || '');
+  var destLon = parseFloat(query.get('destLon') || '');
 
   if (solo) document.body.classList.add('solo');
   if (query.has('target')) {
@@ -65,10 +77,47 @@
     nameEl.textContent = query.get('name');
     nameEl.hidden = false;
   }
-  if (solo) startBtn.hidden = false;
+  if (solo) {
+    startBtn.hidden = false;
+    backBtn.hidden = false;
+  }
+
+  backBtn.addEventListener('click', function () {
+    if (history.length > 1) history.back();
+    else location.href = './';
+  });
+
+  function bearingTo(lat1, lon1, lat2, lon2) {
+    var p1 = lat1 * Math.PI / 180;
+    var p2 = lat2 * Math.PI / 180;
+    var dl = (lon2 - lon1) * Math.PI / 180;
+    var y = Math.sin(dl) * Math.cos(p2);
+    var x = Math.cos(p1) * Math.sin(p2) - Math.sin(p1) * Math.cos(p2) * Math.cos(dl);
+    return norm(Math.atan2(y, x) * 180 / Math.PI);
+  }
+
+  var gpsStarted = false;
+  function startGps() {
+    if (gpsStarted || !solo || !finite(destLat) || !finite(destLon)) return;
+    if (!navigator.geolocation) {
+      statusEl.hidden = false;
+      statusEl.textContent = '定位不可用';
+      return;
+    }
+    gpsStarted = true;
+    statusEl.hidden = false;
+    statusEl.textContent = '定位中…';
+    navigator.geolocation.watchPosition(function (pos) {
+      target = bearingTo(pos.coords.latitude, pos.coords.longitude, destLat, destLon);
+      statusEl.textContent = '已定位';
+    }, function () {
+      statusEl.textContent = '定位不可用';
+    }, { enableHighAccuracy: true, maximumAge: 1000, timeout: 15000 });
+  }
 
   function begin() {
     startBtn.hidden = true;
+    startGps();
   }
 
   startBtn.addEventListener('click', function () {
