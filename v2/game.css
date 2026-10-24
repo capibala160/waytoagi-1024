@@ -27,6 +27,10 @@
   line-height: 1.6;
 }
 
+.compass-layer .compass-needle {
+  transition: transform .12s linear;
+}
+
 .hud-left {
   display: flex;
   flex-direction: column;

@@ -1286,7 +1286,7 @@ button, input, textarea, a { font-family: inherit; }
 
 .compass-layer {
   position: relative;
-  width: min(76vw, 330px);
+  width: min(88vw, 360px);
   aspect-ratio: 1;
   display: none;
   touch-action: none;
@@ -1537,8 +1537,8 @@ button, input, textarea, a { font-family: inherit; }
 .dpad-btn.s { grid-area: 3 / 2; }
 
 .fog-mode .actions { display: none; }
-.fog-mode .compass-layer { width: min(48vw, 210px); }
-.fog-mode #compass { width: min(48vw, 210px); }
+.fog-mode .compass-layer { width: min(56vw, 240px); }
+.fog-mode #compass { width: min(56vw, 240px); }
 .fog-mode .compass-stage { padding-top: 0; }
 .fog-mode .bearing,
 .fog-mode .halo-text,
@@ -2023,14 +2023,14 @@ button, input, textarea, a { font-family: inherit; }
 /* ---------------------------------------------------------- responsive */
 @media (max-width: 360px) {
   .home-shortcuts { grid-template-columns: 1fr; }
-  .compass-layer { width: min(82vw, 300px); }
+  .compass-layer { width: min(88vw, 320px); }
   .stats { grid-template-columns: repeat(2, 1fr); }
   #fog-stats { grid-template-columns: repeat(3, 1fr); }
 }
 
 @media (min-width: 420px) {
   .screen { padding-left: 20px; padding-right: 20px; }
-  .compass-layer { width: min(74vw, 340px); }
+  .compass-layer { width: min(82vw, 360px); }
 }
 
 @media (max-height: 700px) {

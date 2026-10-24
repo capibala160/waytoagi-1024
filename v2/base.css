@@ -440,7 +440,7 @@ body {
 }
 
 .fog-mode .actions { display: none; }
-.fog-mode #compass { width: min(46vw, 200px); }
+.fog-mode #compass { width: min(56vw, 240px); }
 .fog-mode .compass-stage { padding-top: 0; }
 #fog-stats { flex-wrap: wrap; gap: 14px 22px; }
 
@@ -840,7 +840,7 @@ body {
 }
 
 #compass {
-  width: min(64vw, 290px);
+  width: min(88vw, 360px);
   aspect-ratio: 1;
   display: block;
   touch-action: none;

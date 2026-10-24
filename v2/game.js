@@ -647,7 +647,6 @@
   const needleEl = $('compass-needle');
   const lubberEl = $('compass-lubber');
   const haloEl = $('compass-halo');
-  let lastNeedleTarget;
   let lastLayerLive;
   let lastLayerAligned;
   let lastLayerLocked;
@@ -667,7 +666,6 @@
     compassDirty = true;
     lastDrawnHeading = undefined;
     lastDrawnTarget = undefined;
-    lastNeedleTarget = undefined;
     lastLayerLive = undefined;
     lastLayerAligned = undefined;
     lastLayerLocked = undefined;
@@ -817,14 +815,7 @@
   function drawLayerCompass() {
     if (!needleEl) return;
 
-    // 指针属于游戏层：只在 target 变化时更新，CSS transition 慢慢转
-    const target = state.target;
-    if (target !== lastNeedleTarget) {
-      needleEl.hidden = target == null;
-      if (target != null) needleEl.style.transform = `rotate(${target}deg) translateZ(0)`;
-      lastNeedleTarget = target;
-    }
-
+    // 底盘固定，指针在 visualLoop 里按「目标方位 - 手机朝向」转动
     const live = state.heading != null;
     if (lubberEl && live !== lastLayerLive) {
       lubberEl.classList.toggle('live', live);
@@ -840,21 +831,28 @@
     }
   }
 
-  // 视觉层：独立 rAF，只转盘面，不读游戏状态
+  // 视觉层：底盘不动，只让指针指向目的地（屏幕角 = 目标方位 - 手机朝向）
   function visualLoop() {
     requestAnimationFrame(visualLoop);
-    if (state.screen !== 'play' || !rotorEl) return;
+    if (state.screen !== 'play' || !needleEl) return;
 
-    let target = visualHeading;
-    if (target == null) target = state.heading != null ? state.heading : 0;
+    let heading = visualHeading;
+    if (heading == null) heading = state.heading != null ? state.heading : 0;
 
     if (visualSmooth == null) {
-      visualSmooth = target;
+      visualSmooth = heading;
     } else {
-      const delta = ((target - visualSmooth + 540) % 360) - 180;
+      const delta = ((heading - visualSmooth + 540) % 360) - 180;
       visualSmooth = norm(visualSmooth + delta * 0.5);
     }
-    rotorEl.style.transform = `rotate(${-visualSmooth}deg) translateZ(0)`;
+
+    if (state.target == null) {
+      needleEl.hidden = true;
+    } else {
+      needleEl.hidden = false;
+      const needleAngle = norm(state.target - visualSmooth);
+      needleEl.style.transform = `rotate(${needleAngle}deg) translateZ(0)`;
+    }
   }
 
   function updateAlign() {
@@ -3728,7 +3726,7 @@
     if (frame) {
       const q = new URLSearchParams();
       q.set('lab', '1');
-      q.set('v', '5');
+      q.set('v', '6');
       q.set('theme', document.documentElement.dataset.theme || 'dark');
       if (state.heading != null) q.set('h', String(Math.round(state.heading)));
       if (state.target != null) q.set('t', String(Math.round(state.target)));
