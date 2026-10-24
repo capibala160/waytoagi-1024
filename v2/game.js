@@ -34,6 +34,7 @@
     arrive: $('screen-arrive'),
     forge: $('screen-forge'),
     play: $('screen-play'),
+    lab: $('screen-lab'),
     code: $('screen-code'),
     end: $('screen-end'),
     diary: $('screen-diary'),
@@ -3713,6 +3714,42 @@
     }
   }
 
+  function openCompassLab() {
+    if (state.mode === 'free') {
+      state.elapsed = elapsedNow();
+      state.paused = true;
+      state.pauseAt = Date.now();
+      if (state.watchId != null) {
+        stopGps();
+        state.gpsPaused = true;
+      }
+    }
+    const frame = $('compass-lab-frame');
+    if (frame) {
+      const q = new URLSearchParams();
+      q.set('lab', '1');
+      q.set('v', '5');
+      q.set('theme', document.documentElement.dataset.theme || 'dark');
+      if (state.heading != null) q.set('h', String(Math.round(state.heading)));
+      if (state.target != null) q.set('t', String(Math.round(state.target)));
+      frame.src = '../compass-kit/demo.html?' + q.toString();
+    }
+    showScreen('lab');
+  }
+
+  function closeCompassLab() {
+    showScreen('play');
+    if (state.pauseAt) {
+      state.startAt += Date.now() - state.pauseAt;
+      state.pauseAt = 0;
+    }
+    state.paused = false;
+    if (state.mode === 'free' && state.gpsPaused) {
+      state.gpsPaused = false;
+      startGps();
+    }
+  }
+
   function shakeCode(message) {
     state.checking = true;
     $('code-msg').textContent = message;
@@ -4330,6 +4367,8 @@
   $('btn-pause').addEventListener('click', openPause);
   $('btn-pause-resume').addEventListener('click', resumePause);
   $('btn-pause-exit').addEventListener('click', exitPause);
+  $('btn-compass-lab').addEventListener('click', openCompassLab);
+  $('btn-lab-back').addEventListener('click', closeCompassLab);
 
   $('btn-book').addEventListener('click', openBook);
   $('btn-book-back').addEventListener('click', () => showScreen('play'));

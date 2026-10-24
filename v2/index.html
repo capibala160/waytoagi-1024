@@ -8,9 +8,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <link rel="icon" href="favicon.svg" type="image/svg+xml" />
 <title>犟针 · 只指方向，不指路</title>
-<link rel="stylesheet" href="base.css?v=4" />
-<link rel="stylesheet" href="theme.css?v=4" />
-<link rel="stylesheet" href="game.css?v=4" />
+<link rel="stylesheet" href="base.css?v=5" />
+<link rel="stylesheet" href="theme.css?v=5" />
+<link rel="stylesheet" href="game.css?v=5" />
 </head>
 <body>
 
@@ -345,6 +345,7 @@
       <div class="trip-status">
         <span id="free-status" class="free-status">定位中…</span>
         <button id="btn-free-retry" class="text-btn" hidden>重新定位</button>
+        <button id="btn-compass-lab" class="text-btn">罗盘校准</button>
       </div>
     </div>
 
@@ -405,6 +406,22 @@
       <button class="dpad-btn s" data-dir="s">南 ↓</button>
     </div>
     <button id="btn-fog-ask" class="btn ghost fog-ask" hidden>问路</button>
+  </section>
+
+  <!-- ============================================================
+       罗盘校准（嵌入 compass-kit demo）
+       ============================================================ -->
+  <section id="screen-lab" class="screen lab-screen">
+    <header class="topbar sub-topbar lab-topbar">
+      <button id="btn-lab-back" class="icon-btn" aria-label="返回">‹</button>
+      <span class="sub-title">罗盘校准</span>
+      <span class="topbar-spacer"></span>
+    </header>
+    <iframe id="compass-lab-frame"
+      class="compass-lab-frame"
+      src="../compass-kit/demo.html?lab=1&v=5"
+      title="罗盘校准"
+      allow="accelerometer; gyroscope; magnetometer; fullscreen"></iframe>
   </section>
 
   <!-- ============================================================
@@ -587,11 +604,11 @@
 
 </div>
 
-<script src="destinations.js?v=4"></script>
-<script src="destinations-city.js?v=4"></script>
-<script src="levels.js?v=4"></script>
-<script src="packs.js?v=4"></script>
-<script src="game.js?v=4"></script>
-<script src="companion.js?v=4"></script>
+<script src="destinations.js?v=5"></script>
+<script src="destinations-city.js?v=5"></script>
+<script src="levels.js?v=5"></script>
+<script src="packs.js?v=5"></script>
+<script src="game.js?v=5"></script>
+<script src="companion.js?v=5"></script>
 </body>
 </html>

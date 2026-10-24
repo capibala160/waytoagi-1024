@@ -507,6 +507,11 @@ body.is-clean .compass { margin: 0; }
 @media (prefers-reduced-motion: reduce) {
   * { transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
+
+/* Embedded as the in-app calibration page */
+html.lab-mode .top,
+html.lab-mode .toolbar { display: none; }
+html.lab-mode .shell { padding-top: 8px; }
 </style>
 </head>
 <body>
@@ -1116,6 +1121,11 @@ body.is-clean .compass { margin: 0; }
 
   requestAnimationFrame(tick);
 })();
+</script>
+<script>
+  if (new URLSearchParams(location.search).get('lab') === '1') {
+    document.documentElement.classList.add('lab-mode');
+  }
 </script>
 </body>
 </html>
