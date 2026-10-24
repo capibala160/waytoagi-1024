@@ -351,6 +351,88 @@ body {
 
 .btn.small { min-height: 38px; padding: 0 14px; font-size: 13px; }
 
+/* ---------- 旅伴铸造 ---------- */
+
+.forge-title { margin: 20px 0 8px; font-size: 26px; font-weight: 600; }
+.forge-sub { margin: 0 0 14px; color: var(--dim); font-size: 13px; line-height: 1.7; }
+
+.forge-input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1.6;
+  resize: none;
+  outline: none;
+}
+.forge-input:focus { border-color: rgba(232, 176, 75, .5); }
+
+#btn-forge { width: 100%; margin-top: 12px; }
+
+.forge-result { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+
+.forge-card {
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.forge-card.sel { border-color: var(--amber); background: rgba(232, 176, 75, .08); }
+.forge-card b { color: var(--amber); font-size: 18px; letter-spacing: .06em; }
+.forge-card span { display: block; margin-top: 4px; color: var(--dim); font-size: 12px; }
+.forge-card em { display: block; margin-top: 6px; color: #c9c4b8; font-size: 13px; font-style: normal; line-height: 1.6; }
+
+#btn-forge-done { width: 100%; margin-top: 14px; }
+
+/* ---------- 目的地卡 / 雾城 ---------- */
+
+.dest-cards { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+#btn-reroll { align-self: flex-start; margin-top: 8px; }
+
+.dpad {
+  display: grid;
+  grid-template-columns: repeat(3, 64px);
+  grid-template-rows: repeat(3, 46px);
+  gap: 8px;
+  justify-content: center;
+  margin: 6px 0;
+}
+.dpad-btn {
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  letter-spacing: .06em;
+  cursor: pointer;
+}
+.dpad-btn:active { background: var(--panel2); transform: scale(.97); }
+.dpad-btn.n { grid-area: 1 / 2; }
+.dpad-btn.w { grid-area: 2 / 1; }
+.dpad-btn.e { grid-area: 2 / 3; }
+.dpad-btn.s { grid-area: 3 / 2; }
+
+.fog-hint {
+  margin-top: 8px;
+  color: #d8cfae;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.fog-mode .actions { display: none; }
+.fog-mode #compass { width: min(46vw, 200px); }
+.fog-mode .compass-stage { padding-top: 0; }
+#fog-stats { flex-wrap: wrap; gap: 14px 22px; }
+
 /* ---------- 阿针浮层 ---------- */
 
 .azhen {

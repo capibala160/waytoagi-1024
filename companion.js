@@ -8,7 +8,13 @@
 (() => {
   'use strict';
 
-  const LINES = ['往那边。', '你确定？', '到了。我早说过。'];
+  const saved = (() => {
+    try { return JSON.parse(localStorage.getItem('wenjin-variant') || 'null'); } catch (e) { return null; }
+  })();
+  const LINES = saved && Array.isArray(saved.lines) && saved.lines.length
+    ? saved.lines
+    : ['往那边。', '你确定？', '到了。我早说过。'];
+  const NAME = saved && saved.name ? saved.name : '阿针';
   const ASK_LINE = '又问？行吧。';
   const GREET_DELAY_MS = 900;
   const BUBBLE_MS = 3800;
@@ -40,6 +46,7 @@
     bubbleTimer = setTimeout(() => { bubble.hidden = true; }, BUBBLE_MS);
   }
 
+  avatar.setAttribute('aria-label', NAME);
   avatar.addEventListener('click', () => say(LINES[(next++) % LINES.length]));
 
   closeBtn.addEventListener('click', () => {

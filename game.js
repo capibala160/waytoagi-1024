@@ -30,6 +30,7 @@
     modes: $('screen-modes'),
     confirm: $('screen-confirm'),
     how: $('screen-how'),
+    forge: $('screen-forge'),
     play: $('screen-play'),
     code: $('screen-code'),
     end: $('screen-end')
@@ -50,6 +51,11 @@
     watchId: null,
     simPos: null,
     simSteps: 0,
+    variant: null,
+    destDraw: [],
+    forgeVariants: [],
+    forgePick: 0,
+    fog: null,
     level: 0,
     startAt: 0,
     elapsed: 0,
@@ -148,7 +154,7 @@
 
   function saveProgress() {
     if (!isPlaying()) return;
-    if (state.mode === 'sim') return;
+    if (state.mode === 'sim' || state.mode === 'fog') return;
     try {
       if (state.mode === 'free') {
         localStorage.setItem(SAVE_KEY, JSON.stringify({
@@ -583,7 +589,8 @@
     }
 
     // 自由行：目标方位标记（相对手机顶部）
-    if ((state.mode === 'free' || state.mode === 'sim') && state.target != null && live) {
+    if ((state.mode === 'free' || state.mode === 'sim' || state.mode === 'fog') &&
+        state.target != null && live) {
       const rel = norm(state.target - h);
       ctx.save();
       ctx.translate(CC, CC);
@@ -763,10 +770,42 @@
     paintFreeStatus();
   }
 
+  function destCard(dest, onClick) {
+    const btn = document.createElement('button');
+    btn.className = 'dest-item';
+    const name = document.createElement('b');
+    name.textContent = dest.name;
+    const blurb = document.createElement('span');
+    blurb.textContent = dest.blurb || '';
+    btn.appendChild(name);
+    btn.appendChild(blurb);
+    btn.addEventListener('click', onClick);
+    return btn;
+  }
+
+  function renderDestCards() {
+    const pool = (window.DESTINATIONS || []).slice();
+    const draw = [];
+    while (draw.length < 3 && pool.length) {
+      draw.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+    }
+    state.destDraw = draw;
+
+    const box = $('dest-cards');
+    box.replaceChildren();
+    draw.forEach((d) => box.appendChild(destCard(d, () => showConfirm(d))));
+
+    box.hidden = false;
+    $('btn-reroll').hidden = false;
+    $('dest-suggest').hidden = true;
+  }
+
   function renderSuggestions(filter) {
     const q = (filter || '').trim();
+    if (!q) { renderDestCards(); return; }
+
     const list = (window.DESTINATIONS || [])
-      .filter((d) => !q || d.name.includes(q) || (d.blurb || '').includes(q))
+      .filter((d) => d.name.includes(q) || (d.blurb || '').includes(q))
       .slice(0, 6);
     const box = $('dest-suggest');
     box.replaceChildren();
@@ -777,6 +816,88 @@
       chip.addEventListener('click', () => showConfirm(d));
       box.appendChild(chip);
     });
+
+    $('dest-cards').hidden = true;
+    $('btn-reroll').hidden = true;
+    $('dest-suggest').hidden = false;
+  }
+
+  /* ---------------- 旅伴铸造 ---------------- */
+
+  function hashStr(s) {
+    let h = 2166136261;
+    for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
+    return h >>> 0;
+  }
+
+  function makeVariants(sentence) {
+    const h = hashStr(sentence || '铜罗盘');
+    const names = ['阿针', '针仔', '小北', '铜铜', '老倔'];
+    const traits = ['嘴硬心软', '认死理', '慢性子', '爱叹气', '不服劝'];
+    const colors = ['古铜', '黄铜', '青钢'];
+    const pools = [
+      ['往那边。', '你确定？', '到了。我早说过。'],
+      ['就这边。', '听我的。', '看，到了吧。'],
+      ['那边。', '别问了，走。', '早说我能行。'],
+      ['北边。', '……', '到了。'],
+      ['跟着我。', '绕就绕吧。', '没骗你。']
+    ];
+    const out = [];
+    for (let i = 0; i < 3; i++) {
+      out.push({
+        name: names[(h + i * 7) % names.length],
+        trait: traits[(h + i * 3) % traits.length],
+        color: colors[(h + i) % colors.length],
+        lines: pools[(h + i * 3) % pools.length]
+      });
+    }
+    return out;
+  }
+
+  function renderForgeCards() {
+    const box = $('forge-result');
+    box.replaceChildren();
+    state.forgeVariants.forEach((v, i) => {
+      const card = document.createElement('button');
+      card.className = 'forge-card' + (i === state.forgePick ? ' sel' : '');
+      const name = document.createElement('b');
+      name.textContent = v.name;
+      const meta = document.createElement('span');
+      meta.textContent = v.trait + ' · ' + v.color + '罗盘';
+      const line = document.createElement('em');
+      line.textContent = '“' + v.lines[0] + '”';
+      card.appendChild(name);
+      card.appendChild(meta);
+      card.appendChild(line);
+      card.addEventListener('click', () => {
+        state.forgePick = i;
+        renderForgeCards();
+      });
+      box.appendChild(card);
+    });
+    box.hidden = false;
+    $('btn-forge-done').hidden = false;
+  }
+
+  function applyVariant(v) {
+    state.variant = v;
+    window.AZHEN_VARIANT = v;
+    try { localStorage.setItem('wenjin-variant', JSON.stringify(v)); } catch (e) { /* 忽略 */ }
+    updateForgeLink();
+  }
+
+  function updateForgeLink() {
+    $('btn-forge-link').textContent = '旅伴 · ' + (state.variant ? state.variant.name : '阿针');
+  }
+
+  function loadVariant() {
+    try {
+      const v = JSON.parse(localStorage.getItem('wenjin-variant') || 'null');
+      if (v && v.name) applyVariant(v);
+      else updateForgeLink();
+    } catch (e) {
+      updateForgeLink();
+    }
   }
 
   function renderRecent() {
@@ -823,7 +944,7 @@
   }
 
   function renderHome() {
-    renderSuggestions('');
+    renderDestCards();
     renderRecent();
   }
 
@@ -899,6 +1020,7 @@
   }
 
   function renderFree() {
+    resetFogUI();
     $('hud-level').textContent = '自由行';
     $('clue-card').hidden = true;
     $('free-card').hidden = false;
@@ -1099,6 +1221,328 @@
     clearProgress();
   }
 
+  /* ---------------- 雾城网格 ---------------- */
+
+  function mulberry32(a) {
+    return function () {
+      a |= 0;
+      a = a + 0x6D2B79F5 | 0;
+      let t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+
+  function bfsPath(grid, N, from, to) {
+    const key = (p) => p.x + ',' + p.y;
+    const prev = new Map();
+    const q = [from];
+    prev.set(key(from), null);
+    let head = 0;
+    while (head < q.length) {
+      const p = q[head++];
+      if (p.x === to.x && p.y === to.y) {
+        const path = [];
+        let cur = p;
+        while (cur) { path.push(cur); cur = prev.get(key(cur)); }
+        return path.reverse();
+      }
+      const dirs = [[0, -1], [1, 0], [0, 1], [-1, 0]];
+      for (const d of dirs) {
+        const nx = p.x + d[0];
+        const ny = p.y + d[1];
+        if (nx < 0 || ny < 0 || nx >= N || ny >= N) continue;
+        if (grid[ny][nx]) continue;
+        const k = nx + ',' + ny;
+        if (prev.has(k)) continue;
+        prev.set(k, p);
+        q.push({ x: nx, y: ny });
+      }
+    }
+    return null;
+  }
+
+  function makeFog(dest, seed) {
+    const rnd = mulberry32(seed >>> 0);
+    const N = 12;
+    let grid, start, target, path;
+    let attempts = 0;
+
+    do {
+      grid = Array.from({ length: N }, () => Array(N).fill(0));
+      for (let y = 0; y < N; y++) {
+        for (let x = 0; x < N; x++) if (rnd() < 0.22) grid[y][x] = 1;
+      }
+      const open = [];
+      for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (!grid[y][x]) open.push({ x, y });
+      start = open[Math.floor(rnd() * open.length)];
+      target = open[Math.floor(rnd() * open.length)];
+      path = bfsPath(grid, N, start, target);
+      attempts++;
+    } while ((!path || path.length < 7 ||
+      Math.abs(start.x - target.x) + Math.abs(start.y - target.y) < 7) && attempts < 80);
+
+    if (!path) {
+      grid = Array.from({ length: N }, () => Array(N).fill(0));
+      const open = [];
+      for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) open.push({ x, y });
+      start = open[Math.floor(rnd() * open.length)];
+      target = open[Math.floor(rnd() * open.length)];
+      path = bfsPath(grid, N, start, target);
+    }
+
+    const used = new Set([start.x + ',' + start.y, target.x + ',' + target.y]);
+    const openCells = [];
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (!grid[y][x]) openCells.push({ x, y });
+    const names = ['修表师傅', '茶馆老板', '路口大爷'];
+    const npcs = [];
+    while (npcs.length < 3 && openCells.length) {
+      const c = openCells.splice(Math.floor(rnd() * openCells.length), 1)[0];
+      const k = c.x + ',' + c.y;
+      if (used.has(k)) continue;
+      used.add(k);
+      npcs.push({ x: c.x, y: c.y, truthful: npcs.length < 2, asked: false, name: names[npcs.length] });
+    }
+
+    return {
+      N, grid, start, target,
+      pos: { x: start.x, y: start.y },
+      path: [{ x: start.x, y: start.y }],
+      steps: 0,
+      optimal: Math.max(1, path.length - 1),
+      npcs,
+      asked: 0,
+      seed
+    };
+  }
+
+  const STREETS = ['梧桐街', '邮局路', '茶馆巷', '钟楼街', '旧货市场', '南门坡', '红星路', '老码头'];
+
+  function streetName(p) {
+    return STREETS[(p.x * 7 + p.y * 13) % STREETS.length];
+  }
+
+  function fogNpcLine(npc) {
+    const f = state.fog;
+    const path = bfsPath(f.grid, f.N, { x: npc.x, y: npc.y }, f.target) || [];
+    const moves = [];
+    for (let i = 1; i < Math.min(path.length, 4); i++) {
+      const dx = path[i].x - path[i - 1].x;
+      const dy = path[i].y - path[i - 1].y;
+      moves.push(dx === 1 ? '东' : dx === -1 ? '西' : dy === 1 ? '南' : '北');
+    }
+    if (!npc.truthful) {
+      const flip = { 北: '南', 南: '北', 东: '西', 西: '东' };
+      return '那边不好走，你往' + (flip[moves[0]] || '北') + '边试试。';
+    }
+    return '往' + (moves.join('、') || '北') + '走，看到路口再问。';
+  }
+
+  function startFog(dest, seed) {
+    if (!dest) return;
+    requestMotionPermission();
+    rememberDest(dest);
+    clearProgress();
+    stopGps();
+
+    const realSeed = Number.isFinite(seed) ? seed : (Date.now() % 2147483647);
+    const fog = makeFog(dest, realSeed);
+    window.__wenjinFog = fog;
+
+    state.mode = 'fog';
+    state.free = false;
+    state.dest = dest;
+    state.levels = [];
+    state.par = 240;
+    state.fog = fog;
+    state.level = 0;
+    state.startLevelIndex = 0;
+    state.completed = 0;
+    state.hints = 0;
+    state.hintShown = 0;
+    state.asks = 0;
+    state.story = [];
+    state.stamps = [];
+    state.puzzleHints = 0;
+    state.optionalDone = false;
+    state.usedSimulation = false;
+    state.finished = false;
+    state.score = 0;
+    state.elapsed = 0;
+    state.startAt = Date.now();
+    state.path = [];
+    state.gps = null;
+    state.dist = null;
+    state.gpsStatus = '';
+
+    state.heading = null;
+    state.headingAbsolute = false;
+    state.relativeOnly = false;
+    state.sensorSeen = false;
+    state.lastOrientAt = 0;
+    state.simulating = false;
+    state.aligned = false;
+    state.alignLocked = false;
+    state.alignSince = 0;
+    $('sim-tip').hidden = true;
+
+    renderFog();
+
+    setTimeout(() => {
+      if (state.sensorSeen || state.simulating) return;
+      goSimulation('没检测到罗盘：拖动表盘模拟');
+    }, 2500);
+
+    wantWakeLock = true;
+    requestWakeLock();
+  }
+
+  function renderFog() {
+    $('screen-play').classList.add('fog-mode');
+    $('hud-level').textContent = '雾城';
+    $('clue-card').hidden = true;
+    $('free-card').hidden = true;
+    $('fog-card').hidden = false;
+    $('dpad').hidden = false;
+    $('hint-box').hidden = true;
+    $('btn-hint').hidden = true;
+    $('btn-forward').hidden = true;
+    $('btn-arrive').hidden = true;
+    $('stat-hints').hidden = true;
+    $('clue-type').textContent = '';
+    $('fog-hint').hidden = true;
+    $('fog-name').textContent = state.dest.name;
+    $('fog-street').textContent = streetName(state.fog.pos);
+    $('fog-status').textContent = '已走 0 步';
+    $('halo-text').textContent = `方向确认，去「${state.dest.name}」`;
+    $('halo-text').classList.remove('on');
+    $('btn-bonus').hidden = true;
+    $('stats-main').hidden = false;
+    $('fog-stats').hidden = true;
+    state.bonusMode = false;
+    state.alignLocked = false;
+    state.alignSince = 0;
+
+    updateFogTarget();
+    updateFogAsk();
+    showScreen('play');
+    requestAnimationFrame(fitCompass);
+  }
+
+  function updateFogTarget() {
+    const f = state.fog;
+    if (!f) return;
+    const dx = f.target.x - f.pos.x;
+    const dy = f.target.y - f.pos.y;
+    state.target = norm(Math.atan2(dx, -dy) * 180 / Math.PI);
+    state.dist = Math.abs(dx) + Math.abs(dy);
+    $('fog-street').textContent = streetName(f.pos);
+    $('fog-status').textContent = `已走 ${f.steps} 步`;
+    $('fog-meta').textContent = `目标方位 ${String(Math.round(state.target)).padStart(3, '0')}° · 已走 ${f.steps} 步`;
+  }
+
+  function updateFogAsk() {
+    const f = state.fog;
+    if (!f) return;
+    const near = f.npcs.find((n) => !n.asked &&
+      Math.abs(n.x - f.pos.x) + Math.abs(n.y - f.pos.y) <= 1);
+    $('btn-fog-ask').hidden = !near;
+    $('btn-fog-ask').textContent = near ? `问${near.name}` : '问路';
+  }
+
+  function fogMove(dir) {
+    if (state.mode !== 'fog' || state.finished || !state.fog) return;
+    const f = state.fog;
+    const d = { n: [0, -1], e: [1, 0], s: [0, 1], w: [-1, 0] }[dir];
+    if (!d) return;
+
+    const nx = f.pos.x + d[0];
+    const ny = f.pos.y + d[1];
+    if (nx < 0 || ny < 0 || nx >= f.N || ny >= f.N) {
+      showToast('前面没路了');
+      return;
+    }
+    if (f.grid[ny][nx]) {
+      showToast('是堵墙，换一边');
+      return;
+    }
+
+    f.pos = { x: nx, y: ny };
+    f.steps++;
+    f.path.push({ x: nx, y: ny });
+    updateFogTarget();
+    updateFogAsk();
+    if (nx === f.target.x && ny === f.target.y) finishFog();
+  }
+
+  function fogAsk() {
+    const f = state.fog;
+    if (!f) return;
+    const npc = f.npcs.find((n) => !n.asked &&
+      Math.abs(n.x - f.pos.x) + Math.abs(n.y - f.pos.y) <= 1);
+    if (!npc) return;
+
+    npc.asked = true;
+    f.asked++;
+    state.asks++;
+    const hint = $('fog-hint');
+    hint.hidden = false;
+    hint.textContent = `${npc.name}：${fogNpcLine(npc)}`;
+    updateFogAsk();
+  }
+
+  function finishFog() {
+    if (state.finished || !state.fog) return;
+    state.finished = true;
+    state.elapsed = Math.max(0, (Date.now() - state.startAt) / 1000);
+
+    const f = state.fog;
+    const lost = Math.max(1, Number((f.steps / Math.max(1, f.optimal)).toFixed(1)));
+    let stars = 1;
+    if (state.elapsed <= 180 && lost <= 1.3 && f.asked <= 2) stars = 3;
+    else if (state.elapsed <= 300 && lost <= 1.6) stars = 2;
+
+    state.score = Math.max(100, Math.min(1000, Math.round(
+      1000 - 200 * (state.elapsed / 240) - 30 * Math.max(0, lost - 1)
+    )));
+
+    $('stats-main').hidden = true;
+    $('fog-stats').hidden = false;
+    $('fog-time').textContent = fmtTime(state.elapsed);
+    $('fog-steps').textContent = String(f.steps);
+    $('fog-asks').textContent = String(f.asked);
+    $('fog-lost').textContent = lost + '×';
+    $('fog-stars').textContent = '★'.repeat(stars) + '☆'.repeat(3 - stars);
+    $('end-rating').textContent = stars === 3 ? '三 星 到 达' : stars === 2 ? '二 星 到 达' : '到 达';
+    $('end-debug').hidden = true;
+    renderEndExtras();
+
+    drawCard(state.score, {
+      fog: true,
+      steps: f.steps,
+      asked: f.asked,
+      lost,
+      stars,
+      path: f.path,
+      dest: state.dest,
+      badges: earnedBadges()
+    });
+    showScreen('end');
+    releaseWakeLock();
+    clearProgress();
+  }
+
+  function resetFogUI() {
+    $('screen-play').classList.remove('fog-mode');
+    $('fog-card').hidden = true;
+    $('dpad').hidden = true;
+    $('btn-fog-ask').hidden = true;
+    $('fog-hint').hidden = true;
+    $('btn-arrive').hidden = false;
+    $('stats-main').hidden = false;
+    $('fog-stats').hidden = true;
+  }
+
   function renderHints() {
     const lv = state.levels[state.level];
     const n = state.hintShown || 0;
@@ -1127,8 +1571,10 @@
   }
 
   function renderLevel() {
+    resetFogUI();
     state.free = false;
     state.dest = null;
+    state.fog = null;
     stopGps();
     $('clue-card').hidden = false;
     $('free-card').hidden = true;
@@ -1485,8 +1931,10 @@
 
   function earnedBadges() {
     const list = [];
-    if (state.mode !== 'free' && state.mode !== 'sim' && state.completed >= state.levels.length) list.push('记忆拼图');
-    if (state.puzzleHints === 0) list.push('独立寻路者');
+    const hunt = state.mode !== 'free' && state.mode !== 'sim' && state.mode !== 'fog';
+    if (state.mode === 'fog') list.push('雾城通关');
+    if (hunt && state.completed >= state.levels.length) list.push('记忆拼图');
+    if (hunt && state.puzzleHints === 0) list.push('独立寻路者');
     if (state.optionalDone) list.push('细节观察家');
     if (state.asks >= 3) list.push('同行向导');
     if (state.score >= 850) list.push('活地图');
@@ -1562,6 +2010,11 @@
     drawPolyline(x, cx, cy, boxW, boxH, pts);
   }
 
+  function drawFogPath(x, cx, cy, boxW, boxH, path) {
+    if (!path || path.length < 2) return;
+    drawPolyline(x, cx, cy, boxW, boxH, path.map((p) => ({ x: p.x, y: p.y })));
+  }
+
   function drawGpsPath(x, cx, cy, boxW, boxH, pts) {
     if (!pts || pts.length < 2) return;
     const lat0 = pts[0].lat;
@@ -1629,6 +2082,7 @@
     const doneEnd = opts && Number.isInteger(opts.completed) ? doneStart + opts.completed : state.levels.length;
     const practice = !!(opts && opts.practice);
     const free = !!(opts && opts.free);
+    const fog = !!(opts && opts.fog);
     const W = 750, H = 1200;
     const card = $('card');
     card.width = W;
@@ -1673,12 +2127,12 @@
     const sy = 580;
     x.fillStyle = '#e8b04b';
     x.font = '400 46px ui-monospace,Menlo,Consolas,monospace';
-    x.fillText(String(score), W / 2 - 150, sy);
-    x.fillText(String(free ? state.asks : state.hints), W / 2 + 150, sy);
+    x.fillText(String(fog ? opts.steps : score), W / 2 - 150, sy);
+    x.fillText(String(fog ? opts.asked : (free ? state.asks : state.hints)), W / 2 + 150, sy);
     x.fillStyle = '#6b7280';
     x.font = '400 22px -apple-system,"PingFang SC",sans-serif';
-    x.fillText('得分', W / 2 - 150, sy + 40);
-    x.fillText(free ? '问路' : '提示', W / 2 + 150, sy + 40);
+    x.fillText(fog ? '步数' : '得分', W / 2 - 150, sy + 40);
+    x.fillText(fog ? '问路' : (free ? '问路' : '提示'), W / 2 + 150, sy + 40);
 
     x.strokeStyle = 'rgba(255,255,255,.08)';
     x.beginPath();
@@ -1688,9 +2142,15 @@
 
     x.fillStyle = '#e8b04b';
     x.font = '400 34px "Songti SC","SimSun",serif';
-    x.fillText(free ? '到 了' : rating(score), W / 2, 745);
+    x.fillText(fog
+      ? ('★'.repeat(opts.stars) + '☆'.repeat(3 - opts.stars))
+      : (free ? '到 了' : rating(score)), W / 2, 745);
 
-    if (free) {
+    if (fog) {
+      x.fillStyle = '#6b7280';
+      x.font = '400 22px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
+      x.fillText(`目的地 · ${opts.dest.name} · 迷路 ${opts.lost}×`, W / 2, 785);
+    } else if (free) {
       x.fillStyle = '#e8b04b';
       x.font = '400 32px "Songti SC","SimSun",serif';
       x.fillText(`目的地 · ${opts.dest.name}`, W / 2, 810);
@@ -1729,7 +2189,8 @@
     x.fillStyle = '#565d66';
     x.font = '400 18px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
     x.fillText('你 走 的 路', W / 2, 872);
-    if (free) drawGpsPath(x, W / 2, 955, 470, 150, opts.path);
+    if (fog) drawFogPath(x, W / 2, 955, 470, 150, opts.path);
+    else if (free) drawGpsPath(x, W / 2, 955, 470, 150, opts.path);
     else drawRoute(x, W / 2, 955, 470, 150, doneStart, doneEnd);
 
     if (opts && opts.badges && opts.badges.length) {
@@ -1776,10 +2237,46 @@
     else showScreen('start');
   });
   $('btn-how-sim').addEventListener('click', () => {
-    if (state.pendingDest) startSim(state.pendingDest);
+    if (state.pendingDest) startFog(state.pendingDest);
   });
   $('btn-how-real').addEventListener('click', () => {
     if (state.pendingDest) startFree(state.pendingDest);
+  });
+
+  $('btn-reroll').addEventListener('click', renderDestCards);
+
+  $('btn-forge-link').addEventListener('click', () => {
+    $('forge-input').value = '';
+    $('forge-result').hidden = true;
+    $('btn-forge-done').hidden = true;
+    showScreen('forge');
+  });
+  $('btn-forge-back').addEventListener('click', () => showScreen('start'));
+  $('btn-forge').addEventListener('click', () => {
+    const sentence = $('forge-input').value.trim() || '一个嘴硬心软的铜罗盘';
+    state.forgeVariants = makeVariants(sentence);
+    state.forgePick = 0;
+    renderForgeCards();
+  });
+  $('btn-forge-done').addEventListener('click', () => {
+    const v = state.forgeVariants[state.forgePick];
+    if (!v) return;
+    applyVariant(v);
+    showToast('旅伴已定 · ' + v.name);
+    showScreen('start');
+  });
+
+  document.querySelectorAll('.dpad-btn').forEach((btn) => {
+    btn.addEventListener('click', () => fogMove(btn.dataset.dir));
+  });
+  $('btn-fog-ask').addEventListener('click', fogAsk);
+  $('btn-fog-exit').addEventListener('click', () => {
+    state.finished = true;
+    state.fog = null;
+    state.mode = 'outdoor';
+    resetFogUI();
+    showScreen('start');
+    refreshResume();
   });
 
   $('btn-resume').addEventListener('click', resumeGame);
@@ -1802,13 +2299,25 @@
   $('btn-again').addEventListener('click', () => {
     state.finished = false;
     state.elapsed = 0;
-    if (state.mode === 'free' && state.dest) startFree(state.dest);
+    if (state.mode === 'fog' && state.dest) startFog(state.dest);
+    else if (state.mode === 'free' && state.dest) startFree(state.dest);
+    else if (state.mode === 'sim' && state.dest) startSim(state.dest);
     else startGame(state.mode);
+  });
+
+  $('btn-home').addEventListener('click', () => {
+    state.finished = true;
+    state.fog = null;
+    resetFogUI();
+    showScreen('start');
+    renderHome();
+    refreshResume();
   });
 
   window.addEventListener('resize', fitCompass);
   window.addEventListener('orientationchange', () => setTimeout(fitCompass, 150));
 
+  loadVariant();
   renderHome();
   refreshResume();
   const configErrors = validateAll();

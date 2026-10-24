@@ -25,7 +25,9 @@
       <button id="btn-search" class="btn primary small">搜</button>
     </div>
 
-    <div id="dest-suggest" class="chips"></div>
+    <div id="dest-cards" class="dest-cards"></div>
+    <button id="btn-reroll" class="link">换一批</button>
+    <div id="dest-suggest" class="chips" hidden></div>
 
     <div class="home-block">
       <div class="home-label">不知道去哪？</div>
@@ -41,6 +43,7 @@
     <button id="btn-resume" class="btn ghost resume" hidden>继续上次</button>
     <p id="start-message" class="start-message" role="status" aria-live="polite"></p>
 
+    <button id="btn-forge-link" class="link">旅伴 · 阿针</button>
     <button id="btn-hunt" class="link">会场寻宝模式</button>
     <p class="fine">没有地图，没有路线，没有距离。</p>
   </section>
@@ -105,6 +108,21 @@
     <p class="how-note">随时可以退出。没有人会扣分。</p>
   </section>
 
+  <!-- 旅伴铸造 -->
+  <section id="screen-forge" class="screen">
+    <div class="hud">
+      <button id="btn-forge-back" class="btn ghost small">‹</button>
+      <span>铸造旅伴</span>
+      <span></span>
+    </div>
+    <h2 class="forge-title">一句话，铸造你的旅伴</h2>
+    <p class="forge-sub">比如：一个嘴硬心软、总爱叹气的铜罗盘。</p>
+    <textarea id="forge-input" class="forge-input" rows="2" maxlength="60" placeholder="写一句话……"></textarea>
+    <button id="btn-forge" class="btn primary">铸造</button>
+    <div id="forge-result" class="forge-result" hidden></div>
+    <button id="btn-forge-done" class="btn primary" hidden>就它了</button>
+  </section>
+
   <!-- 行进 -->
   <section id="screen-play" class="screen">
     <div class="hud">
@@ -126,6 +144,16 @@
       <button id="btn-free-exit" class="link">换模式</button>
     </div>
 
+    <div id="fog-card" class="free-card" hidden>
+      <div class="free-label">雾城 · 目的地</div>
+      <p id="fog-name" class="free-name"></p>
+      <p id="fog-street" class="free-blurb"></p>
+      <div id="fog-status" class="free-status">已走 0 步</div>
+      <div id="fog-meta" class="clue-meta"></div>
+      <p id="fog-hint" class="fog-hint" hidden></p>
+      <button id="btn-fog-exit" class="link">换模式</button>
+    </div>
+
     <div class="compass-stage">
       <canvas id="compass"></canvas>
       <div class="bearing"><span id="bearing-num">--</span><i>°</i></div>
@@ -143,6 +171,14 @@
     </div>
 
     <div id="hint-box" class="hint-box" hidden></div>
+
+    <div id="dpad" class="dpad" hidden>
+      <button class="dpad-btn n" data-dir="n">北 ↑</button>
+      <button class="dpad-btn w" data-dir="w">西 ←</button>
+      <button class="dpad-btn e" data-dir="e">东 →</button>
+      <button class="dpad-btn s" data-dir="s">南 ↓</button>
+    </div>
+    <button id="btn-fog-ask" class="btn ghost" hidden>问路</button>
   </section>
 
   <!-- 输码 -->
@@ -177,11 +213,19 @@
       <div class="end-sub">没有导航，你也到了</div>
     </div>
 
-    <div class="stats">
+    <div id="stats-main" class="stats">
       <div><b id="end-time">00:00</b><span>用时</span></div>
       <div id="stat-hints"><b id="end-hints">0</b><span>提示</span></div>
       <div><b id="end-asks">0</b><span>问路</span></div>
       <div><b id="end-score">0</b><span>得分</span></div>
+    </div>
+
+    <div id="fog-stats" class="stats" hidden>
+      <div><b id="fog-time">00:00</b><span>用时</span></div>
+      <div><b id="fog-steps">0</b><span>步数</span></div>
+      <div><b id="fog-asks">0</b><span>问路</span></div>
+      <div><b id="fog-lost">—</b><span>迷路</span></div>
+      <div><b id="fog-stars">—</b><span>星级</span></div>
     </div>
 
     <div id="end-rating" class="rating"></div>
@@ -192,9 +236,10 @@
     <canvas id="card" class="card"></canvas>
 
     <div class="actions">
-      <a id="btn-save" class="btn primary" download="问津-旅程卡.png">保存旅程卡</a>
+      <a id="btn-save" class="btn primary" download="犟针-旅程卡.png">保存旅程卡</a>
       <button id="btn-again" class="btn ghost">再走一次</button>
     </div>
+    <button id="btn-home" class="link">换一个目的地</button>
   </section>
 
   <div id="stamp" class="stamp" aria-live="polite">
