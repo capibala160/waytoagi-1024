@@ -33,7 +33,8 @@
     forge: $('screen-forge'),
     play: $('screen-play'),
     code: $('screen-code'),
-    end: $('screen-end')
+    end: $('screen-end'),
+    diary: $('screen-diary')
   };
 
   const state = {
@@ -56,6 +57,8 @@
     forgeVariants: [],
     forgePick: 0,
     fog: null,
+    diary: { events: [], photos: [null, null, null], note: '', text: '', stats: null },
+    challenge: null,
     level: 0,
     startAt: 0,
     elapsed: 0,
@@ -900,6 +903,256 @@
     }
   }
 
+  /* ---------------- 日记 / 抵达证明 ---------------- */
+
+  function elapsedNow() {
+    if (state.finished) return state.elapsed;
+    return Math.max(0, (Date.now() - state.startAt) / 1000);
+  }
+
+  function resetDiary(label) {
+    state.diary = {
+      events: [{ t: 0, text: '出发 · ' + label }],
+      photos: [null, null, null],
+      note: '',
+      text: '',
+      stats: null
+    };
+  }
+
+  function logDiary(text) {
+    if (!state.diary) resetDiary('这一路');
+    state.diary.events.push({ t: elapsedNow(), text });
+  }
+
+  function renderDiaryTimeline() {
+    const box = $('diary-timeline');
+    box.replaceChildren();
+    (state.diary.events || []).forEach((e) => {
+      const row = document.createElement('div');
+      row.className = 'timeline-row';
+      const t = document.createElement('span');
+      t.className = 'timeline-time';
+      t.textContent = fmtTime(e.t);
+      const label = document.createElement('span');
+      label.textContent = e.text;
+      row.appendChild(t);
+      row.appendChild(label);
+      box.appendChild(row);
+    });
+  }
+
+  function openDiary() {
+    if (!state.diary || !state.diary.stats) {
+      showToast('还没有可写的一局');
+      return;
+    }
+    renderDiaryTimeline();
+    $('diary-note').value = state.diary.note || '';
+    $('diary-text').hidden = true;
+    $('btn-diary-cert').hidden = true;
+    $('btn-cert-save').hidden = true;
+
+    document.querySelectorAll('.photo-slot').forEach((slot, i) => {
+      const img = slot.querySelector('.photo-img');
+      const plus = slot.querySelector('.photo-plus');
+      const src = state.diary.photos[i];
+      if (src) {
+        img.src = src;
+        img.hidden = false;
+        plus.hidden = true;
+      } else {
+        img.hidden = true;
+        plus.hidden = false;
+        img.removeAttribute('src');
+      }
+    });
+
+    showScreen('diary');
+  }
+
+  function generateDiary() {
+    const s = state.diary && state.diary.stats;
+    if (!s) return;
+    state.diary.note = $('diary-note').value.trim();
+
+    const name = s.dest ? s.dest.name : (s.name || '这一路');
+    const lines = [];
+    lines.push(`《${name}》 · ${new Date().toLocaleDateString('zh-CN')}`);
+
+    if (s.mode === 'fog') {
+      lines.push(`用时 ${fmtTime(s.elapsed)} · ${s.steps} 步 · 问了 ${s.asked} 个人 · 迷路 ${s.lost}× · ${'★'.repeat(s.stars)}${'☆'.repeat(3 - s.stars)}`);
+    } else if (s.mode === 'free') {
+      lines.push(`用时 ${fmtTime(s.elapsed)} · 问了 ${s.asks} 个人`);
+    } else {
+      lines.push(`用时 ${fmtTime(s.elapsed)} · 提示 ${s.hints} 条 · 问了 ${s.asks} 个人`);
+    }
+
+    lines.push(state.diary.note || '今天没有走丢。');
+    lines.push('时间线：');
+    (state.diary.events || []).forEach((e) => lines.push(`${fmtTime(e.t)}  ${e.text}`));
+
+    state.diary.text = lines.join('\n');
+    const box = $('diary-text');
+    box.textContent = state.diary.text;
+    box.hidden = false;
+    $('btn-diary-cert').hidden = false;
+  }
+
+  function roundRect(x, rx, ry, w, h, r) {
+    x.beginPath();
+    x.moveTo(rx + r, ry);
+    x.arcTo(rx + w, ry, rx + w, ry + h, r);
+    x.arcTo(rx + w, ry + h, rx, ry + h, r);
+    x.arcTo(rx, ry + h, rx, ry, r);
+    x.arcTo(rx, ry, rx + w, ry, r);
+    x.closePath();
+  }
+
+  function wrapText(x, text, cx, y, maxWidth, lineHeight, maxLines) {
+    const chars = String(text).split('');
+    const lines = [];
+    let line = '';
+    for (const ch of chars) {
+      if (x.measureText(line + ch).width > maxWidth) {
+        lines.push(line);
+        line = ch;
+        if (lines.length >= maxLines) break;
+      } else {
+        line += ch;
+      }
+    }
+    if (line && lines.length < maxLines) lines.push(line);
+    lines.forEach((l, i) => x.fillText(l, cx, y + i * lineHeight));
+  }
+
+  function drawCert() {
+    const s = state.diary && state.diary.stats;
+    if (!s) return;
+
+    const cv = $('cert');
+    const W = 1080, H = 1920;
+    cv.width = W;
+    cv.height = H;
+    const x = cv.getContext('2d');
+
+    const bg = x.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, '#11151a');
+    bg.addColorStop(1, '#080a0d');
+    x.fillStyle = bg;
+    x.fillRect(0, 0, W, H);
+    x.strokeStyle = 'rgba(232,176,75,.22)';
+    x.lineWidth = 3;
+    x.strokeRect(36, 36, W - 72, H - 72);
+
+    x.textAlign = 'center';
+    x.fillStyle = '#e8b04b';
+    x.font = '700 110px "Songti SC","SimSun",serif';
+    x.fillText('犟 针', W / 2, 190);
+    x.fillStyle = '#8a8578';
+    x.font = '400 30px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
+    x.fillText('抵 达 证 明', W / 2, 248);
+
+    const name = s.dest ? s.dest.name : (s.name || '这一路');
+    x.fillStyle = '#f0ece3';
+    x.font = '700 96px "Songti SC","SimSun",serif';
+    x.fillText(name, W / 2, 420);
+
+    x.fillStyle = '#6b7280';
+    x.font = '400 28px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
+    x.fillText(new Date().toLocaleDateString('zh-CN'), W / 2, 478);
+
+    const stats = s.mode === 'fog'
+      ? [[fmtTime(s.elapsed), '用时'], [String(s.steps), '步数'], [String(s.asked), '问路'], [s.lost + '×', '迷路']]
+      : s.mode === 'free'
+        ? [[fmtTime(s.elapsed), '用时'], [String(s.asks), '问路'], ['到 了', '结果']]
+        : [[fmtTime(s.elapsed), '用时'], [String(s.hints), '提示'], [String(s.asks), '问路']];
+
+    const gap = 220;
+    const startX = W / 2 - (stats.length - 1) * gap / 2;
+    stats.forEach((row, i) => {
+      x.fillStyle = '#e8b04b';
+      x.font = '400 56px "Songti SC","SimSun",serif';
+      x.fillText(row[0], startX + i * gap, 580);
+      x.fillStyle = '#6b7280';
+      x.font = '400 24px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
+      x.fillText(row[1], startX + i * gap, 620);
+    });
+
+    if (s.mode === 'fog') {
+      x.fillStyle = '#e8b04b';
+      x.font = '400 46px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
+      x.fillText('★'.repeat(s.stars) + '☆'.repeat(3 - s.stars), W / 2, 700);
+    }
+
+    x.fillStyle = '#565d66';
+    x.font = '400 24px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
+    x.fillText('你 走 的 路', W / 2, 800);
+
+    if (s.mode === 'fog' && s.path && s.path.length > 1) {
+      drawFogPath(x, W / 2, 980, 700, 260, s.path);
+    } else if (s.mode === 'free' && s.path && s.path.length > 1) {
+      drawGpsPath(x, W / 2, 980, 700, 260, s.path);
+    } else if (s.mode === 'hunt') {
+      drawRoute(x, W / 2, 980, 700, 260, s.startLevel || 0, (s.startLevel || 0) + (s.completed || 0));
+    }
+
+    x.fillStyle = '#c9c4b8';
+    x.font = '400 32px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
+    wrapText(x, state.diary.note || '今天没有走丢。', W / 2, 1250, 820, 48, 3);
+
+    const v = state.variant;
+    x.fillStyle = '#8a8578';
+    x.font = '400 28px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
+    x.fillText(v ? `旅伴 · ${v.name}：“${v.lines[0]}”` : '旅伴 · 阿针：“往那边。”', W / 2, 1420);
+
+    const finishCert = () => {
+      const link = s.mode === 'fog' && s.dest
+        ? `${location.origin}${location.pathname}?d=${s.dest.id}&seed=${s.seed}`
+        : `${location.origin}${location.pathname}`;
+      x.fillStyle = '#565d66';
+      x.font = '400 22px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
+      x.fillText('挑战我走过的路', W / 2, 1800);
+      x.fillText(link, W / 2, 1836);
+      $('btn-cert-save').href = cv.toDataURL('image/png');
+      $('btn-cert-save').hidden = false;
+      showToast('抵达证明已生成');
+    };
+
+    if (state.diary.photos[0]) {
+      const img = new Image();
+      img.onload = () => {
+        const boxW = 760, boxH = 260;
+        const bx = (W - boxW) / 2, by = 1470;
+        const ratio = Math.max(boxW / img.width, boxH / img.height);
+        const sw = boxW / ratio, sh = boxH / ratio;
+        const sx = (img.width - sw) / 2, sy = (img.height - sh) / 2;
+        x.save();
+        roundRect(x, bx, by, boxW, boxH, 18);
+        x.clip();
+        x.drawImage(img, sx, sy, sw, sh, bx, by, boxW, boxH);
+        x.restore();
+        finishCert();
+      };
+      img.onerror = finishCert;
+      img.src = state.diary.photos[0];
+      return;
+    }
+
+    finishCert();
+  }
+
+  function loadChallenge() {
+    const cd = params.get('d');
+    const cs = parseInt(params.get('seed'), 10);
+    if (!cd || !Number.isInteger(cs)) return;
+    const dest = (window.DESTINATIONS || []).find((d) => d.id === cd);
+    if (!dest) return;
+    state.challenge = { dest, seed: cs };
+    $('challenge-name').textContent = dest.name;
+    $('challenge').hidden = false;
+  }
+
   function renderRecent() {
     let recent = [];
     try { recent = JSON.parse(localStorage.getItem('wenjin-recent') || '[]'); } catch (e) { recent = []; }
@@ -980,6 +1233,7 @@
     state.mode = 'free';
     state.free = true;
     state.dest = dest;
+    resetDiary(dest.name);
     state.simPos = null;
     state.simSteps = 0;
     state.levels = [];
@@ -1064,6 +1318,12 @@
       1000 - 250 * (state.elapsed / FREE_PAR)
     )));
     stopGps();
+
+    logDiary('抵达');
+    state.diary.stats = {
+      mode: 'free', dest: state.dest, elapsed: state.elapsed,
+      asks: state.asks, path: state.path.slice()
+    };
 
     $('end-time').textContent = fmtTime(state.elapsed);
     $('end-hints').textContent = '0';
@@ -1355,6 +1615,7 @@
     state.levels = [];
     state.par = 240;
     state.fog = fog;
+    resetDiary(dest.name);
     state.level = 0;
     state.startLevelIndex = 0;
     state.completed = 0;
@@ -1485,6 +1746,7 @@
     npc.asked = true;
     f.asked++;
     state.asks++;
+    logDiary('问路 · ' + npc.name);
     const hint = $('fog-hint');
     hint.hidden = false;
     hint.textContent = `${npc.name}：${fogNpcLine(npc)}`;
@@ -1505,6 +1767,13 @@
     state.score = Math.max(100, Math.min(1000, Math.round(
       1000 - 200 * (state.elapsed / 240) - 30 * Math.max(0, lost - 1)
     )));
+
+    logDiary('抵达');
+    state.diary.stats = {
+      mode: 'fog', dest: state.dest, elapsed: state.elapsed,
+      steps: f.steps, asked: f.asked, lost, stars, score: state.score,
+      seed: f.seed, path: f.path.slice()
+    };
 
     $('stats-main').hidden = true;
     $('fog-stats').hidden = false;
@@ -1692,6 +1961,7 @@
     state.mode = mode;
     state.levels = set.levels;
     state.par = set.par || 300;
+    resetDiary(set.name);
     state.story = [];
     state.stamps = [];
     state.lamps = 3;
@@ -1756,6 +2026,7 @@
 
   $('btn-ask').addEventListener('click', () => {
     state.asks++;
+    logDiary('问了个人');
     showToast(`问了第 ${state.asks} 个人`);
     saveProgress();
   });
@@ -1966,6 +2237,13 @@
     state.score = Math.max(100, Math.min(CFG.baseScore, Math.round(
       CFG.baseScore - CFG.timePenalty * (effective / par)
     )));
+
+    logDiary('抵达');
+    state.diary.stats = {
+      mode: 'hunt', name: (SETS[state.mode] && SETS[state.mode].name) || '会场寻宝',
+      elapsed: state.elapsed, hints: state.hints, asks: state.asks,
+      completed: state.completed, startLevel: state.startLevelIndex
+    };
 
     $('end-time').textContent = fmtTime(state.elapsed);
     $('end-hints').textContent = String(state.hints);
@@ -2279,6 +2557,34 @@
     refreshResume();
   });
 
+  $('btn-diary').addEventListener('click', openDiary);
+  $('btn-diary-back').addEventListener('click', () => showScreen('end'));
+  $('btn-diary-gen').addEventListener('click', generateDiary);
+  $('btn-diary-cert').addEventListener('click', drawCert);
+
+  document.querySelectorAll('.photo-slot input[type=file]').forEach((input) => {
+    input.addEventListener('change', () => {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      const i = Number(input.dataset.photo);
+      const reader = new FileReader();
+      reader.onload = () => {
+        state.diary.photos[i] = String(reader.result);
+        const slot = input.closest('.photo-slot');
+        const img = slot.querySelector('.photo-img');
+        const plus = slot.querySelector('.photo-plus');
+        img.src = state.diary.photos[i];
+        img.hidden = false;
+        plus.hidden = true;
+      };
+      reader.readAsDataURL(file);
+    });
+  });
+
+  $('btn-challenge').addEventListener('click', () => {
+    if (state.challenge) startFog(state.challenge.dest, state.challenge.seed);
+  });
+
   $('btn-resume').addEventListener('click', resumeGame);
   $('btn-forward').addEventListener('click', simStep);
 
@@ -2318,6 +2624,7 @@
   window.addEventListener('orientationchange', () => setTimeout(fitCompass, 150));
 
   loadVariant();
+  loadChallenge();
   renderHome();
   refreshResume();
   const configErrors = validateAll();

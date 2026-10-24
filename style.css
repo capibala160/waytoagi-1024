@@ -433,6 +433,77 @@ body {
 .fog-mode .compass-stage { padding-top: 0; }
 #fog-stats { flex-wrap: wrap; gap: 14px 22px; }
 
+/* ---------- 日记 / 抵达证明 ---------- */
+
+.challenge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(232, 176, 75, .35);
+  background: rgba(232, 176, 75, .08);
+  color: #d8cfae;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.challenge b { color: var(--amber); }
+
+.diary-btn { width: 100%; max-width: 360px; margin-top: 10px; }
+
+#screen-diary { overflow-y: auto; }
+
+.diary-title { margin: 14px 0 12px; font-size: 26px; font-weight: 600; }
+
+.diary-timeline { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+
+.timeline-row { display: flex; gap: 10px; color: #c9c4b8; font-size: 13px; line-height: 1.6; }
+.timeline-time {
+  min-width: 46px;
+  color: var(--amber);
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+}
+
+.diary-photos {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.photo-slot {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  border-radius: 10px;
+  border: 1px dashed var(--line);
+  background: var(--panel);
+  overflow: hidden;
+  cursor: pointer;
+}
+.photo-plus { color: #565d66; font-size: 24px; }
+.photo-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+
+#btn-diary-gen { width: 100%; margin-top: 10px; }
+
+.diary-text {
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: #d8cfae;
+  font-size: 13px;
+  line-height: 1.9;
+  white-space: pre-line;
+}
+
+#btn-diary-cert { width: 100%; margin-top: 12px; }
+#btn-cert-save { width: 100%; margin-top: 10px; }
+
 /* ---------- 阿针浮层 ---------- */
 
 .azhen {

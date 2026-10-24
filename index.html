@@ -25,6 +25,11 @@
       <button id="btn-search" class="btn primary small">搜</button>
     </div>
 
+    <div id="challenge" class="challenge" hidden>
+      <span>朋友挑战：去「<b id="challenge-name"></b>」，同样的起点</span>
+      <button id="btn-challenge" class="btn primary small">接受挑战</button>
+    </div>
+
     <div id="dest-cards" class="dest-cards"></div>
     <button id="btn-reroll" class="link">换一批</button>
     <div id="dest-suggest" class="chips" hidden></div>
@@ -239,7 +244,42 @@
       <a id="btn-save" class="btn primary" download="犟针-旅程卡.png">保存旅程卡</a>
       <button id="btn-again" class="btn ghost">再走一次</button>
     </div>
+    <button id="btn-diary" class="btn ghost diary-btn">写日记 →</button>
     <button id="btn-home" class="link">换一个目的地</button>
+  </section>
+
+  <!-- 日记 -->
+  <section id="screen-diary" class="screen">
+    <div class="hud">
+      <button id="btn-diary-back" class="btn ghost small">‹</button>
+      <span>日记</span>
+      <span></span>
+    </div>
+    <h2 class="diary-title">这一路</h2>
+    <div id="diary-timeline" class="diary-timeline"></div>
+    <div class="diary-photos">
+      <label class="photo-slot">
+        <input type="file" accept="image/*" data-photo="0" hidden />
+        <span class="photo-plus">＋</span>
+        <img class="photo-img" alt="" hidden />
+      </label>
+      <label class="photo-slot">
+        <input type="file" accept="image/*" data-photo="1" hidden />
+        <span class="photo-plus">＋</span>
+        <img class="photo-img" alt="" hidden />
+      </label>
+      <label class="photo-slot">
+        <input type="file" accept="image/*" data-photo="2" hidden />
+        <span class="photo-plus">＋</span>
+        <img class="photo-img" alt="" hidden />
+      </label>
+    </div>
+    <textarea id="diary-note" class="forge-input" rows="3" maxlength="80" placeholder="今天这一路，记一句……"></textarea>
+    <button id="btn-diary-gen" class="btn primary">生成日记</button>
+    <div id="diary-text" class="diary-text" hidden></div>
+    <button id="btn-diary-cert" class="btn primary" hidden>生成抵达证明</button>
+    <canvas id="cert" width="1080" height="1920" hidden></canvas>
+    <a id="btn-cert-save" class="btn primary" download="犟针-抵达证明.png" hidden>保存抵达证明</a>
   </section>
 
   <div id="stamp" class="stamp" aria-live="polite">
