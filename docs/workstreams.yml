@@ -5,7 +5,8 @@
 project:
   submission_app: "问津"
   docs_concept: "犟针"
-  rule: "今天提交《问津》；docs/ 和 designs/ 是下一版，不要为它重写引擎。"
+  rule: "产品真值是目的地优先：用户说一个地方，罗盘只指它。5 关寻宝是兜底，不是中心。"
+  product_truth: "docs/PRODUCT-TRUTH.md"
   repo: "https://github.com/capibala160/waytoagi-1024"
   pages_url: "https://capibala160.github.io/waytoagi-1024/"
   principle: "这是起点，不是定稿；所有人都可以改。ownership 是协调，不是门槛。"
@@ -47,18 +48,46 @@ tasks:
       - "手机 HTTPS 下「出门玩」可用"
     depends_on: []
 
-  - id: chengdu-levels
-    title: "成都会场 5 个关卡填进 levels.js"
+  - id: destination-mode
+    title: "目的地模式 go.html + places.js（P0）"
     status: todo
+    priority: P0
+    owner: B
+    backup: C
+    due: "2026-10-24T22:00:00+08:00"
+    files: ["go.html", "places.js", "style.css"]
+    acceptance:
+      - "输入/选择一个成都地点"
+      - "罗盘只指这个地点"
+      - "到达按钮解锁，结果页出现"
+      - "6-10 个地点；输入能过滤"
+    depends_on: ["deploy-https"]
+
+  - id: home-destination-input
+    title: "首页改成“今天去哪？”（P0）"
+    status: todo
+    priority: P0
+    owner: C
+    backup: B
+    due: "2026-10-24T22:00:00+08:00"
+    files: ["index.html", "style.css"]
+    acceptance:
+      - "第一屏就是输入框"
+      - "3 个建议 + 随机"
+      - "模式（模拟/真实）放到目的地之后"
+    depends_on: ["destination-mode"]
+
+  - id: chengdu-levels
+    title: "5 关寻宝（兜底，不再加内容）"
+    status: fallback
     owner: C
     backup: B
     due: "2026-10-25T12:00:00+08:00"
     files: ["levels.js"]
     acceptance:
-      - "5 个点实地走过"
-      - "方位、步数、4 位码、线索都对"
-      - "每关能从上一关走到下一关"
-    depends_on: ["deploy-https"]
+      - "链接能玩"
+      - "不进主入口"
+    depends_on: []
 
   - id: protagonist-card
     title: "出主角卡 PNG（1080×1350）"
@@ -79,12 +108,12 @@ tasks:
     owner: B
     backup: C
     due: "2026-10-25T13:00:00+08:00"
-    files: ["index.html", "style.css"]
+    files: ["go.html", "style.css"]
     acceptance:
       - "右下角一个小铜罗盘"
       - "3 句台词：往那边 / 你确定？/ 到了。我早说过。"
       - "不挡罗盘、不挡按钮、可关"
-    depends_on: ["deploy-https"]
+    depends_on: ["destination-mode"]
 
   - id: ask-button
     title: "加“我问了个人”按钮"
@@ -92,13 +121,13 @@ tasks:
     owner: B
     backup: C
     due: "2026-10-25T13:00:00+08:00"
-    files: ["index.html", "style.css", "game.js"]
+    files: ["go.html", "style.css", "go.js"]
     acceptance:
       - "点一次 +1"
       - "弹“人情味 +1”"
-      - "结算页显示问了几个"
-      - "不影响计时和关卡"
-    depends_on: ["deploy-https"]
+      - "结果页显示问了几个"
+      - "不影响计时和到达"
+    depends_on: ["destination-mode"]
 
   - id: demo-video
     title: "录 3 分钟演示视频"
@@ -109,9 +138,9 @@ tasks:
     files: []
     acceptance:
       - "1080p，中文旁白 + 字幕"
-      - "完整一局：出发、走路、问人、输码、结算、旅程卡"
+      - "从“我想去老邮局”开始：输入目的地、走路、问人、到达、结果"
       - "最后 5 秒留链接"
-    depends_on: ["chengdu-levels", "azhen-overlay", "ask-button"]
+    depends_on: ["destination-mode", "azhen-overlay", "ask-button"]
 
   - id: description-screenshots
     title: "300 字说明 + 3 张截图"
@@ -122,9 +151,9 @@ tasks:
     files: ["submission/description.md", "submission/screenshots/"]
     acceptance:
       - "300 字以内中文"
-      - "首页、罗盘、旅程卡各一张"
+      - "目的地输入、罗盘、抵达证明各一张"
       - "已粘贴到提交页"
-    depends_on: ["chengdu-levels"]
+    depends_on: ["destination-mode"]
 
   - id: submit
     title: "提交作品"
@@ -137,7 +166,7 @@ tasks:
       - "提交成功截图"
       - "链接、主角卡、视频、说明、截图都齐"
       - "15:00 完成，留 1 小时缓冲"
-    depends_on: ["deploy-https", "protagonist-card", "demo-video", "description-screenshots"]
+    depends_on: ["destination-mode", "protagonist-card", "demo-video", "description-screenshots"]
 
   - id: push-docs
     title: "把 docs/ 和 designs/ 推到远端"

@@ -349,6 +349,7 @@ body::before {
   white-space: nowrap;
 }
 .chip.brass { border-color: var(--brass); color: var(--brass-bright); }
+.chip-lg { height: 44px; padding: 0 14px; font-size: 14px; }
 .tag {
   display: inline-flex;
   align-items: center;

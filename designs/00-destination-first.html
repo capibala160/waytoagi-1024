@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="dark" data-width="390">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>犟针 · 设计稿 00 · 目的地优先</title>
+<link rel="stylesheet" href="assets/mockup.css">
+</head>
+<body>
+
+<header class="deck-header">
+  <div>
+    <div class="brand">犟针<small>只指方向，不指路 · 设计稿 00 · 目的地优先</small></div>
+  </div>
+  <div class="deck-note">
+    这四屏是产品的中心：先输入目的地，再选怎么走，然后罗盘只指它。
+    没有线索、没有 4 位码、没有关卡。手机里的按钮是视觉元素；本页真正可点的只有右上角的主题和宽度切换。
+  </div>
+  <div class="controls">
+    <button class="toggle" type="button" data-theme-set="dark">深色</button>
+    <button class="toggle" type="button" data-theme-set="light">浅色</button>
+    <button class="toggle" type="button" data-width-set="390">390 × 844</button>
+    <button class="toggle" type="button" data-width-set="430">430 × 932</button>
+  </div>
+</header>
+
+<main class="deck">
+
+  <!-- 00-1 今天去哪 -->
+  <section class="frame">
+    <div class="frame-label"><b>00-1 · 今天去哪</b><span data-size-label>390 × 844</span></div>
+    <div class="phone">
+      <div class="island"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="status-icons"><span class="signal"><i></i><i></i><i></i><i></i></span><span class="battery"><i></i></span></span></div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;padding-top:2px">
+          <div class="serif" style="font-size:21px;letter-spacing:.1em">犟针</div>
+          <div class="micro">只指方向，不指路</div>
+        </div>
+
+        <div class="mt-20">
+          <h1 class="title-xl">今天去哪？</h1>
+          <p class="body muted mt-10">说一个地方。罗盘只指方向，剩下的靠你和路人。</p>
+        </div>
+
+        <div class="input mt-20" style="height:56px;border-color:var(--brass)">
+          <span class="brass" style="font-size:13px;margin-right:8px;width:20px;height:20px;border:1px solid var(--brass);border-radius:50%;display:flex;align-items:center;justify-content:center;flex:0 0 20px">搜</span>
+          <span class="placeholder">输入一个地方，比如：老邮局</span>
+          <span class="caret"></span>
+        </div>
+
+        <div class="pill-row mt-10">
+          <span class="chip chip-lg brass">老邮局</span>
+          <span class="chip chip-lg">老茶馆</span>
+          <span class="chip chip-lg">修表铺</span>
+        </div>
+
+        <div class="card mt-16" style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px">
+          <div>
+            <div class="title-sm serif">不知道去哪？</div>
+            <div class="micro mt-4">从附近挑一个，别查地图。</div>
+          </div>
+          <div class="btn-sm">随便走走</div>
+        </div>
+
+        <div class="mt-16" style="display:flex;align-items:baseline;justify-content:space-between">
+          <span class="title-sm serif">最近去过</span>
+          <span style="font-size:13px;min-height:44px;display:flex;align-items:center;color:var(--brass-bright)">全部</span>
+        </div>
+        <div class="card-flat mt-8" style="padding:10px 12px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div><div class="serif" style="font-size:15px">老邮局</div><div class="micro">2026-10-24 · 01:42</div></div>
+            <div style="font-size:13px;min-height:44px;display:flex;align-items:center;color:var(--brass-bright)">再去</div>
+          </div>
+          <div class="divider mt-8"></div>
+          <div class="mt-8" style="display:flex;justify-content:space-between;align-items:center">
+            <div><div class="serif" style="font-size:15px">老茶馆</div><div class="micro">2026-10-23 · 01:18</div></div>
+            <div style="font-size:13px;min-height:44px;display:flex;align-items:center;color:var(--brass-bright)">再去</div>
+          </div>
+        </div>
+
+        <div class="spacer"></div>
+        <div class="center mt-8"><span class="micro">没有地图，没有路线，没有距离。</span></div>
+        <div class="homebar"><i></i></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 00-2 确认目的地 -->
+  <section class="frame">
+    <div class="frame-label"><b>00-2 · 确认目的地</b><span data-size-label>390 × 844</span></div>
+    <div class="phone">
+      <div class="island"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="status-icons"><span class="signal"><i></i><i></i><i></i><i></i></span><span class="battery"><i></i></span></span></div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;padding-top:2px">
+          <div class="icon-btn" style="width:40px;height:40px">‹</div>
+          <div class="micro">确认目的地</div>
+          <div style="width:40px"></div>
+        </div>
+
+        <div class="mt-16">
+          <div class="eyebrow">你要去</div>
+          <h1 class="title-xl mt-8">老邮局</h1>
+          <p class="body muted mt-10">绿漆木门，门口有两个邮筒，其中一个不能用。</p>
+        </div>
+
+        <div class="compass mt-20" style="--compass:180px" aria-hidden="true">
+          <svg viewBox="0 0 200 200">
+            <circle class="dial" cx="100" cy="100" r="96"/>
+            <circle class="rim" cx="100" cy="100" r="94"/>
+            <circle class="rim2" cx="100" cy="100" r="84"/>
+            <circle class="ticks" cx="100" cy="100" r="78" stroke-dasharray="1 7"/>
+            <circle class="ticks-major" cx="100" cy="100" r="78" stroke-dasharray="2 24"/>
+            <text class="north" x="100" y="17" text-anchor="middle">北</text>
+            <g transform="rotate(-38 100 100)">
+              <polygon class="needle" points="100,24 107,100 93,100"/>
+              <polygon class="needle-tail" points="100,176 105,100 95,100"/>
+            </g>
+            <circle class="cap" cx="100" cy="100" r="7"/>
+          </svg>
+        </div>
+
+        <div class="pill-row mt-12" style="justify-content:center">
+          <span class="chip">步行可达</span>
+          <span class="chip">公共场所</span>
+          <span class="chip">现在出发</span>
+        </div>
+
+        <div class="card-flat mt-16" style="padding:12px 14px">
+          <div class="micro">不显示距离。知道了就没意思了。</div>
+        </div>
+
+        <div class="spacer"></div>
+        <div class="btn btn-primary">出发</div>
+        <div class="btn-text">换一个目的地</div>
+        <div class="homebar"><i></i></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 00-3 怎么走 -->
+  <section class="frame">
+    <div class="frame-label"><b>00-3 · 怎么走</b><span data-size-label>390 × 844</span></div>
+    <div class="phone">
+      <div class="island"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="status-icons"><span class="signal"><i></i><i></i><i></i><i></i></span><span class="battery"><i></i></span></span></div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;padding-top:2px">
+          <div class="icon-btn" style="width:40px;height:40px">‹</div>
+          <div class="micro">怎么走</div>
+          <div style="width:40px"></div>
+        </div>
+
+        <div class="mt-16">
+          <div class="eyebrow">目的地 · 老邮局</div>
+          <h1 class="title-lg mt-8">怎么走？</h1>
+          <p class="sub mt-8">同一个目的地，两种走法。</p>
+        </div>
+
+        <div class="dest-card selected mt-20" style="display:block;padding:16px">
+          <div style="display:flex;gap:12px;align-items:center">
+            <div class="dest-seal">模</div>
+            <div style="flex:1">
+              <div class="name">在这台手机上模拟</div>
+              <div class="desc">3-6 分钟。评委和第一次玩的人用这个。</div>
+            </div>
+          </div>
+          <div class="pill-row mt-12"><span class="tag brass">不用出门</span><span class="tag">完整一局</span></div>
+          <div class="check">✓</div>
+        </div>
+
+        <div class="dest-card mt-12" style="display:block;padding:16px">
+          <div style="display:flex;gap:12px;align-items:center">
+            <div class="dest-seal">实</div>
+            <div style="flex:1">
+              <div class="name">去真实城市</div>
+              <div class="desc">30-90 分钟。需要定位和方向权限。</div>
+            </div>
+          </div>
+          <div class="pill-row mt-12"><span class="tag">内测版</span><span class="tag">真路</span></div>
+        </div>
+
+        <div class="card-flat mt-16" style="padding:13px 14px">
+          <div class="micro">模拟不是另一个游戏。它用同一个目的地，把街道换成格子。</div>
+        </div>
+
+        <div class="spacer"></div>
+        <div class="btn btn-primary">进模拟</div>
+        <div class="center mt-8"><span class="micro">随时可以退出。没有人会扣分。</span></div>
+        <div class="homebar"><i></i></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 00-4 罗盘 / 走 -->
+  <section class="frame">
+    <div class="frame-label"><b>00-4 · 罗盘</b><span data-size-label>390 × 844</span></div>
+    <div class="phone">
+      <div class="island"></div>
+      <div class="screen">
+        <div class="statusbar"><span>9:41</span><span class="status-icons"><span class="signal"><i></i><i></i><i></i><i></i></span><span class="battery"><i></i></span></span></div>
+
+        <div class="game-top">
+          <div class="dest">老邮局<small>模拟模式</small></div>
+          <div class="icon-btn">?</div>
+        </div>
+
+        <div class="compass-wrap">
+          <div class="compass compass-game" aria-hidden="true">
+            <svg viewBox="0 0 200 200">
+              <circle class="dial" cx="100" cy="100" r="96"/>
+              <circle class="rim" cx="100" cy="100" r="94"/>
+              <circle class="rim2" cx="100" cy="100" r="84"/>
+              <circle class="ticks" cx="100" cy="100" r="78" stroke-dasharray="1 7"/>
+              <circle class="ticks-major" cx="100" cy="100" r="78" stroke-dasharray="2 24"/>
+              <text class="north" x="100" y="17" text-anchor="middle">北</text>
+              <g transform="rotate(-38 100 100)">
+                <polygon class="needle" points="100,24 107,100 93,100"/>
+                <polygon class="needle-tail" points="100,176 105,100 95,100"/>
+              </g>
+              <circle class="cap" cx="100" cy="100" r="7"/>
+            </svg>
+          </div>
+          <span class="speech">往那边。</span>
+        </div>
+
+        <div class="map mt-12" style="grid-template-columns:repeat(5, var(--tile)); grid-auto-rows:var(--tile); width:calc(5 * var(--tile) + 8px); margin-left:auto; margin-right:auto">
+          <div class="tile fog"></div><div class="tile fog"></div><div class="tile fog"></div><div class="tile fog"></div><div class="tile fog"></div>
+          <div class="tile fog"></div><div class="tile explored"><span class="street">梧桐街</span></div><div class="tile explored"></div><div class="tile landmark"><span class="mark">钟</span></div><div class="tile fog"></div>
+          <div class="tile fog"></div><div class="tile explored"><span class="street">邮局路</span></div><div class="tile player"></div><div class="tile explored"></div><div class="tile fog"></div>
+          <div class="tile fog"></div><div class="tile explored"></div><div class="tile npc"></div><div class="tile explored"><span class="street">茶馆巷</span></div><div class="tile fog"></div>
+          <div class="tile fog"></div><div class="tile fog"></div><div class="tile fog"></div><div class="tile fog"></div><div class="tile fog"></div>
+        </div>
+        <div class="map-caption" style="width:calc(5 * var(--tile) + 8px)"><span>已走 38 步</span><span>北 ↑</span></div>
+
+        <div class="dpad" aria-label="方向键">
+          <div class="key up">↑</div>
+          <div class="key left">←</div>
+          <div class="key center">·</div>
+          <div class="key right">→</div>
+          <div class="key down">↓</div>
+        </div>
+
+        <div class="stats">
+          <div class="stat"><div class="num">01:42</div><div class="label">用时</div></div>
+          <div class="stat"><div class="num">38</div><div class="label">步数</div></div>
+          <div class="stat"><div class="num">3</div><div class="label">问路</div></div>
+          <div class="stat"><div class="num">1.2</div><div class="label">公里</div></div>
+        </div>
+        <div class="sheet-handle">日记</div>
+        <div class="homebar"><i></i></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<div class="page-note">
+  设计说明：第一屏就是目的地输入，不是“开始一局”。选完目的地才问“怎么走”。
+  罗盘页只出现目的地名字、指针、街道和“我问了个人”；没有线索、没有 4 位码、没有关卡。
+  5 关寻宝是另一条线，保留为“路线模式”，不进入这个主流程。
+</div>
+
+<script src="assets/mockup.js"></script>
+</body>
+</html>
