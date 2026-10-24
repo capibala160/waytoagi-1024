@@ -28,6 +28,7 @@
   const screens = {
     start: $('screen-start'),
     modes: $('screen-modes'),
+    brief: $('screen-brief'),
     confirm: $('screen-confirm'),
     how: $('screen-how'),
     forge: $('screen-forge'),
@@ -48,6 +49,7 @@
     free: false,
     dest: null,
     pendingDest: null,
+    pendingGame: null,
     gps: null,
     gpsStatus: '',
     gpsAt: 0,
@@ -124,6 +126,10 @@
   function fmtTime(sec) {
     const s = Math.max(0, Math.floor(sec));
     return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+  }
+  function fmtDuration(sec) {
+    const s = Math.max(1, Math.round(sec));
+    return s >= 120 ? `约 ${Math.round(s / 60)} 分钟` : `约 ${s} 秒`;
   }
   function rating(score) {
     if (score >= 850) return '活 地 图';
@@ -341,6 +347,19 @@
     $('start-message').textContent = `上次走到「${set.name}」第 ${d.level + 1} 站，可继续。关闭页面期间仍计时。`;
   }
 
+  function refreshGameResume() {
+    const d = readProgress();
+    const isHunt = d && (d.mode === 'outdoor' || d.mode === 'indoor');
+    $('btn-game-resume').hidden = !isHunt;
+    if (!isHunt) {
+      $('game-resume-msg').textContent = '';
+      return;
+    }
+    const set = SETS[d.mode];
+    $('game-resume-msg').textContent =
+      `上次走到「${set ? set.name : '会场寻宝'}」第 ${d.level + 1} 站，可继续。`;
+  }
+
   function resumeGame() {
     const d = readProgress();
     if (!d) {
@@ -376,6 +395,8 @@
       state.levels = [];
       state.par = 240;
       state.fog = fog;
+      state.paused = false;
+      state.pauseAt = 0;
       state.level = 0;
       state.startLevelIndex = 0;
       state.completed = 0;
@@ -447,6 +468,8 @@
       state.mode = 'free';
       state.free = true;
       state.dest = dest;
+      state.paused = false;
+      state.pauseAt = 0;
       state.levels = [];
       state.par = FREE_PAR;
       state.level = 0;
@@ -967,6 +990,8 @@
     Object.keys(screens).forEach((k) => screens[k].classList.toggle('active', k === name));
     state.screen = name;
     if (name === 'play') requestAnimationFrame(fitCompass);
+    if (name === 'modes') refreshGameResume();
+    if (name === 'end') renderEndActions();
     syncModeTabs();
   }
 
@@ -1036,6 +1061,8 @@
     }
     const el = $('free-status');
     if (el.textContent !== text) el.textContent = text;
+    const retry = $('btn-gps-retry');
+    if (retry) retry.hidden = !state.gpsError;
   }
 
   function stopGps() {
@@ -1159,13 +1186,22 @@
       .slice(0, 6);
     const box = $('dest-suggest');
     box.replaceChildren();
-    list.forEach((d) => {
+    const addChip = (d) => {
       const chip = document.createElement('button');
       chip.className = 'chip';
       chip.textContent = d.name;
       chip.addEventListener('click', () => showConfirm(d));
       box.appendChild(chip);
-    });
+    };
+    if (list.length) {
+      list.forEach(addChip);
+    } else {
+      const empty = document.createElement('p');
+      empty.className = 'suggest-empty';
+      empty.textContent = `暂未收录「${q}」。目前只支持预置地点，试试这些：`;
+      box.appendChild(empty);
+      (window.DESTINATIONS || []).slice(0, 3).forEach(addChip);
+    }
 
     $('dest-cards').hidden = true;
     $('btn-reroll').hidden = true;
@@ -2014,6 +2050,28 @@
     showScreen('how');
   }
 
+  function showBrief(mode) {
+    const set = SETS[mode];
+    if (!set) return;
+    state.pendingGame = mode;
+    const n = set.levels.length;
+    $('brief-kicker').textContent = `会场寻宝 · ${set.name}`;
+    $('brief-title').textContent = `沿线索走 ${n} 站，集齐 ${n} 枚印章`;
+    $('brief-body').textContent =
+      '罗盘只指方向，不显示地图。每站按线索找到纸上的 4 位码，输入后盖章。';
+    $('brief-duration').textContent = fmtDuration(set.par || 300);
+    $('brief-stations').textContent = `${n} 站`;
+    $('brief-lamps').textContent = '3 盏';
+
+    const ready = set.ready === true;
+    const note = $('brief-ready');
+    note.textContent = ready
+      ? `现场已布置 · ${CFG.venue || '会场'}的线索对应现场纸码。`
+      : '演示路线 · 现场点位尚未布置，方位和 4 位码仅用于试跑。';
+    note.classList.toggle('warn', !ready);
+    showScreen('brief');
+  }
+
   function randomDest() {
     const list = window.DESTINATIONS || [];
     if (!list.length) return null;
@@ -2049,6 +2107,8 @@
     state.optionalDone = false;
     state.usedSimulation = false;
     state.finished = false;
+    state.paused = false;
+    state.pauseAt = 0;
     state.score = 0;
     state.elapsed = 0;
     state.startAt = Date.now();
@@ -2079,6 +2139,7 @@
   function renderFree() {
     resetFogUI();
     $('hud-level').textContent = '自由行';
+    $('hud-stamps').hidden = true;
     $('clue-card').hidden = true;
     $('free-card').hidden = false;
     $('btn-book').hidden = true;
@@ -2134,7 +2195,7 @@
     $('end-hints').textContent = '0';
     $('end-asks').textContent = String(state.asks);
     $('end-score').textContent = String(state.score);
-    $('end-rating').textContent = '到 了';
+    $('end-rating').textContent = state.dest ? `到 了 · ${state.dest.name}` : '到 了';
     $('stat-hints').hidden = true;
     renderEndExtras();
     state.firstClear = false;
@@ -2460,6 +2521,8 @@
     state.optionalDone = false;
     state.usedSimulation = false;
     state.finished = false;
+    state.paused = false;
+    state.pauseAt = 0;
     state.score = 0;
     state.elapsed = 0;
     state.startAt = Date.now();
@@ -2494,6 +2557,7 @@
   function renderFog() {
     $('screen-play').classList.add('fog-mode');
     $('hud-level').textContent = '雾城';
+    $('hud-stamps').hidden = true;
     $('clue-card').hidden = true;
     $('free-card').hidden = true;
     $('fog-card').hidden = false;
@@ -2739,6 +2803,8 @@
     state.aligned = false;
 
     $('hud-level').textContent = `第 ${state.level + 1} / ${state.levels.length} 站`;
+    $('hud-stamps').hidden = false;
+    $('hud-stamps').textContent = `已集 ${state.stamps.length} / ${state.levels.length} 枚`;
     $('clue-text').textContent = lv.clue;
     $('clue-meta').textContent = lv.bearing != null
       ? `目标方位 ${String(Math.round(lv.bearing)).padStart(3, '0')}° · 约 ${lv.steps} 步`
@@ -2988,6 +3054,14 @@
 
     const last = state.level >= state.levels.length - 1;
     $('stamp-next').textContent = last ? '揭晓结局' : '继续前进';
+    $('stamp-progress').textContent =
+      `已集 ${state.stamps.length} / ${state.levels.length} 枚`;
+    const next = state.levels[state.level + 1];
+    $('stamp-next-hint').textContent = next
+      ? `下一站 · ${next.name}${next.typeLabel ? ' · ' + next.typeLabel : ''}`
+      : '下一站 · 揭晓结局';
+    $('hud-stamps').textContent =
+      `已集 ${state.stamps.length} / ${state.levels.length} 枚`;
 
     if (last && state.pieces.length) {
       $('stamp-story').textContent = (lv.story || '') + '\n\n碎片：' +
@@ -2995,6 +3069,63 @@
     }
 
     $('stamp').classList.add('on');
+  }
+
+  function pauseText() {
+    if (state.mode === 'fog') {
+      const steps = state.fog ? state.fog.steps : 0;
+      return `雾城 · 已走 ${steps} 步 · ${fmtTime(state.elapsed)}`;
+    }
+    if (state.mode === 'free') {
+      const name = state.dest ? state.dest.name : '自由行';
+      return `去「${name}」· ${fmtTime(state.elapsed)}`;
+    }
+    return `第 ${state.level + 1} / ${state.levels.length} 站 · ` +
+      `已集 ${state.stamps.length} / ${state.levels.length} 枚 · ${fmtTime(state.elapsed)}`;
+  }
+
+  function openPause() {
+    if (state.screen !== 'play' || state.finished || state.paused) return;
+    state.elapsed = elapsedNow();
+    state.paused = true;
+    state.pauseAt = Date.now();
+    $('pause-info').textContent = pauseText();
+    $('btn-pause-exit').textContent =
+      (state.mode === 'outdoor' || state.mode === 'indoor') ? '返回游戏首页' : '返回首页';
+    $('pause').classList.add('on');
+    $('pause').inert = false;
+    saveProgress();
+  }
+
+  function resumePause() {
+    $('pause').classList.remove('on');
+    $('pause').inert = true;
+    if (state.pauseAt) {
+      state.startAt += Date.now() - state.pauseAt;
+      state.pauseAt = 0;
+    }
+    state.paused = false;
+  }
+
+  function exitPause() {
+    saveProgress();
+    stopGps();
+    $('pause').classList.remove('on');
+    $('pause').inert = true;
+    state.paused = false;
+    state.pauseAt = 0;
+    state.finished = true;
+    releaseWakeLock();
+    if (state.mode === 'outdoor' || state.mode === 'indoor') {
+      showScreen('modes');
+      refreshGameResume();
+    } else {
+      state.fog = null;
+      resetFogUI();
+      showScreen('start');
+      renderHome();
+      refreshResume();
+    }
   }
 
   function shakeCode(message) {
@@ -3122,7 +3253,7 @@
     if (hunt && state.puzzleHints === 0) list.push('独立寻路者');
     if (state.optionalDone) list.push('细节观察家');
     if (state.asks >= 3) list.push('同行向导');
-    if (state.score >= 850) list.push('活地图');
+    if (!state.free && state.score >= 850) list.push('活地图');
     return list;
   }
 
@@ -3151,6 +3282,21 @@
       box.appendChild(chip);
     });
     $('end-story').textContent = state.story.length ? state.story.join('\n') : '';
+  }
+
+  function renderEndActions() {
+    const hunt = state.mode === 'outdoor' || state.mode === 'indoor';
+    $('btn-again').textContent = hunt ? '再挑战一次' : '再走一次';
+    $('btn-switch-route').hidden = !hunt;
+    $('btn-home').textContent = hunt ? '返回游戏' : '换一个目的地';
+    $('stat-score').hidden = !hunt;   // 探索不强调得分，游戏保留计分
+    if (hunt) {
+      const other = state.mode === 'outdoor' ? 'indoor' : 'outdoor';
+      const set = SETS[other];
+      $('btn-switch-route').textContent = set
+        ? `换条路线 · ${set.levels.length} 站`
+        : '换条路线';
+    }
   }
 
   function finish() {
@@ -3371,14 +3517,24 @@
     x.fillText('用 时', W / 2, 490);
 
     const sy = 580;
-    x.fillStyle = '#e8b04b';
-    x.font = '400 46px ui-monospace,Menlo,Consolas,monospace';
-    x.fillText(String(fog ? opts.steps : score), W / 2 - 150, sy);
-    x.fillText(String(fog ? opts.asked : (free ? state.asks : state.hints)), W / 2 + 150, sy);
-    x.fillStyle = '#6b7280';
-    x.font = '400 22px -apple-system,"PingFang SC",sans-serif';
-    x.fillText(fog ? '步数' : '得分', W / 2 - 150, sy + 40);
-    x.fillText(fog ? '问路' : (free ? '问路' : '提示'), W / 2 + 150, sy + 40);
+    if (free) {
+      // 探索不强调得分：只留问路次数
+      x.fillStyle = '#e8b04b';
+      x.font = '400 46px ui-monospace,Menlo,Consolas,monospace';
+      x.fillText(String(state.asks), W / 2, sy);
+      x.fillStyle = '#6b7280';
+      x.font = '400 22px -apple-system,"PingFang SC",sans-serif';
+      x.fillText('问 路', W / 2, sy + 40);
+    } else {
+      x.fillStyle = '#e8b04b';
+      x.font = '400 46px ui-monospace,Menlo,Consolas,monospace';
+      x.fillText(String(fog ? opts.steps : score), W / 2 - 150, sy);
+      x.fillText(String(fog ? opts.asked : state.hints), W / 2 + 150, sy);
+      x.fillStyle = '#6b7280';
+      x.font = '400 22px -apple-system,"PingFang SC",sans-serif';
+      x.fillText(fog ? '步数' : '得分', W / 2 - 150, sy + 40);
+      x.fillText(fog ? '问路' : '提示', W / 2 + 150, sy + 40);
+    }
 
     x.strokeStyle = 'rgba(255,255,255,.08)';
     x.beginPath();
@@ -3463,8 +3619,13 @@
 
   /* ---------------- 事件 ---------------- */
 
-  $('btn-start').addEventListener('click', () => startGame('outdoor'));
-  $('btn-start-indoor').addEventListener('click', () => startGame('indoor'));
+  $('btn-start').addEventListener('click', () => showBrief('outdoor'));
+  $('btn-start-indoor').addEventListener('click', () => showBrief('indoor'));
+  $('btn-brief-back').addEventListener('click', () => showScreen('modes'));
+  $('btn-brief-start').addEventListener('click', () => {
+    const mode = state.pendingGame || 'outdoor';
+    startGame(mode);
+  });
 
   $('btn-search').addEventListener('click', () => renderSuggestions($('dest-input').value));
   $('dest-input').addEventListener('input', (e) => renderSuggestions(e.target.value));
@@ -3562,6 +3723,10 @@
     refreshResume();
   });
 
+  $('btn-pause').addEventListener('click', openPause);
+  $('btn-pause-resume').addEventListener('click', resumePause);
+  $('btn-pause-exit').addEventListener('click', exitPause);
+
   $('btn-book').addEventListener('click', openBook);
   $('btn-book-back').addEventListener('click', () => showScreen('play'));
   $('btn-journeys').addEventListener('click', openJourneys);
@@ -3601,20 +3766,18 @@
   });
 
   $('btn-resume').addEventListener('click', resumeGame);
+  $('btn-game-resume').addEventListener('click', resumeGame);
   $('btn-forward').addEventListener('click', simStep);
 
+  $('btn-gps-retry').addEventListener('click', () => {
+    if (state.mode !== 'free') return;
+    startGps();
+    showToast('重新定位…');
+  });
+
   $('btn-free-exit').addEventListener('click', () => {
-    stopGps();
-    state.finished = true;
-    state.free = false;
-    state.dest = null;
-    state.simPos = null;
-    state.simSteps = 0;
-    state.mode = 'outdoor';
-    clearProgress();
-    showScreen('start');
-    $('btn-forward').hidden = true;
-    refreshResume();
+    if (state.dest) startFog(state.dest);
+    else showScreen('start');
   });
 
   $('btn-again').addEventListener('click', () => {
@@ -3628,11 +3791,22 @@
 
   $('btn-home').addEventListener('click', () => {
     state.finished = true;
+    if (state.mode === 'outdoor' || state.mode === 'indoor') {
+      showScreen('modes');
+      refreshGameResume();
+      return;
+    }
     state.fog = null;
     resetFogUI();
     showScreen('start');
     renderHome();
     refreshResume();
+  });
+
+  $('btn-switch-route').addEventListener('click', () => {
+    const other = state.mode === 'outdoor' ? 'indoor' : 'outdoor';
+    if (SETS[other]) showBrief(other);
+    else showScreen('modes');
   });
 
   window.addEventListener('resize', fitCompass);
@@ -3645,6 +3819,7 @@
   updatePackUI();
   renderHome();
   refreshResume();
+  refreshGameResume();
   const configErrors = validateAll();
   if (configErrors.length) {
     $('start-message').textContent = configErrors.slice(0, 3).join('\n');

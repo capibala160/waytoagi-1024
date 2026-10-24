@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <link rel="icon" href="favicon.svg" type="image/svg+xml" />
 <title>犟针 · 只指方向，不指路</title>
-<link rel="stylesheet" href="style.css?v=20261024h" />
+<link rel="stylesheet" href="style.css?v=20261024j" />
 </head>
 <body>
 
@@ -30,7 +30,7 @@
     <div class="home-brand">犟针</div>
     <p class="home-tag">只指方向，不指路</p>
     <h1 class="home-q">今天去哪？</h1>
-    <p class="home-sub">说一个地方。罗盘只指方向，剩下的靠你和路人。</p>
+    <p class="home-sub">自己选目的地。罗盘只指方向，剩下的靠你和路人。</p>
 
     <div class="search">
       <input id="dest-input" type="search" placeholder="输入一个地方，比如：太古里" autocomplete="off" />
@@ -77,7 +77,9 @@
       <button class="mode-tab active" data-mode-tab="game" role="tab" aria-selected="true">游戏</button>
     </div>
     <h2 class="dest-title">会场寻宝</h2>
-    <p class="dest-sub">五站故事，或三站评委局。和探索模式共用一台引擎。</p>
+    <p class="dest-sub">沿线索找到每一站，输入纸上的四位码，集齐印章。</p>
+    <button id="btn-game-resume" class="btn ghost resume" hidden>继续上次</button>
+    <p id="game-resume-msg" class="start-message" role="status" aria-live="polite"></p>
     <div class="mode-list">
       <button id="btn-start" class="mode-btn primary">
         <b>出门玩</b>
@@ -88,7 +90,33 @@
         <span>3 站寻宝 · 约 90 秒 · 摊位附近（评委用）</span>
       </button>
     </div>
-    <p class="dest-note">探索模式在首页，不需要进这里。</p>
+    <p class="dest-note">想自己选目的地？回「探索」标签。</p>
+  </section>
+
+  <!-- 开局说明 -->
+  <section id="screen-brief" class="screen">
+    <div class="hud">
+      <button id="btn-brief-back" class="btn ghost small">‹</button>
+      <span>玩法说明</span>
+      <span></span>
+    </div>
+    <div class="brief-head">
+      <p id="brief-kicker" class="brief-kicker">会场寻宝 · 出门玩</p>
+      <h2 id="brief-title" class="brief-title">沿线索走 5 站</h2>
+      <p id="brief-body" class="brief-body"></p>
+    </div>
+    <div class="brief-stats">
+      <div><b id="brief-duration">约 5 分钟</b><span>预计时长</span></div>
+      <div><b id="brief-stations">5 站</b><span>目标</span></div>
+      <div><b id="brief-lamps">3 盏</b><span>提示灯</span></div>
+    </div>
+    <div class="brief-rule">
+      <h3>提示灯</h3>
+      <p>每站 3 条提示。教学站免费；解谜站每看一条耗 1 盏灯，共 3 盏。问路不扣灯。</p>
+    </div>
+    <p id="brief-ready" class="brief-ready"></p>
+    <button id="btn-brief-start" class="btn primary">开始寻宝</button>
+    <p class="brief-note">中途可暂停；退出会保留进度。</p>
   </section>
 
   <!-- 确认目的地 -->
@@ -118,15 +146,15 @@
     <p class="how-sub">同一个目的地，两种走法。</p>
     <div class="mode-list">
       <button id="btn-how-sim" class="mode-btn">
-        <b>在这台手机上模拟</b>
-        <span>3–6 分钟 · 评委和第一次玩的人用这个</span>
+        <b>雾城模拟 · 无需出门</b>
+        <span>3–6 分钟 · 方向键在网格里走，不用真的出门</span>
       </button>
       <button id="btn-how-real" class="mode-btn primary">
         <b>去真实城市</b>
         <span>需要定位和方向权限</span>
       </button>
     </div>
-    <p class="how-note">随时可以退出。没有人会扣分。</p>
+    <p class="how-note">定位失败可以改为模拟。随时可以退出，没有人会扣分。</p>
   </section>
 
   <!-- 旅伴铸造 -->
@@ -149,8 +177,12 @@
   <!-- 行进 -->
   <section id="screen-play" class="screen">
     <div class="hud">
-      <span id="hud-level">第 1 / 5 站</span>
+      <span class="hud-left">
+        <span id="hud-level">第 1 / 5 站</span>
+        <span id="hud-stamps" class="hud-stamps">已集 0 / 5 枚</span>
+      </span>
       <span class="hud-right">
+        <button id="btn-pause" class="hud-btn">暂停</button>
         <button id="btn-book" class="hud-btn">线索册</button>
         <span id="hud-time" class="mono">00:00</span>
       </span>
@@ -168,7 +200,10 @@
       <p id="free-name" class="free-name"></p>
       <p id="free-blurb" class="free-blurb"></p>
       <div id="free-status" class="free-status">定位中…</div>
-      <button id="btn-free-exit" class="link">换模式</button>
+      <div class="free-actions">
+        <button id="btn-gps-retry" class="link" hidden>重试定位</button>
+        <button id="btn-free-exit" class="link">改为模拟</button>
+      </div>
     </div>
 
     <div id="fog-card" class="free-card" hidden>
@@ -178,6 +213,7 @@
       <div id="fog-status" class="free-status">已走 0 步</div>
       <div id="fog-meta" class="clue-meta"></div>
       <p id="fog-hint" class="fog-hint" hidden></p>
+      <p class="fog-tip">方向键移动 · 罗盘只指方向 · 问路不扣灯</p>
       <button id="btn-fog-exit" class="link">换模式</button>
     </div>
 
@@ -244,7 +280,7 @@
       <div><b id="end-time">00:00</b><span>用时</span></div>
       <div id="stat-hints"><b id="end-hints">0</b><span>提示</span></div>
       <div><b id="end-asks">0</b><span>问路</span></div>
-      <div><b id="end-score">0</b><span>得分</span></div>
+      <div id="stat-score"><b id="end-score">0</b><span>得分</span></div>
     </div>
 
     <div id="fog-stats" class="stats" hidden>
@@ -269,7 +305,10 @@
     </div>
     <button id="btn-diary" class="btn ghost diary-btn">写日记 →</button>
     <p id="end-note" class="end-note" hidden>轻量验码 · 不作为到访证明</p>
-    <button id="btn-home" class="link">换一个目的地</button>
+    <div class="end-links">
+      <button id="btn-switch-route" class="link" hidden>换条路线</button>
+      <button id="btn-home" class="link">换一个目的地</button>
+    </div>
   </section>
 
   <!-- 线索册 -->
@@ -331,7 +370,19 @@
     <div class="stamp-seal"><span id="stamp-mark"></span></div>
     <p id="stamp-story"></p>
     <div id="stamp-piece" class="stamp-piece"></div>
+    <p id="stamp-progress" class="stamp-progress"></p>
+    <p id="stamp-next-hint" class="stamp-next-hint"></p>
     <button id="stamp-next" class="btn primary">继续前进</button>
+  </div>
+
+  <div id="pause" class="pause" aria-live="polite" inert>
+    <div class="pause-card">
+      <p class="pause-kicker">已暂停</p>
+      <h2 class="pause-title">歇一下</h2>
+      <p id="pause-info" class="pause-info"></p>
+      <button id="btn-pause-resume" class="btn primary">继续</button>
+      <button id="btn-pause-exit" class="btn ghost">返回游戏首页</button>
+    </div>
   </div>
 
   <div id="toast" class="toast"></div>
@@ -348,11 +399,11 @@
 
 </div>
 
-<script src="destinations.js?v=20261024h"></script>
-<script src="destinations-city.js?v=20261024h"></script>
-<script src="levels.js?v=20261024h"></script>
-<script src="packs.js?v=20261024h"></script>
-<script src="game.js?v=20261024h"></script>
-<script src="companion.js?v=20261024h"></script>
+<script src="destinations.js?v=20261024j"></script>
+<script src="destinations-city.js?v=20261024j"></script>
+<script src="levels.js?v=20261024j"></script>
+<script src="packs.js?v=20261024j"></script>
+<script src="game.js?v=20261024j"></script>
+<script src="companion.js?v=20261024j"></script>
 </body>
 </html>

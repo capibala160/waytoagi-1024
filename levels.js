@@ -28,6 +28,7 @@ window.LEVEL_SETS = {
     name: '出门玩',
     desc: '5 站 · 约 5 分钟 · 会场周边',
     par: 300,
+    ready: false,   // 现场点位和纸码布置好后改成 true
     levels: [
       {
         id: 1,
@@ -159,6 +160,7 @@ window.LEVEL_SETS = {
     name: '不出门',
     desc: '3 站 · 约 90 秒 · 摊位附近',
     par: 90,
+    ready: false,   // 现场点位和纸码布置好后改成 true
     levels: [
       {
         id: 1,

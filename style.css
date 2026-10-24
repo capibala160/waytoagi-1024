@@ -1583,7 +1583,7 @@ body::after {
 .hud-right { display: flex; align-items: center; gap: 10px; }
 
 .hud-btn {
-  min-height: 40px;
+  min-height: 44px;
   padding: 0 12px;
   border-radius: 999px;
   border: 1px solid var(--line-soft);
@@ -1684,4 +1684,166 @@ body::after {
   color: #565d66;
   font-size: 11px;
   letter-spacing: .08em;
+}
+
+/* ---------- 玩法说明 / 暂停 / 集章 ---------- */
+
+.hud-left {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.hud-stamps {
+  color: var(--text-3);
+  font-size: 10.5px;
+  letter-spacing: .12em;
+}
+
+#screen-brief { overflow-y: auto; }
+.brief-head { margin: 8px 0 18px; }
+.brief-kicker {
+  margin: 0 0 8px;
+  color: var(--amber);
+  font-size: 11px;
+  letter-spacing: .22em;
+}
+.brief-title {
+  margin: 0 0 10px;
+  font-family: var(--serif);
+  font-size: 30px;
+  font-weight: 400;
+  line-height: 1.35;
+  text-wrap: balance;
+}
+.brief-body {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 15px;
+  line-height: 1.75;
+}
+.brief-stats {
+  display: flex;
+  gap: 10px;
+  margin: 0 0 16px;
+}
+.brief-stats div {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 8px;
+  border-radius: 12px;
+  border: 1px solid var(--line-soft);
+  background: var(--surface-1);
+  text-align: center;
+}
+.brief-stats b { color: var(--amber); font-size: 16px; font-weight: 500; }
+.brief-stats span { color: var(--text-3); font-size: 10px; letter-spacing: .16em; }
+.brief-rule {
+  margin-bottom: 14px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--line-soft);
+  background: var(--surface-1);
+}
+.brief-rule h3 {
+  margin: 0 0 6px;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: .12em;
+}
+.brief-rule p { margin: 0; color: var(--text-2); font-size: 13.5px; line-height: 1.7; }
+.brief-ready {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(232, 176, 75, .22);
+  background: rgba(232, 176, 75, .06);
+  color: var(--text-2);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+.brief-ready.warn {
+  border-color: rgba(255, 120, 90, .35);
+  background: rgba(255, 120, 90, .07);
+  color: #f0b9a8;
+}
+:root[data-theme="light"] .brief-ready.warn {
+  border-color: rgba(160, 60, 40, .3);
+  background: rgba(160, 60, 40, .06);
+  color: #9c3b2a;
+}
+#btn-brief-start { width: 100%; }
+.brief-note {
+  margin: 12px 0 0;
+  color: var(--text-3);
+  font-size: 11.5px;
+  text-align: center;
+}
+
+.pause {
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(6, 8, 11, .72);
+  backdrop-filter: blur(6px);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity .2s, visibility .2s;
+}
+.pause.on { opacity: 1; visibility: visible; pointer-events: auto; }
+.pause-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(84vw, 330px);
+  padding: 24px 22px;
+  border-radius: 18px;
+  border: 1px solid var(--line-soft);
+  background: linear-gradient(180deg, var(--surface-2), var(--surface-1));
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .5);
+  text-align: center;
+}
+.pause-kicker { margin: 0; color: var(--amber); font-size: 11px; letter-spacing: .24em; }
+.pause-title { margin: 0; font-family: var(--serif); font-size: 28px; font-weight: 400; }
+.pause-info { margin: 0 0 8px; color: var(--text-2); font-size: 13px; line-height: 1.7; }
+.pause-card .btn { width: 100%; }
+
+.stamp-progress { margin: 0; color: #e8b04b; font-size: 12px; letter-spacing: .16em; }
+.stamp-next-hint { margin: 0 0 4px; color: #8a8578; font-size: 12px; letter-spacing: .1em; }
+
+.fog-tip {
+  margin: 8px 0 0;
+  color: var(--text-3);
+  font-size: 11.5px;
+  line-height: 1.6;
+}
+.free-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 8px;
+}
+.free-actions .link { margin: 0; }
+
+.end-links {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  margin-top: 8px;
+}
+.end-links .link { margin: 0; }
+
+.suggest-empty {
+  width: 100%;
+  margin: 0 0 10px;
+  color: var(--text-2);
+  font-size: 13px;
+  line-height: 1.7;
 }
