@@ -528,7 +528,7 @@ body {
   gap: 8px;
   transition: bottom .2s;
 }
-#app:has(#screen-play.active) .azhen { display: flex; }
+#app.playing .azhen { display: flex; }
 .azhen.lift { bottom: calc(200px + env(safe-area-inset-bottom)); }
 .azhen[hidden] { display: none !important; }
 
