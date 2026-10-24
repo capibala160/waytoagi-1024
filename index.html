@@ -50,6 +50,7 @@
     </div>
 
     <button id="btn-resume" class="btn ghost resume" hidden>继续上次</button>
+    <button id="btn-journeys" class="link" hidden>旅程记录</button>
     <p id="start-message" class="start-message" role="status" aria-live="polite"></p>
 
     <button id="btn-forge-link" class="link">旅伴 · 阿针</button>
@@ -138,7 +139,10 @@
   <section id="screen-play" class="screen">
     <div class="hud">
       <span id="hud-level">第 1 / 5 站</span>
-      <span id="hud-time" class="mono">00:00</span>
+      <span class="hud-right">
+        <button id="btn-book" class="hud-btn">线索册</button>
+        <span id="hud-time" class="mono">00:00</span>
+      </span>
     </div>
 
     <div id="clue-card" class="clue">
@@ -253,7 +257,28 @@
       <button id="btn-again" class="btn ghost">再走一次</button>
     </div>
     <button id="btn-diary" class="btn ghost diary-btn">写日记 →</button>
+    <p id="end-note" class="end-note" hidden>轻量验码 · 不作为到访证明</p>
     <button id="btn-home" class="link">换一个目的地</button>
+  </section>
+
+  <!-- 线索册 -->
+  <section id="screen-book" class="screen">
+    <div class="hud">
+      <button id="btn-book-back" class="btn ghost small">‹</button>
+      <span>线索册</span>
+      <span></span>
+    </div>
+    <div id="book-list" class="book-list"></div>
+  </section>
+
+  <!-- 旅程记录 -->
+  <section id="screen-journeys" class="screen">
+    <div class="hud">
+      <button id="btn-journeys-back" class="btn ghost small">‹</button>
+      <span>旅程记录</span>
+      <span></span>
+    </div>
+    <div id="journey-list" class="journey-list"></div>
   </section>
 
   <!-- 日记 -->

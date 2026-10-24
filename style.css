@@ -1527,3 +1527,111 @@ body::after {
   border-color: rgba(240, 198, 111, .35);
   background: rgba(240, 198, 111, .1);
 }
+
+/* ---------- 线索册 / 旅程记录 ---------- */
+
+.hud-right { display: flex; align-items: center; gap: 10px; }
+
+.hud-btn {
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line-soft);
+  background: var(--surface-1);
+  color: var(--text-2);
+  font-family: inherit;
+  font-size: 11px;
+  letter-spacing: .12em;
+  cursor: pointer;
+}
+.hud-btn:active { transform: scale(.96); }
+
+#screen-book,
+#screen-journeys { overflow-y: auto; }
+
+.book-list,
+.journey-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.book-item {
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line-soft);
+  background: linear-gradient(180deg, var(--surface-2), var(--surface-1));
+  box-shadow: var(--shadow-1);
+}
+.book-item.current { border-color: rgba(232, 176, 75, .35); }
+
+.book-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.book-head b {
+  font-family: var(--serif);
+  font-size: 18px;
+  letter-spacing: .06em;
+  color: var(--text);
+}
+.book-head span { color: var(--text-3); font-size: 11px; }
+.book-clue { margin: 6px 0 0; color: var(--text-2); font-size: 13px; line-height: 1.7; }
+.book-arrive {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(232, 176, 75, .16);
+  background: rgba(232, 176, 75, .08);
+  color: var(--text-2);
+  font-size: 13px;
+  line-height: 1.7;
+}
+.book-locked { margin: 6px 0 0; color: var(--text-3); font-size: 12px; }
+.book-piece {
+  display: inline-flex;
+  gap: 6px;
+  margin-top: 8px;
+  color: var(--amber);
+  font-size: 12px;
+}
+
+.journey-item {
+  padding: 15px 17px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line-soft);
+  background: linear-gradient(180deg, var(--surface-2), var(--surface-1));
+  box-shadow: var(--shadow-1);
+  color: var(--text);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.journey-item:active { transform: scale(.985); }
+.journey-item b {
+  display: block;
+  font-family: var(--serif);
+  font-size: 19px;
+  letter-spacing: .06em;
+  color: var(--text);
+}
+.journey-item span { display: block; margin-top: 5px; color: var(--text-3); font-size: 12px; }
+.journey-item em {
+  display: block;
+  margin-top: 7px;
+  color: var(--amber);
+  font-style: normal;
+  font-size: 11px;
+  letter-spacing: .08em;
+}
+
+.end-note {
+  margin: 10px 0 0;
+  color: #565d66;
+  font-size: 11px;
+  letter-spacing: .08em;
+}

@@ -34,7 +34,9 @@
     play: $('screen-play'),
     code: $('screen-code'),
     end: $('screen-end'),
-    diary: $('screen-diary')
+    diary: $('screen-diary'),
+    book: $('screen-book'),
+    journeys: $('screen-journeys')
   };
 
   const state = {
@@ -59,6 +61,10 @@
     fog: null,
     diary: { events: [], photos: [null, null, null], note: '', text: '', stats: null },
     challenge: null,
+    variantSet: 'A',
+    firstClear: false,
+    journeys: [],
+    savedJourney: null,
     level: 0,
     startAt: 0,
     elapsed: 0,
@@ -117,6 +123,13 @@
     if (score >= 700) return '老 向 导';
     if (score >= 500) return '认 得 路';
     return '第 一 次 来';
+  }
+
+  function levelData(lv) {
+    if (!lv) return lv;
+    const set = state.variantSet;
+    if (set && lv.sets && lv.sets[set]) return Object.assign({}, lv, lv.sets[set]);
+    return lv;
   }
 
   function isPlaying() {
@@ -189,6 +202,7 @@
         story: state.story.slice(),
         stamps: state.stamps.slice(),
         pieces: state.pieces.slice(),
+        set: state.variantSet,
         lamps: state.lamps,
         puzzleHints: state.puzzleHints,
         optionalDone: state.optionalDone,
@@ -228,6 +242,7 @@
       if (!Array.isArray(d.story) || d.story.some((s) => typeof s !== 'string')) return null;
       if (!Array.isArray(d.stamps) || d.stamps.some((s) => typeof s !== 'string')) return null;
       if (!Array.isArray(d.pieces) || d.pieces.some((p) => !p || typeof p.mark !== 'string')) return null;
+      if (d.set !== 'A' && d.set !== 'B') return null;
       if (!Number.isInteger(d.lamps) || d.lamps < 0 || d.lamps > 9) return null;
       if (!Number.isInteger(d.puzzleHints) || d.puzzleHints < 0) return null;
       if (typeof d.optionalDone !== 'boolean') return null;
@@ -340,6 +355,7 @@
     state.story = d.story.slice();
     state.stamps = d.stamps.slice();
     state.pieces = d.pieces.slice();
+    state.variantSet = d.set;
     state.arriveRevealed = false;
     state.paused = false;
     state.pauseAt = 0;
@@ -1400,6 +1416,280 @@
     $('challenge').hidden = false;
   }
 
+  /* ---------------- 线索册 ---------------- */
+
+  function openBook() {
+    renderBook();
+    showScreen('book');
+  }
+
+  function renderBook() {
+    const list = $('book-list');
+    list.replaceChildren();
+    const levels = state.levels || [];
+
+    if (!levels.length) {
+      const empty = document.createElement('p');
+      empty.className = 'book-locked';
+      empty.textContent = '这一局没有分站线索。';
+      list.appendChild(empty);
+      return;
+    }
+
+    levels.forEach((base, i) => {
+      const lv = levelData(base);
+      const item = document.createElement('div');
+      item.className = 'book-item' + (i === state.level ? ' current' : '');
+
+      const head = document.createElement('div');
+      head.className = 'book-head';
+      const name = document.createElement('b');
+      name.textContent = `第 ${i + 1} 站`;
+      const status = document.createElement('span');
+      status.textContent = i < state.level ? '已完成' : i === state.level ? '当前' : '未到';
+      head.appendChild(name);
+      head.appendChild(status);
+      item.appendChild(head);
+
+      if (i < state.level) {
+        const clue = document.createElement('p');
+        clue.className = 'book-clue';
+        clue.textContent = lv.clue || '';
+        item.appendChild(clue);
+
+        if (lv.arriveClue) {
+          const arrive = document.createElement('p');
+          arrive.className = 'book-arrive';
+          arrive.textContent = lv.arriveClue;
+          item.appendChild(arrive);
+        }
+        if (lv.story) {
+          const story = document.createElement('p');
+          story.className = 'book-clue';
+          story.textContent = lv.story;
+          item.appendChild(story);
+        }
+        if (lv.piece) {
+          const piece = document.createElement('div');
+          piece.className = 'book-piece';
+          piece.textContent = '碎片 ' + lv.piece.mark + ' · ' + (lv.piece.label || '');
+          item.appendChild(piece);
+        }
+      } else if (i === state.level) {
+        const clue = document.createElement('p');
+        clue.className = 'book-clue';
+        clue.textContent = lv.clue || '';
+        item.appendChild(clue);
+
+        if (state.arriveRevealed && lv.arriveClue) {
+          const arrive = document.createElement('p');
+          arrive.className = 'book-arrive';
+          arrive.textContent = lv.arriveClue;
+          item.appendChild(arrive);
+        } else {
+          const locked = document.createElement('p');
+          locked.className = 'book-locked';
+          locked.textContent = '稳定对准方向后解锁到达线索';
+          item.appendChild(locked);
+        }
+      } else {
+        const locked = document.createElement('p');
+        locked.className = 'book-locked';
+        locked.textContent = '到了才解锁';
+        item.appendChild(locked);
+      }
+
+      list.appendChild(item);
+    });
+  }
+
+  /* ---------------- 旅程记录 ---------------- */
+
+  const JOURNEY_KEY = 'wenjin-journeys';
+  const CLEAR_KEY = 'wenjin-clears';
+
+  function readJourneys() {
+    try {
+      const list = JSON.parse(localStorage.getItem(JOURNEY_KEY) || '[]');
+      return Array.isArray(list) ? list : [];
+    } catch (e) { return []; }
+  }
+
+  function saveJourney(entry) {
+    const list = readJourneys();
+    list.unshift(entry);
+    const trimmed = list.slice(0, 5);
+    try { localStorage.setItem(JOURNEY_KEY, JSON.stringify(trimmed)); } catch (e) { /* 忽略 */ }
+    state.journeys = trimmed;
+    updateJourneyLink();
+  }
+
+  function updateJourneyLink() {
+    $('btn-journeys').hidden = !state.journeys.length;
+  }
+
+  function loadJourneys() {
+    state.journeys = readJourneys();
+    updateJourneyLink();
+  }
+
+  function openJourneys() {
+    renderJourneyList();
+    showScreen('journeys');
+  }
+
+  function renderJourneyList() {
+    const list = $('journey-list');
+    list.replaceChildren();
+
+    if (!state.journeys.length) {
+      const empty = document.createElement('p');
+      empty.className = 'book-locked';
+      empty.textContent = '还没有完成的旅程。';
+      list.appendChild(empty);
+      return;
+    }
+
+    state.journeys.forEach((j) => {
+      const btn = document.createElement('button');
+      btn.className = 'journey-item';
+      const name = document.createElement('b');
+      name.textContent = j.name || '这一路';
+      const meta = document.createElement('span');
+      const date = j.date ? new Date(j.date).toLocaleDateString('zh-CN') : '';
+      meta.textContent = date + ' · 用时 ' + fmtTime(j.time || 0) +
+        (j.mode === 'fog' ? ' · ' + (j.steps || 0) + ' 步 · ' + (j.lost || 1) + '× · ' + '★'.repeat(j.stars || 1) : '') +
+        (j.practice ? ' · 练习' : '');
+      const badges = document.createElement('em');
+      badges.textContent = (j.badges || []).join(' · ');
+      btn.appendChild(name);
+      btn.appendChild(meta);
+      btn.appendChild(badges);
+      btn.addEventListener('click', () => openJourney(j));
+      list.appendChild(btn);
+    });
+  }
+
+  function readClears() {
+    try {
+      const list = JSON.parse(localStorage.getItem(CLEAR_KEY) || '[]');
+      return Array.isArray(list) ? list : [];
+    } catch (e) { return []; }
+  }
+
+  function renderSavedExtras(j) {
+    const pieces = $('end-pieces');
+    pieces.replaceChildren();
+    (j.pieces || []).forEach((p) => {
+      const chip = document.createElement('span');
+      chip.className = 'piece-chip';
+      const mark = document.createElement('b');
+      mark.textContent = p.mark;
+      const label = document.createElement('span');
+      label.textContent = p.label || '';
+      chip.appendChild(mark);
+      chip.appendChild(label);
+      pieces.appendChild(chip);
+    });
+    pieces.hidden = !(j.pieces && j.pieces.length);
+
+    const badgeBox = $('end-badges');
+    badgeBox.replaceChildren();
+    (j.badges || []).forEach((name) => {
+      const chip = document.createElement('span');
+      chip.className = 'badge-chip';
+      chip.textContent = name;
+      badgeBox.appendChild(chip);
+    });
+
+    $('end-story').textContent = (j.story || []).length ? j.story.join('\n') : '';
+  }
+
+  function openJourney(j) {
+    state.savedJourney = j;
+    state.mode = j.mode === 'fog' ? 'fog' : j.mode === 'free' ? 'free' : (j.huntMode || 'outdoor');
+    state.dest = j.dest
+      ? (window.DESTINATIONS || []).find((d) => d.id === j.dest.id) || j.dest
+      : null;
+    state.elapsed = j.time || 0;
+    state.score = j.score || 0;
+    state.asks = j.asks || 0;
+    state.hints = j.hints || 0;
+    state.pieces = Array.isArray(j.pieces) ? j.pieces : [];
+    state.story = Array.isArray(j.story) ? j.story : [];
+    state.firstClear = false;
+    state.fog = j.mode === 'fog'
+      ? { steps: j.steps || 0, asked: j.asks || 0, lost: j.lost || 1, stars: j.stars || 1, path: j.path || [] }
+      : null;
+
+    state.diary = {
+      events: (j.diary && j.diary.events) || [],
+      photos: [null, null, null],
+      note: (j.diary && j.diary.note) || '',
+      text: '',
+      stats: j.diaryStats || {
+        mode: j.mode,
+        dest: j.dest || null,
+        name: j.name || '',
+        elapsed: j.time || 0,
+        steps: j.steps || 0,
+        asked: j.asks || 0,
+        hints: j.hints || 0,
+        lost: j.lost || 1,
+        stars: j.stars || 0,
+        score: j.score || 0,
+        seed: j.seed,
+        path: j.path || [],
+        startLevel: j.startLevel || 0,
+        completed: j.completed || 0
+      }
+    };
+
+    if (j.mode === 'fog') {
+      $('stats-main').hidden = true;
+      $('fog-stats').hidden = false;
+      $('fog-time').textContent = fmtTime(state.elapsed);
+      $('fog-steps').textContent = String(j.steps || 0);
+      $('fog-asks').textContent = String(j.asks || 0);
+      $('fog-lost').textContent = (j.lost || 1) + '×';
+      $('fog-stars').textContent = '★'.repeat(j.stars || 1) + '☆'.repeat(3 - (j.stars || 1));
+      $('end-rating').textContent = j.ratingText || '到 了';
+    } else {
+      $('stats-main').hidden = false;
+      $('fog-stats').hidden = true;
+      $('stat-hints').hidden = j.mode === 'free';
+      $('end-time').textContent = fmtTime(state.elapsed);
+      $('end-hints').textContent = String(j.hints || 0);
+      $('end-asks').textContent = String(j.asks || 0);
+      $('end-score').textContent = String(state.score);
+      $('end-rating').textContent = j.ratingText || (j.mode === 'free' ? '到 了' : rating(state.score));
+    }
+
+    $('end-debug').hidden = !j.practice;
+    $('end-debug').textContent = j.practice ? '练习成绩 · 不计入活动' : '';
+    $('end-note').hidden = j.mode !== 'hunt';
+
+    renderSavedExtras(j);
+
+    drawCard(state.score, {
+      fog: j.mode === 'fog',
+      free: j.mode === 'free',
+      dest: j.dest,
+      steps: j.steps,
+      asked: j.asks,
+      lost: j.lost,
+      stars: j.stars,
+      path: j.path,
+      levels: j.levels,
+      startLevel: j.startLevel,
+      completed: j.completed,
+      practice: j.practice,
+      badges: j.badges,
+      story: j.story
+    });
+    showScreen('end');
+  }
+
   function renderRecent() {
     let recent = [];
     try { recent = JSON.parse(localStorage.getItem('wenjin-recent') || '[]'); } catch (e) { recent = []; }
@@ -1526,6 +1816,7 @@
     $('hud-level').textContent = '自由行';
     $('clue-card').hidden = true;
     $('free-card').hidden = false;
+    $('btn-book').hidden = true;
     $('free-name').textContent = state.dest.name;
     $('free-blurb').textContent = state.dest.blurb || '';
     $('btn-hint').hidden = true;
@@ -1580,17 +1871,40 @@
     $('end-rating').textContent = '到 了';
     $('stat-hints').hidden = true;
     renderEndExtras();
+    state.firstClear = false;
+    const freeBadges = earnedBadges();
 
     const debugEl = $('end-debug');
     debugEl.hidden = !practice;
     debugEl.textContent = practice ? `练习成绩 · 不计入活动（${reasons.join(' · ')}）` : '';
+
+    saveJourney({
+      id: Date.now(),
+      date: new Date().toISOString(),
+      mode: 'free',
+      name: state.dest.name,
+      dest: { id: state.dest.id, name: state.dest.name },
+      time: state.elapsed,
+      asks: state.asks,
+      hints: 0,
+      score: state.score,
+      practice,
+      badges: freeBadges,
+      pieces: [],
+      story: [],
+      path: state.path.slice(),
+      ratingText: '到 了',
+      diary: { events: state.diary.events.slice(), note: state.diary.note },
+      diaryStats: state.diary.stats
+    });
+    $('end-note').hidden = true;
 
     drawCard(state.score, {
       free: true,
       dest: state.dest,
       path: state.path,
       practice,
-      badges: earnedBadges()
+      badges: freeBadges
     });
     showScreen('end');
     releaseWakeLock();
@@ -1601,6 +1915,7 @@
     $('hud-level').textContent = '手机模拟';
     $('clue-card').hidden = true;
     $('free-card').hidden = false;
+    $('btn-book').hidden = true;
     $('free-name').textContent = state.dest.name;
     $('free-blurb').textContent = state.dest.blurb || '';
     $('free-status').textContent = '模拟 · 已走 0 步';
@@ -1914,6 +2229,7 @@
     $('clue-card').hidden = true;
     $('free-card').hidden = true;
     $('fog-card').hidden = false;
+    $('btn-book').hidden = true;
     $('dpad').hidden = false;
     $('hint-box').hidden = true;
     $('btn-hint').hidden = true;
@@ -2035,6 +2351,32 @@
     $('end-rating').textContent = stars === 3 ? '三 星 到 达' : stars === 2 ? '二 星 到 达' : '到 达';
     $('end-debug').hidden = true;
     renderEndExtras();
+    state.firstClear = false;
+    const fogBadges = earnedBadges();
+    saveJourney({
+      id: Date.now(),
+      date: new Date().toISOString(),
+      mode: 'fog',
+      name: state.dest.name,
+      dest: { id: state.dest.id, name: state.dest.name },
+      time: state.elapsed,
+      steps: f.steps,
+      asks: f.asked,
+      hints: 0,
+      lost,
+      stars,
+      score: state.score,
+      practice: false,
+      badges: fogBadges,
+      pieces: [],
+      story: [],
+      path: f.path.slice(),
+      ratingText: $('end-rating').textContent,
+      seed: f.seed,
+      diary: { events: state.diary.events.slice(), note: state.diary.note },
+      diaryStats: state.diary.stats
+    });
+    $('end-note').hidden = true;
 
     drawCard(state.score, {
       fog: true,
@@ -2044,7 +2386,7 @@
       stars,
       path: f.path,
       dest: state.dest,
-      badges: earnedBadges()
+      badges: fogBadges
     });
     showScreen('end');
     releaseWakeLock();
@@ -2063,7 +2405,7 @@
   }
 
   function renderHints() {
-    const lv = state.levels[state.level];
+    const lv = levelData(state.levels[state.level]);
     const n = state.hintShown || 0;
     const free = !!lv.freeHint || lv.type === 'tutorial';
     const box = $('hint-box');
@@ -2097,17 +2439,19 @@
     stopGps();
     $('clue-card').hidden = false;
     $('free-card').hidden = true;
+    $('btn-book').hidden = false;
     $('btn-hint').hidden = false;
     $('btn-forward').hidden = true;
     $('btn-arrive').textContent = '我到了';
     $('stat-hints').hidden = false;
 
-    const lv = state.levels[state.level];
+    const lv = levelData(state.levels[state.level]);
     state.target = lv.bearing != null ? lv.bearing : null;
     state.bonusMode = false;
     state.alignLocked = false;
     state.alignSince = 0;
-    $('clue-type').textContent = lv.typeLabel || '';
+    $('clue-type').textContent = (lv.typeLabel || '') +
+      (lv.sets ? ' · ' + state.variantSet + ' 组' : '');
     $('halo-text').textContent = lv.confirm || '';
     $('halo-text').classList.remove('on');
     $('btn-bonus').hidden = true;
@@ -2216,6 +2560,11 @@
     state.usedSimulation = false;
     state.mode = mode;
     state.levels = set.levels;
+    const forcedSet = params.get('set');
+    state.variantSet = forcedSet === 'A' || forcedSet === 'B'
+      ? forcedSet
+      : (Math.random() < 0.5 ? 'A' : 'B');
+    state.firstClear = false;
     state.par = set.par || 300;
     resetDiary(set.name);
     state.story = [];
@@ -2269,7 +2618,7 @@
   /* ---------------- 提示 ---------------- */
 
   $('btn-hint').addEventListener('click', () => {
-    const lv = state.levels[state.level];
+    const lv = levelData(state.levels[state.level]);
     if (state.hintShown >= lv.hints.length) return;
     const free = !!lv.freeHint || lv.type === 'tutorial';
     if (!free && state.lamps <= 0) return;
@@ -2311,7 +2660,7 @@
     state.bonusMode = false;
     $('code-title').textContent = '输入纸上的四位码';
     $('code-msg').textContent = '';
-    const lv = state.levels[state.level];
+    const lv = levelData(state.levels[state.level]);
     $('btn-bonus').hidden = !(lv && lv.bonus && !state.optionalDone);
     $('btn-bonus').disabled = false;
     $('btn-bonus').textContent = '加试一题（可选）';
@@ -2320,7 +2669,7 @@
   });
 
   $('btn-bonus').addEventListener('click', () => {
-    const lv = state.levels[state.level];
+    const lv = levelData(state.levels[state.level]);
     if (!lv || !lv.bonus) return;
     state.bonusMode = true;
     state.codeInput = '';
@@ -2393,7 +2742,7 @@
   function checkCode() {
     if (state.screen !== 'code') return;
     if (state.checking || state.codeInput.length !== 4) return;
-    const lv = state.levels[state.level];
+    const lv = levelData(state.levels[state.level]);
 
     if (state.bonusMode) {
       if (state.codeInput === String(lv.bonus.code)) {
@@ -2497,6 +2846,7 @@
     if (state.mode === 'fog') list.push('雾城通关');
     if (hunt && state.completed >= state.levels.length) list.push('记忆拼图');
     if (hunt && state.pieces.length >= Math.min(4, state.levels.length)) list.push('碎片收集');
+    if (hunt && state.firstClear) list.push('首次通关');
     if (hunt && state.puzzleHints === 0) list.push('独立寻路者');
     if (state.optionalDone) list.push('细节观察家');
     if (state.asks >= 3) list.push('同行向导');
@@ -2557,6 +2907,15 @@
     $('end-asks').textContent = String(state.asks);
     $('end-score').textContent = String(state.score);
     $('end-rating').textContent = rating(state.score);
+
+    const sig = 'hunt:' + state.variantSet + ':' + state.levels.map((l) => l.code).join(',');
+    const clears = readClears();
+    state.firstClear = !clears.includes(sig);
+    if (state.firstClear) {
+      clears.push(sig);
+      try { localStorage.setItem(CLEAR_KEY, JSON.stringify(clears)); } catch (e) { /* 忽略 */ }
+    }
+
     renderEndExtras();
 
     const practice = practiceRun();
@@ -2568,11 +2927,36 @@
     debugEl.hidden = !practice;
     debugEl.textContent = practice ? `练习成绩 · 不计入活动（${reasons.join(' · ')}）` : '';
 
+    const huntBadges = earnedBadges();
+    saveJourney({
+      id: Date.now(),
+      date: new Date().toISOString(),
+      mode: 'hunt',
+      huntMode: state.mode,
+      name: (SETS[state.mode] && SETS[state.mode].name) || '会场寻宝',
+      time: state.elapsed,
+      hints: state.hints,
+      asks: state.asks,
+      score: state.score,
+      practice,
+      badges: huntBadges,
+      pieces: state.pieces.slice(),
+      story: state.story.slice(),
+      startLevel: state.startLevelIndex,
+      completed: state.completed,
+      levels: state.levels.map((l) => ({ bearing: l.bearing, steps: l.steps })),
+      set: state.variantSet,
+      ratingText: rating(state.score),
+      diary: { events: state.diary.events.slice(), note: state.diary.note },
+      diaryStats: state.diary.stats
+    });
+    $('end-note').hidden = false;
+
     drawCard(state.score, {
       startLevel: state.startLevelIndex,
       completed: state.completed,
       practice,
-      badges: earnedBadges(),
+      badges: huntBadges,
       story: state.story
     });
     showScreen('end');
@@ -2580,12 +2964,14 @@
     clearProgress();
   }
 
-  function drawRoute(x, cx, cy, boxW, boxH, from, to) {
+  function drawRoute(x, cx, cy, boxW, boxH, from, to, levels) {
+    const arr = levels || state.levels || [];
     const pts = [{ x: 0, y: 0 }];
     let px = 0, py = 0;
 
     for (let i = from; i < to; i++) {
-      const lv = state.levels[i];
+      const lv = arr[i];
+      if (!lv) break;
       const a = (lv.bearing || 0) * Math.PI / 180;
       const step = lv.steps || 10;
       px += Math.sin(a) * step;
@@ -2668,6 +3054,7 @@
     const practice = !!(opts && opts.practice);
     const free = !!(opts && opts.free);
     const fog = !!(opts && opts.fog);
+    const routeLevels = opts && Array.isArray(opts.levels) ? opts.levels : state.levels;
     const W = 750, H = 1200;
     const card = $('card');
     card.width = W;
@@ -2776,7 +3163,7 @@
     x.fillText('你 走 的 路', W / 2, 872);
     if (fog) drawFogPath(x, W / 2, 955, 470, 150, opts.path);
     else if (free) drawGpsPath(x, W / 2, 955, 470, 150, opts.path);
-    else drawRoute(x, W / 2, 955, 470, 150, doneStart, doneEnd);
+    else drawRoute(x, W / 2, 955, 470, 150, doneStart, doneEnd, routeLevels);
 
     if (opts && opts.badges && opts.badges.length) {
       x.fillStyle = 'rgba(232,176,75,.82)';
@@ -2885,6 +3272,11 @@
     refreshResume();
   });
 
+  $('btn-book').addEventListener('click', openBook);
+  $('btn-book-back').addEventListener('click', () => showScreen('play'));
+  $('btn-journeys').addEventListener('click', openJourneys);
+  $('btn-journeys-back').addEventListener('click', () => showScreen('start'));
+
   $('btn-diary').addEventListener('click', openDiary);
   $('btn-diary-back').addEventListener('click', () => showScreen('end'));
   $('btn-diary-gen').addEventListener('click', generateDiary);
@@ -2954,6 +3346,7 @@
   loadTheme();
   loadVariant();
   loadChallenge();
+  loadJourneys();
   renderHome();
   refreshResume();
   const configErrors = validateAll();
