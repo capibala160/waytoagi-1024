@@ -611,6 +611,8 @@
   let hudTextAt = 0;
   let smoothHeading = null;
   let smoothPending = false;
+  let visualHeading = null;   // 只喂视觉层：绝对/相对都收
+  let visualSmooth = null;    // 视觉层自己的平滑角
 
   const bearingNum = $('bearing-num');
   const bearingWrap = document.querySelector('.bearing');
@@ -652,11 +654,13 @@
     lastLayerLocked = undefined;
     smoothHeading = null;
     smoothPending = false;
+    visualSmooth = null;
   }
 
   function buildDial() {
     const size = Math.round(CSIZE * 1.5);
-    const d = $('compass-dial') || document.createElement('canvas');
+    // 盘面画到离屏 canvas，再转成图片；旋转图片比旋转 canvas 更容易走 GPU 合成
+    const d = document.createElement('canvas');
     d.width = size;
     d.height = size;
     const c = d.getContext('2d');
@@ -719,6 +723,10 @@
     }
 
     dialCanvas = d;
+    const img = $('compass-dial');
+    if (img) {
+      try { img.src = d.toDataURL('image/png'); } catch (e) { /* 忽略 */ }
+    }
   }
 
   let lastAbs = 0;
@@ -738,11 +746,6 @@
       absolute = true;
     } else if (typeof e.alpha === 'number' && isFinite(e.alpha)) {
       absolute = (e.absolute === true) || isAbs;
-      if (!absolute) {
-        // 相对 alpha 的零点随开机姿态变，不能当绝对方位用
-        state.relativeOnly = true;
-        return;
-      }
       h = 360 - e.alpha;
     }
 
@@ -751,15 +754,26 @@
     if (absolute) lastAbs = now;
     perf.orient++;
 
-    state.heading = norm(h);
-    compassDirty = true;
-    state.headingAbsolute = true;
-    state.lastOrientAt = now;
-    state.sensorSeen = true;
+    const heading = norm(h);
 
-    if (state.simulating && !forceDemo) {
-      state.simulating = false;
-      $('sim-tip').hidden = true;
+    // 视觉层：绝对/相对都先让表盘转起来，不参与目的地计算
+    visualHeading = heading;
+
+    if (absolute) {
+      state.heading = heading;
+      compassDirty = true;
+      state.headingAbsolute = true;
+      state.lastOrientAt = now;
+      state.sensorSeen = true;
+      state.relativeOnly = false;
+
+      if (state.simulating && !forceDemo) {
+        state.simulating = false;
+        $('sim-tip').hidden = true;
+      }
+    } else {
+      // 相对 alpha 的零点随开机姿态变，不能当绝对方位用
+      state.relativeOnly = true;
     }
   }
 
@@ -780,36 +794,46 @@
   }
 
   function drawLayerCompass() {
-    if (!rotorEl || !needleEl) return;
-    const live = state.heading != null;
-    const h = live ? dampHeading(state.heading) : 0;
-    if (!live) {
-      smoothHeading = null;
-      smoothPending = false;
-    }
+    if (!needleEl) return;
 
-    // 盘面转 -heading；指针绝对角 target，叠在盘面坐标系里
-    rotorEl.style.transform = `rotate(${-h}deg)`;
-
+    // 指针属于游戏层：只在 target 变化时更新，CSS transition 慢慢转
     const target = state.target;
     if (target !== lastNeedleTarget) {
       needleEl.hidden = target == null;
-      if (target != null) needleEl.style.transform = `rotate(${target}deg)`;
+      if (target != null) needleEl.style.transform = `rotate(${target}deg) translateZ(0)`;
       lastNeedleTarget = target;
     }
 
-    if (live !== lastLayerLive) {
+    const live = state.heading != null;
+    if (lubberEl && live !== lastLayerLive) {
       lubberEl.classList.toggle('live', live);
       lastLayerLive = live;
     }
-    if (state.aligned !== lastLayerAligned) {
+    if (lubberEl && state.aligned !== lastLayerAligned) {
       lubberEl.classList.toggle('aligned', state.aligned);
       lastLayerAligned = state.aligned;
     }
-    if (state.alignLocked !== lastLayerLocked) {
+    if (haloEl && state.alignLocked !== lastLayerLocked) {
       haloEl.classList.toggle('on', state.alignLocked);
       lastLayerLocked = state.alignLocked;
     }
+  }
+
+  // 视觉层：独立 rAF，只转盘面，不读游戏状态
+  function visualLoop() {
+    requestAnimationFrame(visualLoop);
+    if (state.screen !== 'play' || !rotorEl) return;
+
+    let target = visualHeading;
+    if (target == null) target = state.heading != null ? state.heading : 0;
+
+    if (visualSmooth == null) {
+      visualSmooth = target;
+    } else {
+      const delta = ((target - visualSmooth + 540) % 360) - 180;
+      visualSmooth = norm(visualSmooth + delta * 0.5);
+    }
+    rotorEl.style.transform = `rotate(${-visualSmooth}deg) translateZ(0)`;
   }
 
   function updateAlign() {
@@ -973,11 +997,15 @@
   }
 
   let lastDraw = 0;
+  let lastGameTick = 0;
   function loop(t) {
     requestAnimationFrame(loop);
     perf.frames++;
     if (state.screen !== 'play') return;       // 只有行进页需要刷新罗盘
     if (layerMode) {
+      // 游戏层 8Hz：对准、指针目标、数字；表盘由 visualLoop 单独 60Hz 转
+      if (t - lastGameTick < 125) return;
+      lastGameTick = t;
       updateAlign();
       const drawAt = perfMode ? performance.now() : 0;
       drawLayerCompass();
@@ -1028,8 +1056,9 @@
       const canvasInfo = layerMode
         ? `图层 ${dialCanvas ? dialCanvas.width : 0}×${dialCanvas ? dialCanvas.height : 0}`
         : `画布 ${cv.width}×${cv.height}`;
+      const src = state.headingAbsolute ? '绝对' : (state.relativeOnly ? '相对' : '无');
       perf.el.textContent =
-        `FPS ${fps} · 方向 ${hz}Hz · 绘制 ${ms}ms · 长任务 ${perf.longTasks}\n` +
+        `FPS ${fps} · 方向 ${hz}Hz ${src} · 绘制 ${ms}ms · 长任务 ${perf.longTasks}\n` +
         `${canvasInfo} · DPR ${window.devicePixelRatio}`;
       perf.frames = 0;
       perf.orient = 0;
@@ -3344,6 +3373,7 @@
       dragX = e.clientX;
       state.heading = norm((state.heading == null ? 0 : state.heading) + dx * 0.7);
       state.headingAbsolute = true;
+      visualHeading = state.heading;
       compassDirty = true;
     });
     el.addEventListener('pointerup', () => { dragX = null; });
@@ -3357,7 +3387,10 @@
     if (!state.simulating) return;
     if (e.key === 'ArrowLeft') state.heading = norm((state.heading || 0) - 5);
     if (e.key === 'ArrowRight') state.heading = norm((state.heading || 0) + 5);
-    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') compassDirty = true;
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      visualHeading = state.heading;
+      compassDirty = true;
+    }
   });
 
   /* ---------------- 结算 ---------------- */
@@ -3948,4 +3981,5 @@
   }
 
   requestAnimationFrame(loop);
+  requestAnimationFrame(visualLoop);
 })();
