@@ -9,6 +9,7 @@ WaytoAGI 1024 超能 Coding 周末 · 游戏赛道
 > 读 [docs/PRODUCT-TRUTH.md](docs/PRODUCT-TRUTH.md)。
 
 **在线试玩：** https://capibala160.github.io/waytoagi-1024/
+根路径会跳到 v2 新界面 `/v2/`；旧版根应用保留在 `/legacy.html`。
 电脑选「手机模拟」，手机有罗盘选「去真实城市」；游戏模式（会场寻宝）在首页顶部的「游戏」标签。
 
 ## 走法
