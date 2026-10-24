@@ -3406,6 +3406,20 @@
     updateArriveHint(lv);
   });
 
+  /* ---------------- 全屏罗盘 ---------------- */
+
+  $('btn-full-compass').addEventListener('click', () => {
+    saveProgress();
+    const q = new URLSearchParams();
+    q.set('name', state.dest ? state.dest.name : '目的地');
+    if (state.mode === 'free' && state.dest) {
+      q.set('destLat', String(state.dest.lat));
+      q.set('destLon', String(state.dest.lon));
+    }
+    if (state.target != null) q.set('target', String(Math.round(state.target)));
+    location.href = 'compass-widget.html?' + q.toString();
+  });
+
   /* ---------------- 输码 ---------------- */
 
   $('btn-arrive').addEventListener('click', () => {
