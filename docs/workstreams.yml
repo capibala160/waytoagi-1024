@@ -1,0 +1,163 @@
+# 机器可读的任务表 · 给 AI 代理
+# 用法：先读 AGENTS.md，再读本文件；只认领 status: todo 且没有阻塞的任务。
+# 更新：每完成一件事，把 status 改成 done，并在 docs/STATUS.md 写一行。
+
+project:
+  submission_app: "问津"
+  docs_concept: "犟针"
+  rule: "今天提交《问津》；docs/ 和 designs/ 是下一版，不要为它重写引擎。"
+  repo: "https://github.com/capibala160/waytoagi-1024"
+  updated: "2026-10-24"
+
+deadlines:
+  team_formation: "2026-10-25T12:00:00+08:00"
+  feature_freeze: "2026-10-25T12:00:00+08:00"
+  code_freeze: "2026-10-25T14:00:00+08:00"
+  internal_submit: "2026-10-25T15:00:00+08:00"
+  submission: "2026-10-25T16:00:00+08:00"
+  track_lock_and_opendev: "2026-10-25T19:00:00+08:00"
+
+owners:
+  Mike:
+    role: "产品 / 手机体验 / 验收 / 提交"
+    backup: ["C", "B"]
+    offline: true
+    note: "离线超过 30 分钟，B/C 直接拍板，写进 docs/DECISIONS.md。"
+  B:
+    role: "引擎 / 罗盘 / 关卡加载 / 计分 / 部署 / 视频"
+    backup: "C"
+  C:
+    role: "levels.js 内容 / 文案 / AI 素材 / 主角卡 / 截图"
+    backup: "B"
+
+tasks:
+  - id: deploy-https
+    title: "把现有 App 部署到稳定 HTTPS"
+    status: todo
+    owner: B
+    backup: C
+    due: "2026-10-25T12:00:00+08:00"
+    files: ["index.html", "style.css", "game.js", "levels.js"]
+    acceptance:
+      - "iPhone Safari 和 Android Chrome 都能打开"
+      - "index.html?demo=1 能完整玩一局"
+      - "有备用链接"
+    depends_on: []
+
+  - id: chengdu-levels
+    title: "成都会场 5 个关卡填进 levels.js"
+    status: todo
+    owner: C
+    backup: B
+    due: "2026-10-25T12:00:00+08:00"
+    files: ["levels.js"]
+    acceptance:
+      - "5 个点实地走过"
+      - "方位、步数、4 位码、线索都对"
+      - "每关能从上一关走到下一关"
+    depends_on: ["deploy-https"]
+
+  - id: protagonist-card
+    title: "出主角卡 PNG（1080×1350）"
+    status: todo
+    owner: C
+    backup: Mike
+    due: "2026-10-25T13:00:00+08:00"
+    files: ["assets/protagonist-card.png"]
+    acceptance:
+      - "三格：一句话、AI 立绘、游戏内截图"
+      - "有名字、3 个特质、一句口头禅"
+      - "赛道提交物里有这一张"
+    depends_on: []
+
+  - id: azhen-overlay
+    title: "把阿针加进游戏（浮层，不动引擎）"
+    status: todo
+    owner: B
+    backup: C
+    due: "2026-10-25T13:00:00+08:00"
+    files: ["index.html", "style.css"]
+    acceptance:
+      - "右下角一个小铜罗盘"
+      - "3 句台词：往那边 / 你确定？/ 到了。我早说过。"
+      - "不挡罗盘、不挡按钮、可关"
+    depends_on: ["deploy-https"]
+
+  - id: ask-button
+    title: "加“我问了个人”按钮"
+    status: todo
+    owner: B
+    backup: C
+    due: "2026-10-25T13:00:00+08:00"
+    files: ["index.html", "style.css", "game.js"]
+    acceptance:
+      - "点一次 +1"
+      - "弹“人情味 +1”"
+      - "结算页显示问了几个"
+      - "不影响计时和关卡"
+    depends_on: ["deploy-https"]
+
+  - id: demo-video
+    title: "录 3 分钟演示视频"
+    status: todo
+    owner: B
+    backup: C
+    due: "2026-10-25T15:00:00+08:00"
+    files: []
+    acceptance:
+      - "1080p，中文旁白 + 字幕"
+      - "完整一局：出发、走路、问人、输码、结算、旅程卡"
+      - "最后 5 秒留链接"
+    depends_on: ["chengdu-levels", "azhen-overlay", "ask-button"]
+
+  - id: description-screenshots
+    title: "300 字说明 + 3 张截图"
+    status: todo
+    owner: C
+    backup: Mike
+    due: "2026-10-25T14:30:00+08:00"
+    files: ["submission/description.md", "submission/screenshots/"]
+    acceptance:
+      - "300 字以内中文"
+      - "首页、罗盘、旅程卡各一张"
+      - "已粘贴到提交页"
+    depends_on: ["chengdu-levels"]
+
+  - id: submit
+    title: "提交作品"
+    status: todo
+    owner: B
+    backup: C
+    due: "2026-10-25T15:30:00+08:00"
+    files: ["submission/README.md"]
+    acceptance:
+      - "提交成功截图"
+      - "链接、主角卡、视频、说明、截图都齐"
+      - "15:00 完成，留 1 小时缓冲"
+    depends_on: ["deploy-https", "protagonist-card", "demo-video", "description-screenshots"]
+
+  - id: push-docs
+    title: "把 docs/ 和 designs/ 推到远端"
+    status: blocked
+    owner: Mike
+    backup: B
+    due: "2026-10-24T23:59:00+08:00"
+    blocked_reason: "当前账号 mikelux1 无权推 capibala160/waytoagi-1024（403）。需要 owner 加 collaborator，或切换账号，或明确同意 fork + PR。"
+    files: ["docs/", "designs/", "AGENTS.md"]
+    acceptance:
+      - "远端能看到 AGENTS.md"
+      - "远端能看到 docs/STATUS.md"
+    depends_on: []
+
+  - id: team-lock
+    title: "组队 + 赛道锁定 + OpenDev 登记"
+    status: todo
+    owner: Mike
+    backup: B
+    due: "2026-10-25T12:00:00+08:00"
+    note: "赛道锁定/登记截止 19:00，但作品必须 16:00 前交；建议今天做完。邮箱必须和 OpenDev 完全一致。"
+    acceptance:
+      - "队伍信息已确认（最多 4 人）"
+      - "游戏赛道已锁定"
+      - "OpenDev 已登记"
+    depends_on: []

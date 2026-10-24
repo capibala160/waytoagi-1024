@@ -35,6 +35,18 @@
 | [COPY.md](COPY.md) | 全部中文文案：首页、铸造、游戏、NPC、日记、海报、错误 | Mike、C |
 | [DESIGN-BRIEF.md](DESIGN-BRIEF.md) | 视觉方向、设计 token、20 个屏幕、组件、动效、验收 | C、下一轮做 HTML 稿的人 |
 | [API-NOTES.md](API-NOTES.md) | 图像生成 API 的接入方式与密钥安全 | C、B |
+| [STATUS.md](STATUS.md) | 当前看板：谁在做什么、卡在哪、下一步 | 全员 |
+| [DECISIONS.md](DECISIONS.md) | 已拍板和待决事项 | 全员 |
+| [workstreams.yml](workstreams.yml) | 机器可读的任务表（给 AI 代理） | B、C |
+
+---
+
+## 协作入口
+
+- [AGENTS.md](../AGENTS.md)：给 AI 代理和队友的入口，先读这一页
+- [STATUS.md](STATUS.md)：当前看板
+- [DECISIONS.md](DECISIONS.md)：决策记录
+- [workstreams.yml](workstreams.yml)：机器可读任务表
 
 ---
 
