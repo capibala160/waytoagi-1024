@@ -33,12 +33,18 @@
     hints: 0,
     hintShown: 0,
     heading: null,
+    headingAbsolute: false,
+    relativeOnly: false,
     target: null,
     aligned: false,
     sensorSeen: false,
     simulating: false,
     codeInput: '',
     checking: false,
+    startLevelIndex: 0,
+    completed: 0,
+    checkTimer: null,
+    resetTimer: null,
     finished: false,
     score: 0
   };
@@ -80,19 +86,33 @@
   let lastAbs = 0;
 
   function onOrient(e, isAbs) {
+    // 演示模式下忽略真实传感器：拖出来的角度不能被覆盖
+    if (forceDemo) return;
+
     const now = performance.now();
     if (isAbs) lastAbs = now;
     else if (now - lastAbs < 600) return;      // 有绝对事件时忽略相对事件
 
     let h = null;
+    let absolute = false;
+
     if (typeof e.webkitCompassHeading === 'number' && isFinite(e.webkitCompassHeading)) {
-      h = e.webkitCompassHeading;               // iOS
+      h = e.webkitCompassHeading;               // iOS，天然绝对
+      absolute = true;
     } else if (typeof e.alpha === 'number' && isFinite(e.alpha)) {
+      absolute = (e.absolute === true) || isAbs;
+      if (!absolute) {
+        // 相对 alpha 的零点随开机姿态变，不能当绝对方位用
+        state.relativeOnly = true;
+        return;
+      }
       h = 360 - e.alpha;
     }
+
     if (h === null) return;
 
     state.heading = norm(h);
+    state.headingAbsolute = true;
     state.sensorSeen = true;
 
     if (state.simulating && !forceDemo) {
@@ -105,7 +125,7 @@
   window.addEventListener('deviceorientation', (e) => onOrient(e, false), true);
 
   function updateAlign() {
-    if (state.target == null || state.heading == null) {
+    if (!state.headingAbsolute || state.target == null || state.heading == null) {
       state.aligned = false;
       return;
     }
@@ -214,6 +234,7 @@
   let lastDraw = 0;
   function loop(t) {
     requestAnimationFrame(loop);
+    if (state.screen !== 'play') return;       // 只有行进页需要刷新罗盘
     if (t - lastDraw < 33) return;
     lastDraw = t;
     updateAlign();
@@ -235,15 +256,21 @@
   }
 
   setInterval(() => {
-    if (!state.finished && (state.screen === 'play' || state.screen === 'code')) {
-      state.elapsed = (Date.now() - state.startAt) / 1000;
-    }
+    if (state.screen !== 'play' && state.screen !== 'code') return;
+    if (!state.finished) state.elapsed = (Date.now() - state.startAt) / 1000;
     $('hud-time').textContent = fmtTime(state.elapsed);
   }, 250);
 
   /* ---------------- 屏幕 ---------------- */
 
   function showScreen(name) {
+    if (name !== 'code') {
+      // 离开输码页时，取消上一轮的验码 / 清空回调
+      clearTimeout(state.checkTimer);
+      clearTimeout(state.resetTimer);
+      state.checkTimer = null;
+      state.resetTimer = null;
+    }
     Object.keys(screens).forEach((k) => screens[k].classList.toggle('active', k === name));
     state.screen = name;
     if (name === 'play') requestAnimationFrame(fitCompass);
@@ -278,7 +305,9 @@
       state.simulating = true;
       const tip = $('sim-tip');
       tip.hidden = false;
-      tip.textContent = '没检测到罗盘：拖动表盘模拟';
+      tip.textContent = state.relativeOnly
+        ? '浏览器只给了相对方向，不能找北：换 Chrome，或拖动表盘模拟'
+        : '没检测到罗盘：拖动表盘模拟';
     }, 2500);
   }
 
@@ -306,8 +335,18 @@
       if (navigator.wakeLock) wakeLock = await navigator.wakeLock.request('screen');
     } catch (e) { /* 忽略 */ }
   }
+
+  async function releaseWakeLock() {
+    try {
+      if (wakeLock) {
+        await wakeLock.release();
+        wakeLock = null;
+      }
+    } catch (e) { /* 忽略 */ }
+  }
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && state.screen !== 'start') requestWakeLock();
+    if (document.visibilityState === 'visible' &&
+        (state.screen === 'play' || state.screen === 'code')) requestWakeLock();
   });
 
   async function startGame() {
@@ -318,6 +357,8 @@
     await requestMotionPermission();
 
     state.level = startLevel;
+    state.startLevelIndex = startLevel;
+    state.completed = 0;
     state.hints = 0;
     state.hintShown = 0;
     state.elapsed = 0;
@@ -355,6 +396,8 @@
   /* ---------------- 输码 ---------------- */
 
   $('btn-arrive').addEventListener('click', () => {
+    clearTimeout(state.checkTimer);
+    clearTimeout(state.resetTimer);
     state.codeInput = '';
     state.checking = false;
     $('code-msg').textContent = '';
@@ -373,6 +416,7 @@
     const lv = LEVELS[state.level];
 
     if (state.codeInput === String(lv.code)) {
+      state.completed++;
       state.level++;
       if (state.level >= LEVELS.length) finish();
       else renderLevel();
@@ -382,7 +426,8 @@
     state.checking = true;
     $('code-msg').textContent = '不对，再看看纸上的数字';
     $('code-display').classList.add('shake');
-    setTimeout(() => {
+    clearTimeout(state.resetTimer);
+    state.resetTimer = setTimeout(() => {
       $('code-display').classList.remove('shake');
       state.codeInput = '';
       state.checking = false;
@@ -400,7 +445,10 @@
 
       state.codeInput += k;
       renderCode();
-      if (state.codeInput.length === 4) setTimeout(checkCode, 250);
+      if (state.codeInput.length === 4) {
+        clearTimeout(state.checkTimer);
+        state.checkTimer = setTimeout(checkCode, 250);
+      }
     });
   });
 
@@ -410,7 +458,10 @@
       if (state.codeInput.length < 4 && !state.checking) {
         state.codeInput += e.key;
         renderCode();
-        if (state.codeInput.length === 4) setTimeout(checkCode, 250);
+        if (state.codeInput.length === 4) {
+          clearTimeout(state.checkTimer);
+          state.checkTimer = setTimeout(checkCode, 250);
+        }
       }
     } else if (e.key === 'Backspace') {
       state.codeInput = state.codeInput.slice(0, -1);
@@ -458,8 +509,19 @@
     $('end-score').textContent = String(state.score);
     $('end-rating').textContent = rating(state.score);
 
-    drawCard(state.score);
+    const debug = state.startLevelIndex > 0;
+    const debugEl = $('end-debug');
+    debugEl.hidden = !debug;
+    debugEl.textContent = debug
+      ? `调试模式 · 从第 ${state.startLevelIndex + 1} 站开始，只完成 ${state.completed} 站`
+      : '';
+
+    drawCard(state.score, {
+      startLevel: state.startLevelIndex,
+      completed: state.completed
+    });
     showScreen('end');
+    releaseWakeLock();
   }
 
   function drawRose(x, cx, cy, r) {
@@ -488,7 +550,9 @@
     }
   }
 
-  function drawCard(score) {
+  function drawCard(score, opts) {
+    const doneStart = opts ? opts.startLevel : 0;
+    const doneEnd = opts ? opts.startLevel + opts.completed : LEVELS.length;
     const W = 750, H = 1200;
     const card = $('card');
     card.width = W;
@@ -504,6 +568,13 @@
     x.strokeStyle = 'rgba(232,176,75,.22)';
     x.lineWidth = 2;
     x.strokeRect(26, 26, W - 52, H - 52);
+
+    if (doneStart > 0) {
+      x.fillStyle = 'rgba(232,176,75,.55)';
+      x.font = '400 20px -apple-system,"PingFang SC",sans-serif';
+      x.textAlign = 'right';
+      x.fillText('调试成绩', W - 56, 78);
+    }
 
     x.textAlign = 'center';
 
@@ -549,17 +620,24 @@
     const startX = W / 2 - (n - 1) * gap / 2;
     for (let i = 0; i < n; i++) {
       const cx = startX + i * gap;
+      const done = i >= doneStart && i < doneEnd;
       x.beginPath();
       x.arc(cx, 820, 10, 0, Math.PI * 2);
-      x.fillStyle = '#e8b04b';
-      x.fill();
-      x.strokeStyle = '#0b0d10';
-      x.lineWidth = 3;
-      x.beginPath();
-      x.moveTo(cx - 4, 820);
-      x.lineTo(cx - 1, 824);
-      x.lineTo(cx + 5, 815);
-      x.stroke();
+      if (done) {
+        x.fillStyle = '#e8b04b';
+        x.fill();
+        x.strokeStyle = '#0b0d10';
+        x.lineWidth = 3;
+        x.beginPath();
+        x.moveTo(cx - 4, 820);
+        x.lineTo(cx - 1, 824);
+        x.lineTo(cx + 5, 815);
+        x.stroke();
+      } else {
+        x.strokeStyle = 'rgba(232,176,75,.28)';
+        x.lineWidth = 2;
+        x.stroke();
+      }
     }
 
     drawRose(x, W / 2, 950, 88);
