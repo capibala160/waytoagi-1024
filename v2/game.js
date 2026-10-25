@@ -88,6 +88,8 @@
     hints: 0,
     hintShown: 0,
     asks: 0,
+    asksLog: [],          // 每次问路记一条：{ t, who, what, mood }
+    askMood: '',
     lastVibeAt: 0,
     toastTimer: null,
     heading: null,
@@ -288,6 +290,7 @@
           destId: state.dest.id,
           elapsed: state.elapsed,
           asks: state.asks,
+          asksLog: state.asksLog.slice(-20),
           savedAt: Date.now(),
           path: state.path.slice(-40)
         }));
@@ -2316,6 +2319,7 @@
     state.elapsed = j.time || 0;
     state.score = j.score || 0;
     state.asks = j.asks || 0;
+    state.asksLog = Array.isArray(j.asksLog) ? j.asksLog.slice() : [];
     state.hints = j.hints || 0;
     state.pieces = Array.isArray(j.pieces) ? j.pieces : [];
     state.story = Array.isArray(j.story) ? j.story : [];
@@ -2347,6 +2351,8 @@
         completed: j.completed || 0
       }
     };
+
+    renderAsksLog();
 
     if (j.mode === 'fog') {
       $('stats-main').hidden = true;
@@ -2511,6 +2517,7 @@
     state.hints = 0;
     state.hintShown = 0;
     state.asks = 0;
+    state.asksLog = [];
     state.story = [];
     state.stamps = [];
     state.pieces = [];
@@ -2615,6 +2622,7 @@
     $('end-rating').textContent = state.dest ? `到 了 · ${state.dest.name}` : '到 了';
     $('stat-hints').hidden = true;
     renderEndExtras();
+    renderAsksLog();
     state.firstClear = false;
     const freeBadges = earnedBadges();
 
@@ -2631,6 +2639,7 @@
       dest: destSnapshot(state.dest),
       time: state.elapsed,
       asks: state.asks,
+      asksLog: state.asksLog.slice(),
       hints: 0,
       score: state.score,
       practice,
@@ -2698,6 +2707,7 @@
     state.hints = 0;
     state.hintShown = 0;
     state.asks = 0;
+    state.asksLog = [];
     state.story = [];
     state.stamps = [];
     state.pieces = [];
@@ -2933,6 +2943,7 @@
     state.hints = 0;
     state.hintShown = 0;
     state.asks = 0;
+    state.asksLog = [];
     state.story = [];
     state.stamps = [];
     state.pieces = [];
@@ -3391,6 +3402,7 @@
     state.hints = 0;
     state.hintShown = 0;
     state.asks = 0;
+    state.asksLog = [];
     state.elapsed = 0;
     state.finished = false;
     state.score = 0;
@@ -3433,12 +3445,54 @@
     takeHint();
   });
 
-  $('btn-ask').addEventListener('click', () => {
-    state.asks++;
-    logDiary('问了个人');
-    showToast(`问了第 ${state.asks} 个人`);
+  /* ---------------- 问路记录：问谁、问什么、什么心情 ---------------- */
+  function renderAskChips() {
+    document.querySelectorAll('#ask-who-chips .ask-chip').forEach((b) => {
+      b.classList.toggle('on', b.dataset.who === $('ask-who').value.trim());
+    });
+    document.querySelectorAll('#ask-mood-chips .ask-chip').forEach((b) => {
+      b.classList.toggle('on', b.dataset.mood === state.askMood);
+    });
+  }
+
+  function openAskSheet() {
+    state.askMood = '';
+    $('ask-who').value = '';
+    $('ask-what').value = '';
+    renderAskChips();
+    $('ask-sheet').hidden = false;
+    $('ask-who').focus();
+  }
+
+  function closeAskSheet() {
+    $('ask-sheet').hidden = true;
+  }
+
+  function saveAsk() {
+    const who = $('ask-who').value.trim() || '过路人';
+    const what = $('ask-what').value.trim();
+    const mood = state.askMood;
+    state.asksLog.push({ t: Math.round(elapsedNow()), who, what, mood });
+    state.asks += 1;
+    logDiary(`问了${who}${what ? '：' + what : ''}${mood ? '（' + mood + '）' : ''}`);
+    showToast(`记下了 · 问了${who}`);
+    closeAskSheet();
     saveProgress();
+  }
+
+  $('btn-ask').addEventListener('click', openAskSheet);
+  $('btn-ask-save').addEventListener('click', saveAsk);
+  $('btn-ask-cancel').addEventListener('click', closeAskSheet);
+  document.querySelectorAll('#ask-who-chips .ask-chip').forEach((b) => {
+    b.addEventListener('click', () => { $('ask-who').value = b.dataset.who; renderAskChips(); });
   });
+  document.querySelectorAll('#ask-mood-chips .ask-chip').forEach((b) => {
+    b.addEventListener('click', () => {
+      state.askMood = state.askMood === b.dataset.mood ? '' : b.dataset.mood;
+      renderAskChips();
+    });
+  });
+  $('ask-who').addEventListener('input', renderAskChips);
 
   /* ---------------- 到站确认 ---------------- */
 
@@ -4013,6 +4067,29 @@
     if (state.asks >= 3) list.push('同行向导');
     if (!state.free && state.score >= 850) list.push('活地图');
     return list;
+  }
+
+  // 结算页把每一次问路列出来：谁、说了什么、当时的心情
+  function renderAsksLog() {
+    const box = $('end-asks-log');
+    const list = state.asksLog || [];
+    box.replaceChildren();
+    if (!list.length) {
+      box.hidden = true;
+      return;
+    }
+    box.hidden = false;
+    list.forEach((a) => {
+      const line = document.createElement('div');
+      line.className = 'ask-log-line';
+      const who = document.createElement('b');
+      who.textContent = a.who || '过路人';
+      const rest = document.createElement('span');
+      rest.textContent = (a.what ? '：' + a.what : '') + (a.mood ? ' · ' + a.mood : '');
+      line.appendChild(who);
+      line.appendChild(rest);
+      box.appendChild(line);
+    });
   }
 
   function renderEndExtras() {

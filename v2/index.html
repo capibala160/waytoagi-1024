@@ -8,9 +8,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <link rel="icon" href="favicon.svg" type="image/svg+xml" />
 <title>问心·指南针 · 只指方向，不指路</title>
-<link rel="stylesheet" href="base.css?v=27" />
-<link rel="stylesheet" href="theme.css?v=27" />
-<link rel="stylesheet" href="game.css?v=27" />
+<link rel="stylesheet" href="base.css?v=28" />
+<link rel="stylesheet" href="theme.css?v=28" />
+<link rel="stylesheet" href="game.css?v=28" />
 </head>
 <body>
 
@@ -401,7 +401,7 @@
       <div id="compass-layer" class="compass-layer" hidden>
         <div id="compass-rotor" class="compass-rotor">
           <img class="compass-plate" src="assets/compass/plate.webp" alt="" draggable="false" />
-          <img class="compass-markings" src="assets/compass/dial-markings.svg?v=27" alt="" draggable="false" />
+          <img class="compass-markings" src="assets/compass/dial-markings.svg?v=28" alt="" draggable="false" />
           <img id="compass-dial" class="compass-dial" alt="" hidden />
           <img id="compass-needle" class="compass-needle" src="assets/compass/needle.webp" alt="" draggable="false" />
         </div>
@@ -521,6 +521,7 @@
     <div id="end-pieces" class="end-pieces"></div>
     <div id="end-badges" class="end-badges"></div>
     <div id="end-story" class="end-story"></div>
+    <div id="end-asks-log" class="end-asks-log" hidden></div>
     <div id="end-debug" class="end-debug" hidden></div>
 
     <canvas id="card" class="card"></canvas>
@@ -637,13 +638,39 @@
     </button>
   </div>
 
+  <!-- 记一次问路：问了谁、问了什么、当时什么心情 -->
+  <div id="ask-sheet" class="gate" hidden>
+    <div class="gate-card" role="dialog" aria-modal="true" aria-labelledby="ask-title">
+      <p class="eyebrow">问路</p>
+      <h3 id="ask-title" class="gate-title">你问了谁？</h3>
+      <div class="ask-chips" id="ask-who-chips">
+        <button type="button" class="ask-chip" data-who="下棋的大爷">下棋的大爷</button>
+        <button type="button" class="ask-chip" data-who="遛狗的阿姨">遛狗的阿姨</button>
+        <button type="button" class="ask-chip" data-who="路边店员">路边店员</button>
+        <button type="button" class="ask-chip" data-who="扫地的大爷">扫地的大爷</button>
+        <button type="button" class="ask-chip" data-who="过路人">过路人</button>
+      </div>
+      <input id="ask-who" class="ask-input" maxlength="20" placeholder="或者自己写：谁给你指的路" />
+      <input id="ask-what" class="ask-input" maxlength="40" placeholder="他怎么说？（可不填）" />
+      <p class="gate-hint">此刻的心情</p>
+      <div class="ask-chips" id="ask-mood-chips">
+        <button type="button" class="ask-chip" data-mood="好奇">好奇</button>
+        <button type="button" class="ask-chip" data-mood="着急">着急</button>
+        <button type="button" class="ask-chip" data-mood="平静">平静</button>
+        <button type="button" class="ask-chip" data-mood="累了">累了</button>
+      </div>
+      <button id="btn-ask-save" class="btn primary wide">记下</button>
+      <button id="btn-ask-cancel" class="text-btn wide">取消</button>
+    </div>
+  </div>
+
 </div>
 
-<script src="destinations.js?v=27"></script>
-<script src="destinations-city.js?v=27"></script>
-<script src="levels.js?v=27"></script>
-<script src="packs.js?v=27"></script>
-<script src="game.js?v=27"></script>
-<script src="companion.js?v=27"></script>
+<script src="destinations.js?v=28"></script>
+<script src="destinations-city.js?v=28"></script>
+<script src="levels.js?v=28"></script>
+<script src="packs.js?v=28"></script>
+<script src="game.js?v=28"></script>
+<script src="companion.js?v=28"></script>
 </body>
 </html>
