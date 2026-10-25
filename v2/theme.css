@@ -318,6 +318,8 @@ button, input, textarea, a { font-family: inherit; }
 
 .home-q {
   margin: 0;
+  /* 结尾是全角「？」，字宽满格但墨迹偏左；补半格让视觉重心真正居中 */
+  padding-left: .5em;
   font-family: var(--serif);
   font-size: clamp(30px, 9vw, 38px);
   font-weight: 600;
@@ -327,6 +329,7 @@ button, input, textarea, a { font-family: inherit; }
 
 .home-sub {
   margin: 9px 0 0;
+  /* 这句已经占满 390 宽，加内边距会换行，所以不做视觉补偿 */
   color: var(--text-2);
   font-size: 16px;
   line-height: 1.65;
