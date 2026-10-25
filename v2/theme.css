@@ -2080,3 +2080,47 @@ button, input, textarea, a { font-family: inherit; }
   .dest-cards { gap: 11px; }
   .dest-item { padding-top: 15px; padding-bottom: 15px; }
 }
+
+/* ---------- 进真实出行前的方向自检弹层 ---------- */
+.gate {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: end center;
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  background: rgba(4, 6, 8, .62);
+  backdrop-filter: blur(3px);
+}
+
+.gate-card {
+  width: 100%;
+  max-width: 430px;
+  padding: 20px 18px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg, 18px);
+  background: var(--surface-1);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, .45);
+}
+
+.gate-title {
+  margin: 6px 0 10px;
+  font-family: var(--serif);
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--text);
+}
+
+.gate-body,
+.gate-hint {
+  margin: 0 0 10px;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--text-2);
+}
+
+.gate-hint { color: var(--text-3, var(--text-2)); font-size: 14px; }
+
+.gate .btn,
+.gate .text-btn { margin-top: 8px; }

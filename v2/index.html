@@ -8,9 +8,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <link rel="icon" href="favicon.svg" type="image/svg+xml" />
 <title>问心·指南针 · 只指方向，不指路</title>
-<link rel="stylesheet" href="base.css?v=13" />
-<link rel="stylesheet" href="theme.css?v=13" />
-<link rel="stylesheet" href="game.css?v=13" />
+<link rel="stylesheet" href="base.css?v=14" />
+<link rel="stylesheet" href="theme.css?v=14" />
+<link rel="stylesheet" href="game.css?v=14" />
 </head>
 <body>
 
@@ -278,6 +278,22 @@
     </div>
 
     <p class="page-note">随时可以退出。没有人会扣分。</p>
+
+    <!-- 进真实出行前的方向自检：浏览器不给方向数据时先说明，不让人进去才发现指针不转 -->
+    <div id="sensor-gate" class="gate" hidden>
+      <div class="gate-card" role="dialog" aria-modal="true" aria-labelledby="gate-title">
+        <p class="eyebrow">方向自检</p>
+        <h3 id="gate-title" class="gate-title">这台手机的浏览器没有给方向数据</h3>
+        <p class="gate-body">
+          它不支持网页读取手机朝向，所以进了真实城市，指针也不会跟着你转。
+          定位和「我到了」不受影响。
+        </p>
+        <p class="gate-hint">可以换个浏览器（Chrome / 系统浏览器）再试，或者选下面一种继续。</p>
+        <button id="btn-gate-sim" class="btn primary wide">改用模拟</button>
+        <button id="btn-gate-continue" class="btn ghost wide">继续，我拖表盘对方向</button>
+        <button id="btn-gate-back" class="text-btn wide">返回</button>
+      </div>
+    </div>
   </section>
 
   <!-- ============================================================
@@ -369,7 +385,7 @@
       <div id="compass-layer" class="compass-layer" hidden>
         <div id="compass-rotor" class="compass-rotor">
           <img class="compass-plate" src="assets/compass/plate.webp" alt="" draggable="false" />
-          <img class="compass-markings" src="assets/compass/dial-markings.svg?v=13" alt="" draggable="false" />
+          <img class="compass-markings" src="assets/compass/dial-markings.svg?v=14" alt="" draggable="false" />
           <img id="compass-dial" class="compass-dial" alt="" hidden />
           <img id="compass-needle" class="compass-needle" src="assets/compass/needle.webp" alt="" draggable="false" />
         </div>
@@ -607,11 +623,11 @@
 
 </div>
 
-<script src="destinations.js?v=13"></script>
-<script src="destinations-city.js?v=13"></script>
-<script src="levels.js?v=13"></script>
-<script src="packs.js?v=13"></script>
-<script src="game.js?v=13"></script>
-<script src="companion.js?v=13"></script>
+<script src="destinations.js?v=14"></script>
+<script src="destinations-city.js?v=14"></script>
+<script src="levels.js?v=14"></script>
+<script src="packs.js?v=14"></script>
+<script src="game.js?v=14"></script>
+<script src="companion.js?v=14"></script>
 </body>
 </html>

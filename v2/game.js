@@ -4395,9 +4395,60 @@
   $('btn-how-sim').addEventListener('click', () => {
     if (state.pendingDest) startFog(state.pendingDest);
   });
-  $('btn-how-real').addEventListener('click', () => {
-    if (state.pendingDest) startFree(state.pendingDest);
+
+  /* ---------------- 进真实出行前的方向自检 ---------------- */
+  // 有的浏览器（实测华为/鸿蒙）拿不到 alpha，进去之后指针不跟手。
+  // 与其让人进去才发现，不如在门口用 1.5 秒探一下，先说清楚再让他选。
+  let gateDest = null;
+  let gatePending = false;
+
+  function headingIsLive(withinMs) {
+    return state.sensorSeen && performance.now() - state.lastOrientAt < (withinMs || 3000);
+  }
+
+  function openSensorGate(dest) {
+    gateDest = dest;
+    $('sensor-gate').hidden = false;
+  }
+
+  function closeSensorGate() {
+    $('sensor-gate').hidden = true;
+    gateDest = null;
+  }
+
+  function enterRealTravel(dest) {
+    if (!dest || gatePending) return;
+    if (headingIsLive()) { startFree(dest); return; }
+    gatePending = true;
+    const startedAt = performance.now();
+    showToast('正在检查方向…');
+    const timer = setInterval(() => {
+      if (headingIsLive(1500)) {
+        clearInterval(timer);
+        gatePending = false;
+        startFree(dest);
+        return;
+      }
+      if (performance.now() - startedAt > 1500) {
+        clearInterval(timer);
+        gatePending = false;
+        openSensorGate(dest);
+      }
+    }, 150);
+  }
+
+  $('btn-how-real').addEventListener('click', () => enterRealTravel(state.pendingDest));
+  $('btn-gate-sim').addEventListener('click', () => {
+    const d = gateDest;
+    closeSensorGate();
+    if (d) startFog(d);
   });
+  $('btn-gate-continue').addEventListener('click', () => {
+    const d = gateDest;
+    closeSensorGate();
+    if (d) startFree(d);
+  });
+  $('btn-gate-back').addEventListener('click', closeSensorGate);
 
   $('btn-reroll').addEventListener('click', renderDestCards);
 
