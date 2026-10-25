@@ -780,6 +780,23 @@
 
   let lastAbs = 0;
 
+  /* ---------------- 微信内置浏览器提示 ---------------- */
+  // 微信里的 WebView 不给方向传感器，指针不跟手。与其让人以为坏了，不如在首页说明。
+  const WX_TIP_KEY = 'wenxin-wx-tip-dismissed';
+
+  function initWeChatTip() {
+    const ua = navigator.userAgent || '';
+    if (!/MicroMessenger/i.test(ua)) return;
+    try {
+      if (localStorage.getItem(WX_TIP_KEY) === '1') return;
+    } catch (err) { /* 隐私模式下拿不到 localStorage，照常提示 */ }
+    $('wx-tip').hidden = false;
+    $('btn-wx-close').addEventListener('click', () => {
+      $('wx-tip').hidden = true;
+      try { localStorage.setItem(WX_TIP_KEY, '1'); } catch (err) { /* 忽略 */ }
+    });
+  }
+
   function onOrient(e, isAbs) {
     // 演示模式下忽略真实传感器：拖出来的角度不能被覆盖
     if (forceDemo) return;
@@ -4658,6 +4675,7 @@
   loadVariant();
   loadChallenge();
   loadJourneys();
+  initWeChatTip();
   updatePackUI();
   renderHome();
   refreshResume();

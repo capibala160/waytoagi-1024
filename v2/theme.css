@@ -2124,3 +2124,33 @@ button, input, textarea, a { font-family: inherit; }
 
 .gate .btn,
 .gate .text-btn { margin-top: 8px; }
+
+/* ---------- 微信内置浏览器提示 ---------- */
+.wx-tip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(232, 176, 75, .28);
+  border-radius: var(--radius-md, 12px);
+  background: rgba(232, 176, 75, .08);
+  color: var(--text-2);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.wx-tip-text { flex: 1; }
+
+.wx-tip-close {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  margin: -8px -8px -8px 0;
+  border: 0;
+  background: none;
+  color: var(--text-3, var(--text-2));
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}

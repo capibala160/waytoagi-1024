@@ -8,9 +8,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <link rel="icon" href="favicon.svg" type="image/svg+xml" />
 <title>问心·指南针 · 只指方向，不指路</title>
-<link rel="stylesheet" href="base.css?v=14" />
-<link rel="stylesheet" href="theme.css?v=14" />
-<link rel="stylesheet" href="game.css?v=14" />
+<link rel="stylesheet" href="base.css?v=15" />
+<link rel="stylesheet" href="theme.css?v=15" />
+<link rel="stylesheet" href="game.css?v=15" />
 </head>
 <body>
 
@@ -33,6 +33,12 @@
         <button id="btn-theme" class="theme-toggle" aria-label="切换明暗">☾</button>
       </div>
     </header>
+
+    <!-- 微信里点开时先说明：内置浏览器不给传感器，罗盘不跟手 -->
+    <div id="wx-tip" class="wx-tip" hidden>
+      <span class="wx-tip-text">微信里罗盘不跟手。点右上角 ··· → 在浏览器打开。</span>
+      <button id="btn-wx-close" class="wx-tip-close" aria-label="知道了">×</button>
+    </div>
 
     <div class="mode-switch" role="tablist" aria-label="模式">
       <button class="mode-tab active" data-mode-tab="explore" role="tab" aria-selected="true">探索</button>
@@ -385,7 +391,7 @@
       <div id="compass-layer" class="compass-layer" hidden>
         <div id="compass-rotor" class="compass-rotor">
           <img class="compass-plate" src="assets/compass/plate.webp" alt="" draggable="false" />
-          <img class="compass-markings" src="assets/compass/dial-markings.svg?v=14" alt="" draggable="false" />
+          <img class="compass-markings" src="assets/compass/dial-markings.svg?v=15" alt="" draggable="false" />
           <img id="compass-dial" class="compass-dial" alt="" hidden />
           <img id="compass-needle" class="compass-needle" src="assets/compass/needle.webp" alt="" draggable="false" />
         </div>
@@ -623,11 +629,11 @@
 
 </div>
 
-<script src="destinations.js?v=14"></script>
-<script src="destinations-city.js?v=14"></script>
-<script src="levels.js?v=14"></script>
-<script src="packs.js?v=14"></script>
-<script src="game.js?v=14"></script>
-<script src="companion.js?v=14"></script>
+<script src="destinations.js?v=15"></script>
+<script src="destinations-city.js?v=15"></script>
+<script src="levels.js?v=15"></script>
+<script src="packs.js?v=15"></script>
+<script src="game.js?v=15"></script>
+<script src="companion.js?v=15"></script>
 </body>
 </html>
