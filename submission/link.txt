@@ -1,0 +1,8 @@
+可玩链接（手机/桌面都能开，根路径自动进 v2）：
+https://capibala160.github.io/waytoagi-1024/
+
+备用罗盘校准页（iOS 在 iframe 里申请方向权限被拒时用）：
+https://capibala160.github.io/waytoagi-1024/compass-kit/demo.html
+
+旧版（仅回滚用，不要拿去验收）：
+https://capibala160.github.io/waytoagi-1024/legacy.html
