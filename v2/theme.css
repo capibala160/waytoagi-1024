@@ -277,6 +277,8 @@ button, input, textarea, a { font-family: inherit; }
   flex: none;
 }
 
+.mode-switch.single { grid-template-columns: 1fr; }
+
 .mode-tab {
   min-height: 44px;
   border: 0;
@@ -302,7 +304,7 @@ button, input, textarea, a { font-family: inherit; }
 /* ---------------------------------------------------------- home */
 #screen-start { justify-content: flex-start; align-items: stretch; }
 
-.home-hero { margin-top: 18px; }
+.home-hero { margin-top: 18px; text-align: center; }
 
 .home-eyebrow,
 .eyebrow {

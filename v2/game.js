@@ -1269,6 +1269,11 @@
       tab.classList.toggle('active', active);
       tab.setAttribute('aria-selected', active ? 'true' : 'false');
     });
+    // 只剩一个标签时铺满整行，别让它孤零零占左半边、右边留一块空白
+    document.querySelectorAll('.mode-switch').forEach((sw) => {
+      const shown = [...sw.querySelectorAll('[data-mode-tab]')].filter((t) => !t.hidden).length;
+      sw.classList.toggle('single', shown === 1);
+    });
   }
 
   /* ---------------- 关卡 ---------------- */
