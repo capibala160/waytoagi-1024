@@ -367,6 +367,8 @@ button, input, textarea, a { font-family: inherit; }
   border: 0;
   border-radius: 12px;
   background: transparent;
+  /* base.css 给输入框留了投影，这里清掉，否则浅色主题会多出一圈白色浮框 */
+  box-shadow: none;
   color: var(--text);
   font-family: inherit;
   font-size: 16px;
@@ -2158,4 +2160,64 @@ button, input, textarea, a { font-family: inherit; }
   font-size: 20px;
   line-height: 1;
   cursor: pointer;
+}
+
+/* ---------- 桌面大屏：右侧一枚静态罗盘，内容不再是一条窄柱 ---------- */
+.home-aside { display: none; }
+
+@media (min-width: 960px) {
+  /* 只在首页把壳放宽；其他屏仍是手机宽度，避免罗盘/卡片被拉变形 */
+  #app:has(#screen-start.active) { max-width: 1040px; }
+
+  #screen-start.active {
+    position: relative;
+    padding-right: 440px;
+  }
+
+  .home-aside {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    position: absolute;
+    top: 96px;
+    right: 10px;
+    width: 400px;
+    padding: 24px 0 0;
+    text-align: center;
+  }
+
+  .aside-compass { position: relative; width: 320px; height: 320px; }
+
+  .aside-plate,
+  .aside-needle {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  /* 素材是方形底图，用圆形遮罩把它化进页面背景 */
+  .aside-plate,
+  .aside-needle {
+    -webkit-mask-image: radial-gradient(circle at center, #000 56%, transparent 62%);
+    mask-image: radial-gradient(circle at center, #000 56%, transparent 62%);
+  }
+
+  .aside-needle { transform: rotate(28deg); }
+
+  .aside-line {
+    margin: 0;
+    font-family: var(--serif);
+    font-size: 22px;
+    letter-spacing: .08em;
+    color: var(--text);
+  }
+
+  .aside-sub {
+    margin: 0;
+    font-size: 14px;
+    color: var(--text-3);
+  }
 }
