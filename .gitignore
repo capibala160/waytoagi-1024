@@ -9,3 +9,6 @@ assets/source/
 projectprompt-v2.txt
 .playwright-cli/
 output/
+
+# 演示视频体积大，只上传到赛事表单，不进仓库
+submission/demo.mp4
