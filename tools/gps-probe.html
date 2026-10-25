@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>定位探针 · 问心</title>
+<style>
+  :root { color-scheme: dark; }
+  body {
+    margin: 0; padding: 18px;
+    background: #0b0d10; color: #f0ece3;
+    font: 15px/1.55 -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  p.note { color: #8a8578; font-size: 13px; margin: 0 0 16px; }
+  .row {
+    display: flex; justify-content: space-between; gap: 12px;
+    padding: 10px 12px; margin-bottom: 8px;
+    border: 1px solid rgba(232,176,75,.22); border-radius: 10px;
+    background: #12161b;
+  }
+  .k { color: #8a8578; flex: none; }
+  .v { font-family: ui-monospace, Menlo, Consolas, monospace; text-align: right; word-break: break-all; }
+  .ok { color: #7ad18a; }
+  .bad { color: #ff6b5c; }
+  .warn { color: #e8b04b; }
+  #verdict { margin-top: 16px; padding: 14px; border-radius: 12px; font-size: 16px; }
+  button {
+    width: 100%; margin-top: 14px; padding: 14px;
+    border-radius: 10px; border: 1px solid rgba(232,176,75,.4);
+    background: #1a1d22; color: #e8b04b; font-size: 16px;
+  }
+</style>
+</head>
+<body>
+<h1>定位探针</h1>
+<p class="note">打开就别关，站着等 10 秒。把这一页截图发回来即可。</p>
+
+<div class="row"><span class="k">权限</span><span class="v" id="perm">—</span></div>
+<div class="row"><span class="k">采样数</span><span class="v" id="count">0</span></div>
+<div class="row"><span class="k">时间戳原值</span><span class="v" id="ts">—</span></div>
+<div class="row"><span class="k">看起来是</span><span class="v" id="unit">—</span></div>
+<div class="row"><span class="k">距今</span><span class="v" id="age">—</span></div>
+<div class="row"><span class="k">精度</span><span class="v" id="acc">—</span></div>
+<div class="row"><span class="k">坐标</span><span class="v" id="pos">—</span></div>
+<div class="row"><span class="k">问心会怎么判</span><span class="v" id="judge">—</span></div>
+
+<div id="verdict">等待定位数据…</div>
+<button id="again">重新开始</button>
+
+<script>
+(() => {
+  'use strict';
+  const MAX_AGE = 15000;   // 与 v2 的 GPS_SAMPLE_MAX_AGE 一致
+  const LIMIT = 50;        // 与 v2 的 GPS_ACCURACY_LIMIT 一致
+  let watchId = null;
+  let n = 0;
+
+  const $ = (id) => document.getElementById(id);
+  const verdict = $('verdict');
+
+  function unitOf(ts) {
+    // 正常是毫秒时间戳（约 1.7e12）；秒级时间戳会在 1.7e9 量级
+    if (!Number.isFinite(ts)) return '缺失';
+    if (ts > 1e11) return '毫秒（正常）';
+    if (ts > 1e8) return '秒（异常！差 1000 倍）';
+    return '未知（很小）';
+  }
+
+  function onPos(pos) {
+    n += 1;
+    const c = pos.coords;
+    const ts = pos.timestamp;
+    const age = Date.now() - ts;
+    const acc = Number.isFinite(c.accuracy) ? c.accuracy : null;
+
+    $('count').textContent = String(n);
+    $('ts').textContent = String(ts);
+    $('unit').textContent = unitOf(ts);
+    $('unit').className = 'v ' + (ts > 1e11 ? 'ok' : 'bad');
+    $('age').textContent = Number.isFinite(age) ? Math.round(age) + ' ms' : '—';
+    $('acc').textContent = acc != null ? Math.round(acc) + ' m' : '—';
+    $('pos').textContent = c.latitude.toFixed(6) + ', ' + c.longitude.toFixed(6);
+
+    const stale = age > MAX_AGE;
+    const weak = acc == null || acc > LIMIT;
+    $('age').className = 'v ' + (stale ? 'bad' : 'ok');
+    $('acc').className = 'v ' + (weak ? 'warn' : 'ok');
+
+    let judge, cls;
+    if (stale) {
+      judge = '过期 → 丢弃'; cls = 'bad';
+    } else if (weak) {
+      judge = '信号弱 → 不计抵达'; cls = 'warn';
+    } else {
+      judge = '已定位 ✓'; cls = 'ok';
+    }
+    $('judge').textContent = judge;
+    $('judge').className = 'v ' + cls;
+
+    if (stale && ts < 1e11) {
+      verdict.className = 'bad';
+      verdict.textContent = '时间戳是「秒」，问心按毫秒算 → 永远判过期。这就是原因，需要在代码里 ×1000。';
+    } else if (stale) {
+      verdict.className = 'warn';
+      verdict.textContent = '时间戳格式正常，但坐标是旧的：手机还没拿到新的 GPS 定位。走到空旷处、确认权限是「精确位置」。';
+    } else if (weak) {
+      verdict.className = 'warn';
+      verdict.textContent = '时间戳正常，精度不够（>50 m）。大概率选的是「模糊位置」，改成「精确位置」，或再往空旷处走。';
+    } else {
+      verdict.className = 'ok';
+      verdict.textContent = '一切正常：问心会显示「已定位」。';
+    }
+  }
+
+  function onErr(err) {
+    const map = {
+      1: '被拒绝（用户点了不允许）',
+      2: '拿不到位置（信号/硬件）',
+      3: '超时（12 秒没返回）'
+    };
+    $('perm').textContent = map[err.code] || ('错误 ' + err.code);
+    $('perm').className = 'v bad';
+    verdict.className = 'bad';
+    verdict.textContent = '定位失败：' + (err.message || map[err.code] || '');
+  }
+
+  function start() {
+    if (watchId != null) navigator.geolocation.clearWatch(watchId);
+    n = 0;
+    $('perm').textContent = '请求中…';
+    $('perm').className = 'v';
+    verdict.className = '';
+    verdict.textContent = '等待定位数据…';
+    if (!navigator.geolocation) {
+      $('perm').textContent = '这台设备没有定位能力';
+      return;
+    }
+    watchId = navigator.geolocation.watchPosition(onPos, onErr, {
+      enableHighAccuracy: true,
+      maximumAge: 2000,
+      timeout: 12000
+    });
+    navigator.permissions && navigator.permissions.query({ name: 'geolocation' })
+      .then((p) => { $('perm').textContent = p.state; })
+      .catch(() => {});
+  }
+
+  $('again').addEventListener('click', start);
+  start();
+})();
+</script>
+</body>
+</html>
