@@ -2277,3 +2277,10 @@ button, input, textarea, a { font-family: inherit; }
 
 .ask-log-line b { color: var(--text); font-weight: 600; }
 .ask-log-line em { color: var(--text-3); font-style: normal; }
+
+/* 未完成的那一趟：和已完成区分开 */
+.journey-item.partial {
+  border-style: dashed;
+  border-color: rgba(232, 176, 75, .45);
+}
+.journey-item.partial em { color: var(--amber); }

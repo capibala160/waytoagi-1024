@@ -2232,13 +2232,16 @@
     const list = $('journey-list');
     list.replaceChildren();
 
-    if (!state.journeys.length) {
+    // 走到一半就退出的一样要留痕：直接读「继续上次」的存档
+    const partial = readProgress();
+
+    if (!state.journeys.length && !partial) {
       const empty = document.createElement('div');
       empty.className = 'journey-empty';
       const title = document.createElement('b');
       title.textContent = '还没有完成的旅程';
       const note = document.createElement('p');
-      note.textContent = '选一个目的地，走完就有第一段记录。';
+      note.textContent = '走完一整趟会记一条；走到一半退出的，也会留在这里。';
       const start = document.createElement('button');
       start.className = 'btn primary wide';
       start.type = 'button';
@@ -2249,6 +2252,31 @@
       empty.appendChild(start);
       list.appendChild(empty);
       return;
+    }
+
+    if (partial) {
+      const dest = (window.DESTINATIONS || []).concat(window.CITY_DESTINATIONS || [])
+        .find((x) => x.id === partial.destId);
+      const closed = Math.max(0, (Date.now() - partial.savedAt) / 1000);
+      const total = Math.max(0, (partial.elapsed || 0) + closed);
+      const btn = document.createElement('button');
+      btn.className = 'journey-item partial';
+      const name = document.createElement('b');
+      name.textContent = (partial.mode === 'fog' ? '雾城 · ' : '') + (dest ? dest.name : '这一路');
+      const meta = document.createElement('span');
+      meta.textContent = '未完成 · 已用时 ' + fmtTime(total) +
+        (partial.mode === 'free' && partial.asks ? ' · 问了 ' + partial.asks + ' 个人' : '') +
+        (partial.mode === 'fog' && partial.steps ? ' · ' + partial.steps + ' 步' : '');
+      const hint = document.createElement('em');
+      hint.textContent = '走到一半退出了 · 点这里接着走';
+      btn.appendChild(name);
+      btn.appendChild(meta);
+      btn.appendChild(hint);
+      btn.addEventListener('click', () => {
+        showScreen('start');
+        resumeGame();
+      });
+      list.appendChild(btn);
     }
 
     state.journeys.forEach((j) => {
