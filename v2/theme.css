@@ -432,6 +432,15 @@ button, input, textarea, a { font-family: inherit; }
   color: var(--amber);
   font-family: var(--serif);
   font-size: 15px;
+  overflow: hidden;
+}
+
+.dest-mark img,
+.result-mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .result-copy { display: flex; flex-direction: column; min-width: 0; }
@@ -534,7 +543,13 @@ button, input, textarea, a { font-family: inherit; }
   font-family: var(--mono);
   font-size: 12px;
   letter-spacing: .04em;
+  overflow: hidden;
 }
+
+/* 有缩略图的地标：同一枚圆章里放插画，没有图的地标继续显示序号 */
+.dest-mark.has-photo,
+.result-mark.has-photo { border-color: var(--line-soft); background: var(--surface-2); }
+
 
 .dest-body { display: flex; flex-direction: column; min-width: 0; }
 .dest-item b {

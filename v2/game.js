@@ -1464,9 +1464,18 @@
     btn.setAttribute('aria-label', `${dest.name}，${dest.blurb || ''}`);
 
     const mark = document.createElement('span');
-    mark.className = 'dest-mark';
+    mark.className = dest.image ? 'dest-mark has-photo' : 'dest-mark';
     mark.setAttribute('aria-hidden', 'true');
-    mark.textContent = String(index + 1).padStart(2, '0');
+    if (dest.image) {
+      const thumb = document.createElement('img');
+      thumb.src = dest.image;
+      thumb.alt = '';
+      thumb.loading = 'lazy';
+      thumb.decoding = 'async';
+      mark.appendChild(thumb);
+    } else {
+      mark.textContent = String(index + 1).padStart(2, '0');
+    }
 
     const body = document.createElement('span');
     body.className = 'dest-body';
@@ -1492,7 +1501,10 @@
   function resultRow(dest, index, onClick) {
     const row = destCard(dest, index, onClick);
     row.className = 'result-item';
-    row.querySelector('.dest-mark').className = 'result-mark';
+    const markEl = row.querySelector('.dest-mark');
+    markEl.className = markEl.classList.contains('has-photo')
+      ? 'result-mark has-photo'
+      : 'result-mark';
     row.querySelector('.dest-body').className = 'result-copy';
     row.querySelector('.dest-arrow').className = 'result-arrow';
     return row;
