@@ -100,7 +100,7 @@
 
     if (stale && ts < 1e11) {
       verdict.className = 'bad';
-      verdict.textContent = '时间戳是「秒」，问心按毫秒算 → 永远判过期。这就是原因，需要在代码里 ×1000。';
+      verdict.textContent = '浏览器给的时间戳无效（不是毫秒，也不是秒）。v2 从 v=13 起会把这种值当作「刚拿到」，不再判过期；如果还显示过期，说明手机加载的还是旧版本，关掉标签页重开。';
     } else if (stale) {
       verdict.className = 'warn';
       verdict.textContent = '时间戳格式正常，但坐标是旧的：手机还没拿到新的 GPS 定位。走到空旷处、确认权限是「精确位置」。';

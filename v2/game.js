@@ -644,6 +644,7 @@
   const ARRIVE_METERS = 30;
   const GPS_ACCURACY_LIMIT = 50;    // 米；精度差于这个值的采样不参与自动抵达
   const GPS_SAMPLE_MAX_AGE = 15000; // 毫秒；超过 15 秒的采样视为过期
+  const GPS_MIN_VALID_STAMP = 946684800000; // 2000-01-01；比这更早的毫秒时间戳不信，按“刚拿到”处理
   const GPS_STALE_MS = 12000;       // 毫秒；界面超过 12 秒没新采样就提示定位暂停
   const GPS_ARRIVE_SAMPLES = 3;     // 连续 3 次有效采样都在范围内才自动结算
   const FREE_PAR = 600;
@@ -1397,7 +1398,11 @@
   function onPos(pos) {
     if (state.mode !== 'free' || state.finished) return;
     const c = pos.coords;
-    const stamp = Number.isFinite(pos.timestamp) ? pos.timestamp : Date.now();
+    // 有的浏览器给的时间戳是无意义值（实测华为浏览器固定返回 10000），
+    // 按毫秒解释会变成三十年前，导致每一个采样都被判过期、永远显示“定位数据过期”。
+    // 2000 年以前的毫秒时间戳一律当作“刚拿到”；新鲜度改由 maximumAge: 2000 兜底。
+    const rawStamp = Number.isFinite(pos.timestamp) ? pos.timestamp : 0;
+    const stamp = rawStamp >= GPS_MIN_VALID_STAMP ? rawStamp : Date.now();
     const age = Math.max(0, Date.now() - stamp);
     // 过期采样不参与导航，也不刷新位置
     if (age > GPS_SAMPLE_MAX_AGE) {
