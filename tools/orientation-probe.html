@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>方向探针 · 问心</title>
+<style>
+  :root { color-scheme: dark; }
+  body {
+    margin: 0; padding: 18px;
+    background: #0b0d10; color: #f0ece3;
+    font: 15px/1.55 -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  p.note { color: #8a8578; font-size: 13px; margin: 0 0 16px; }
+  .row {
+    display: flex; justify-content: space-between; gap: 12px;
+    padding: 10px 12px; margin-bottom: 8px;
+    border: 1px solid rgba(232,176,75,.22); border-radius: 10px;
+    background: #12161b;
+  }
+  .k { color: #8a8578; flex: none; }
+  .v { font-family: ui-monospace, Menlo, Consolas, monospace; text-align: right; word-break: break-all; }
+  .ok { color: #7ad18a; }
+  .bad { color: #ff6b5c; }
+  .warn { color: #e8b04b; }
+  #verdict { margin-top: 16px; padding: 14px; border-radius: 12px; font-size: 16px; }
+  button {
+    width: 100%; margin-top: 14px; padding: 14px;
+    border-radius: 10px; border: 1px solid rgba(232,176,75,.4);
+    background: #1a1d22; color: #e8b04b; font-size: 16px;
+  }
+</style>
+</head>
+<body>
+<h1>方向探针</h1>
+<p class="note">手机平端在手里，慢慢转一圈。把这一页截图发回来。</p>
+
+<div class="row"><span class="k">支持 DeviceOrientation</span><span class="v" id="support">—</span></div>
+<div class="row"><span class="k">事件数</span><span class="v" id="count">0</span></div>
+<div class="row"><span class="k">alpha（朝向）</span><span class="v" id="alpha">—</span></div>
+<div class="row"><span class="k">beta / gamma</span><span class="v" id="bg">—</span></div>
+<div class="row"><span class="k">absolute（是否指北）</span><span class="v" id="abs">—</span></div>
+<div class="row"><span class="k">iOS 罗盘朝向</span><span class="v" id="webkit">—</span></div>
+<div class="row"><span class="k">屏幕方向角</span><span class="v" id="angle">—</span></div>
+<div class="row"><span class="k">问心会怎么判</span><span class="v" id="judge">—</span></div>
+
+<div id="verdict">等待方向数据…</div>
+<button id="ask">请求权限并开始（iPhone 需要点这里）</button>
+
+<script>
+(() => {
+  'use strict';
+  const $ = (id) => document.getElementById(id);
+  let n = 0;
+  let lastAlpha = null;
+
+  $('support').textContent = (typeof DeviceOrientationEvent !== 'undefined') ? '有' : '没有';
+  $('support').className = 'v ' + (typeof DeviceOrientationEvent !== 'undefined' ? 'ok' : 'bad');
+  $('angle').textContent = screen.orientation ? screen.orientation.angle + '°' : '—';
+
+  function onOrient(e) {
+    n += 1;
+    $('count').textContent = String(n);
+    const a = e.alpha;
+    const abs = e.absolute;
+    const webkit = e.webkitCompassHeading;
+
+    $('alpha').textContent = a == null ? 'null' : a.toFixed(1) + '°';
+    $('alpha').className = 'v ' + (a == null ? 'bad' : 'ok');
+    $('bg').textContent = (e.beta == null ? 'null' : e.beta.toFixed(0)) + ' / ' +
+                          (e.gamma == null ? 'null' : e.gamma.toFixed(0));
+    $('abs').textContent = abs === undefined ? '未提供' : String(abs);
+    $('webkit').textContent = webkit == null ? '—' : webkit.toFixed(1) + '°';
+
+    if (a != null) lastAlpha = a;
+
+    let judge, cls;
+    if (a == null && webkit == null) {
+      judge = '只给倾斜，不给朝向 → 无法指北';
+      cls = 'bad';
+    } else if (abs === false && webkit == null) {
+      judge = '相对方向 → 能转但不知道正北';
+      cls = 'warn';
+    } else {
+      judge = '有朝向 ✓';
+      cls = 'ok';
+    }
+    $('judge').textContent = judge;
+    $('judge').className = 'v ' + cls;
+
+    if (cls === 'bad') {
+      $('verdict').className = 'bad';
+      $('verdict').textContent = '这个浏览器不给罗盘朝向（alpha 一直是 null）。换 Chrome 或系统自带浏览器；实在不行在问心里点「改为模拟」，拖表盘也能玩。';
+    } else if (cls === 'warn') {
+      $('verdict').className = 'warn';
+      $('verdict').textContent = '能给方向，但不保证指北（absolute=false）。问心会提示「浏览器只给了相对方向，不能找北」，这种在户外会指偏。';
+    } else {
+      $('verdict').className = 'ok';
+      $('verdict').textContent = '一切正常：问心的指针应该跟着你转。转一圈看 alpha 有没有连续变化。';
+    }
+  }
+
+  function start() {
+    window.addEventListener('deviceorientationabsolute', onOrient, true);
+    window.addEventListener('deviceorientation', onOrient, true);
+  }
+
+  $('ask').addEventListener('click', async () => {
+    if (typeof DeviceOrientationEvent !== 'undefined' &&
+        typeof DeviceOrientationEvent.requestPermission === 'function') {
+      try {
+        const res = await DeviceOrientationEvent.requestPermission();
+        $('verdict').textContent = '权限结果：' + res;
+        if (res !== 'granted') return;
+      } catch (err) {
+        $('verdict').textContent = '权限请求失败：' + err;
+        return;
+      }
+    }
+    start();
+  });
+
+  start();
+})();
+</script>
+</body>
+</html>
