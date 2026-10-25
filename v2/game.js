@@ -2258,6 +2258,7 @@
       const modeLabel = j.mode === 'fog' ? '模拟' : j.mode === 'free' ? '真实出行' : '寻宝';
       meta.textContent = date + ' · ' + modeLabel + ' · 用时 ' + fmtTime(j.time || 0) +
         ' · ' + (j.score || 0) + ' 分' +
+        (j.mode === 'free' && j.asks ? ' · 问了 ' + j.asks + ' 个人' : '') +
         (j.mode === 'fog' ? ' · ' + (j.steps || 0) + ' 步 · ' + (j.lost || 1) + '× · ' + '★'.repeat(j.stars || 1) : '') +
         (j.practice ? ' · 练习' : '');
       const badges = document.createElement('em');
