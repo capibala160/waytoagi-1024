@@ -612,6 +612,7 @@
   const ctx = cv.getContext('2d');
   const CSIZE = 600, CC = 300, CR = 258;
   const HEADING_STALE_MS = 2500;
+  const IDLE_LOOP_MS = 250;        // 非行进页罗盘循环的降频间隔（毫秒）
   const ARRIVE_METERS = 30;
   const GPS_ACCURACY_LIMIT = 50;    // 米；精度差于这个值的采样不参与自动抵达
   const GPS_SAMPLE_MAX_AGE = 15000; // 毫秒；超过 15 秒的采样视为过期
@@ -832,9 +833,20 @@
   }
 
   // 视觉层：底盘不动，只让指针指向目的地（屏幕角 = 目标方位 - 手机朝向）
+  let visualIdleTimer = null;
   function visualLoop() {
+    if (state.screen !== 'play') {
+      // 非行进页降频：闲置时不再 60Hz 空转
+      if (visualIdleTimer === null) {
+        visualIdleTimer = setTimeout(() => {
+          visualIdleTimer = null;
+          requestAnimationFrame(visualLoop);
+        }, IDLE_LOOP_MS);
+      }
+      return;
+    }
     requestAnimationFrame(visualLoop);
-    if (state.screen !== 'play' || !needleEl) return;
+    if (!needleEl) return;
 
     let heading = visualHeading;
     if (heading == null) heading = state.heading != null ? state.heading : 0;
@@ -1012,10 +1024,19 @@
 
   let lastDraw = 0;
   let lastGameTick = 0;
+  let loopIdleTimer = null;
   function loop(t) {
+    if (state.screen !== 'play') {              // 只有行进页需要刷新罗盘；其他页面降频省电
+      if (loopIdleTimer === null) {
+        loopIdleTimer = setTimeout(() => {
+          loopIdleTimer = null;
+          requestAnimationFrame(loop);
+        }, IDLE_LOOP_MS);
+      }
+      return;
+    }
     requestAnimationFrame(loop);
     perf.frames++;
-    if (state.screen !== 'play') return;       // 只有行进页需要刷新罗盘
     if (layerMode) {
       // 游戏层 8Hz：对准、指针目标、数字；表盘由 visualLoop 单独 60Hz 转
       if (t - lastGameTick < 125) return;
@@ -1137,6 +1158,20 @@
     state.toastTimer = setTimeout(() => el.classList.remove('on'), 1300);
   }
 
+  // 进入行进页时立刻恢复常速，不用等降频定时器
+  function wakeCompassLoops() {
+    if (loopIdleTimer !== null) {
+      clearTimeout(loopIdleTimer);
+      loopIdleTimer = null;
+      requestAnimationFrame(loop);
+    }
+    if (visualIdleTimer !== null) {
+      clearTimeout(visualIdleTimer);
+      visualIdleTimer = null;
+      requestAnimationFrame(visualLoop);
+    }
+  }
+
   function showScreen(name) {
     if (name !== 'code') {
       // 离开输码页时，取消上一轮的验码 / 清空回调
@@ -1147,7 +1182,10 @@
     }
     Object.keys(screens).forEach((k) => screens[k].classList.toggle('active', k === name));
     state.screen = name;
-    if (name === 'play') requestAnimationFrame(fitCompass);
+    if (name === 'play') {
+      requestAnimationFrame(fitCompass);
+      wakeCompassLoops();
+    }
     if (name === 'modes') refreshGameResume();
     if (name === 'end') {
       renderEndActions();
