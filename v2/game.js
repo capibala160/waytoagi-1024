@@ -14,6 +14,10 @@
 
   const SAVE_KEY = 'wenjin-save-v1';
   const SAVE_TTL_MS = 7 * 864e5;
+  const SAVE_SCHEMA = 2;                 // 存档结构版本：改字段时 +1，并在下面补一条迁移
+  const SAVE_MIGRATIONS = {
+    1: (d) => ({ ...d, v: SAVE_SCHEMA }) // v1 → v2：结构没变，只升版本号
+  };
 
   const CFG = Object.assign({
     venue: '会场',
@@ -223,6 +227,30 @@
     return errors;
   }
 
+  // 存储读写统一走这里：隐私模式、配额满、坏 JSON 都不抛错
+  function readStorage(key) {
+    try { return localStorage.getItem(key); } catch (e) { return null; }
+  }
+  function writeStorage(key, value) {
+    try { localStorage.setItem(key, value); return true; } catch (e) { return false; }
+  }
+  function readJsonStorage(key, fallback) {
+    const raw = readStorage(key);
+    if (!raw) return fallback;
+    try { return JSON.parse(raw); } catch (e) { return fallback; }
+  }
+
+  // 老存档逐级升级；认不出的版本当作没有存档
+  function migrateSave(data) {
+    let cur = data;
+    while (cur && cur.v !== SAVE_SCHEMA) {
+      const step = SAVE_MIGRATIONS[cur.v];
+      if (!step) return null;
+      cur = step(cur);
+    }
+    return cur || null;
+  }
+
   function saveProgress() {
     if (!isPlaying()) return;
     if (state.mode === 'sim') return;
@@ -230,8 +258,8 @@
       if (state.mode === 'fog') {
         const f = state.fog;
         if (!f || !state.dest) return;
-        localStorage.setItem(SAVE_KEY, JSON.stringify({
-          v: 1,
+        writeStorage(SAVE_KEY, JSON.stringify({
+          v: SAVE_SCHEMA,
           mode: 'fog',
           sig: 'fog:' + state.dest.id,
           destId: state.dest.id,
@@ -253,8 +281,8 @@
         return;
       }
       if (state.mode === 'free') {
-        localStorage.setItem(SAVE_KEY, JSON.stringify({
-          v: 1,
+        writeStorage(SAVE_KEY, JSON.stringify({
+          v: SAVE_SCHEMA,
           mode: 'free',
           sig: 'free:' + state.dest.id,
           destId: state.dest.id,
@@ -265,8 +293,8 @@
         }));
         return;
       }
-      localStorage.setItem(SAVE_KEY, JSON.stringify({
-        v: 1,
+      writeStorage(SAVE_KEY, JSON.stringify({
+        v: SAVE_SCHEMA,
         mode: state.mode,
         sig: saveSignatureFor(state.mode, state.levels),
         level: state.level,
@@ -291,8 +319,8 @@
 
   function readProgress() {
     try {
-      const d = JSON.parse(localStorage.getItem(SAVE_KEY));
-      if (!d || d.v !== 1) return null;
+      const d = migrateSave(readJsonStorage(SAVE_KEY, null));
+      if (!d) return null;
 
       if (d.mode === 'free') {
         const dest = (window.DESTINATIONS || []).find((x) => x.id === d.destId);
@@ -907,6 +935,14 @@
     }
   }
 
+  // 方向信号断了：提示 + （真实出行时）重新授权入口
+  function showSensorTip(text) {
+    const tip = $('sim-tip');
+    tip.hidden = false;
+    $('sim-tip-text').textContent = text;
+    $('btn-sensor-retry').hidden = state.mode !== 'free';
+  }
+
   function goSimulation(reason) {
     if (!state.simulating) {
       state.simulating = true;
@@ -915,9 +951,7 @@
       state.headingAbsolute = false;
       state.aligned = false;
     }
-    const tip = $('sim-tip');
-    tip.hidden = false;
-    tip.textContent = reason || '拖动表盘模拟';
+    showSensorTip(reason || '拖动表盘模拟');
   }
 
   function drawCompass() {
@@ -2508,9 +2542,7 @@
         goSimulation('演示模式：拖动表盘模拟');
         return;
       }
-      const tip = $('sim-tip');
-      tip.hidden = false;
-      tip.textContent = '没有方向数据：把手机平放转一转，或点「改为模拟」';
+      showSensorTip('没有方向数据：把手机平放转一转，或点「改为模拟」');
     }, 2500);
   }
 
@@ -3175,21 +3207,41 @@
 
   /* ---------------- 开始 / 权限 ---------------- */
 
-  function requestMotionPermission() {
+  function requestMotionPermission(options = {}) {
+    const quiet = options.quiet === true;
     return new Promise((resolve) => {
       if (typeof DeviceOrientationEvent !== 'undefined' &&
           typeof DeviceOrientationEvent.requestPermission === 'function') {
         DeviceOrientationEvent.requestPermission()
           .then((res) => {
-            if (res !== 'granted') alert('需要「动作与方向」权限才能玩。iPhone：设置 → Safari → 动作与方向。');
-            resolve();
+            if (!quiet && res !== 'granted') {
+              alert('需要「动作与方向」权限才能玩。iPhone：设置 → Safari → 动作与方向。');
+            }
+            resolve(res);
           })
-          .catch(() => resolve());
+          .catch(() => resolve('error'));
       } else {
-        resolve();
+        resolve('unsupported');
       }
     });
   }
+
+  // 方向断了之后的恢复：重新申请权限，3 秒内还没有数据就再提示
+  $('btn-sensor-retry').addEventListener('click', async () => {
+    state.sensorSeen = false;
+    state.lastOrientAt = performance.now();
+    const res = await requestMotionPermission({ quiet: true });
+    if (res === 'denied' || res === 'error') {
+      showToast('权限没开：设置 → Safari → 动作与方向');
+      return;
+    }
+    showToast('已重新请求方向，把手机平放转一圈');
+    setTimeout(() => {
+      if (!state.sensorSeen && state.mode === 'free') {
+        showToast('还是没方向数据：换个浏览器，或点「改为模拟」');
+      }
+    }, 3000);
+  });
 
   let wakeLock = null;
   let wantWakeLock = false;

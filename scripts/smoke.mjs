@@ -218,11 +218,29 @@ async function main() {
     const needle = await page.evaluate("document.getElementById('compass-needle').style.transform");
     check('罗盘指针已开始转动', /rotate\(/.test(needle), needle);
 
+    // 4b. 方向提示与「重新授权方向」：雾城下只显示文案，不显示按钮；按钮本身可点且有反馈
+    const tipText = await page.evaluate("document.getElementById('sim-tip-text').textContent.trim()");
+    check('提示文案在独立节点里', tipText.length > 0, tipText);
+    const retryHidden = await page.evaluate("document.getElementById('btn-sensor-retry').hidden");
+    check('雾城模拟下不显示「重新授权方向」', retryHidden === true);
+    await page.evaluate("document.getElementById('btn-sensor-retry').click()");
+    await sleep(300);
+    const toastText = await page.evaluate("document.getElementById('toast').textContent.trim()");
+    check('「重新授权方向」点了有反馈', toastText.includes('方向'), toastText);
+
     // 5. 走一步 → 存档
     await page.evaluate("document.querySelector('.dpad-btn').click()");
     await sleep(300);
     const saved = await page.evaluate("Boolean(localStorage.getItem('wenjin-save-v1'))");
     check('走一步后写入本地存档', saved);
+
+    // 5b. 把存档降级成 v1，下面的刷新同时验证「老存档能迁移后继续玩」
+    await page.evaluate(`(() => {
+      const raw = JSON.parse(localStorage.getItem('wenjin-save-v1'));
+      raw.v = 1;
+      localStorage.setItem('wenjin-save-v1', JSON.stringify(raw));
+    })()`);
+    check('存档已降级为 v1 待迁移', true);
 
     // 6. 刷新后续玩
     await goto('/v2/');

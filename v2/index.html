@@ -8,9 +8,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <link rel="icon" href="favicon.svg" type="image/svg+xml" />
 <title>问心·指南针 · 只指方向，不指路</title>
-<link rel="stylesheet" href="base.css?v=9" />
-<link rel="stylesheet" href="theme.css?v=9" />
-<link rel="stylesheet" href="game.css?v=9" />
+<link rel="stylesheet" href="base.css?v=11" />
+<link rel="stylesheet" href="theme.css?v=11" />
+<link rel="stylesheet" href="game.css?v=11" />
 </head>
 <body>
 
@@ -369,7 +369,7 @@
       <div id="compass-layer" class="compass-layer" hidden>
         <div id="compass-rotor" class="compass-rotor">
           <img class="compass-plate" src="assets/compass/plate.webp" alt="" draggable="false" />
-          <img class="compass-markings" src="assets/compass/dial-markings.svg?v=9" alt="" draggable="false" />
+          <img class="compass-markings" src="assets/compass/dial-markings.svg?v=11" alt="" draggable="false" />
           <img id="compass-dial" class="compass-dial" alt="" hidden />
           <img id="compass-needle" class="compass-needle" src="assets/compass/needle.webp" alt="" draggable="false" />
         </div>
@@ -386,7 +386,10 @@
       <div id="align-badge" class="align-badge">已对准</div>
     </div>
 
-    <div id="sim-tip" class="sim-tip" hidden>没检测到罗盘：拖动表盘模拟</div>
+    <div id="sim-tip" class="sim-tip" hidden>
+      <span id="sim-tip-text">没检测到罗盘：拖动表盘模拟</span>
+      <button id="btn-sensor-retry" class="sim-tip-btn" hidden>重新授权方向</button>
+    </div>
 
     <div class="actions play-actions">
       <button id="btn-hint" class="btn ghost">要提示</button>
@@ -604,11 +607,11 @@
 
 </div>
 
-<script src="destinations.js?v=9"></script>
-<script src="destinations-city.js?v=9"></script>
-<script src="levels.js?v=9"></script>
-<script src="packs.js?v=9"></script>
-<script src="game.js?v=9"></script>
-<script src="companion.js?v=9"></script>
+<script src="destinations.js?v=11"></script>
+<script src="destinations-city.js?v=11"></script>
+<script src="levels.js?v=11"></script>
+<script src="packs.js?v=11"></script>
+<script src="game.js?v=11"></script>
+<script src="companion.js?v=11"></script>
 </body>
 </html>

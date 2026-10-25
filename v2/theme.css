@@ -1498,6 +1498,22 @@ button, input, textarea, a { font-family: inherit; }
   text-align: center;
 }
 
+/* 方向权限断了之后的恢复入口：整块可点，不挤在 12px 小字里 */
+.sim-tip-btn {
+  display: block;
+  margin: 6px auto 0;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-2);
+  font: inherit;
+  font-size: 13px;
+  letter-spacing: .04em;
+}
+.sim-tip-btn:active { background: var(--surface-2); }
+
 .actions {
   display: flex;
   gap: 9px;
