@@ -497,7 +497,7 @@ const blob = await new Promise(r => canvas.toBlob(r, "image/jpeg", 0.92));
 ```
 
 - 分享：`navigator.canShare({ files: [file] })` → `navigator.share`。
-- 不支持：触发下载，文件名 `犟针-望平街-2026-10-25.jpg`。
+- 不支持：触发下载，文件名 `问心-望平街-2026-10-25.jpg`。
 - 生成时间目标 < 500ms。
 - 二维码必须在图片生成时画进去；不要依赖外部截图。
 

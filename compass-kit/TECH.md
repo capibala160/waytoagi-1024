@@ -1,6 +1,6 @@
 # Compass kit — tech notes
 
-A layered, photoreal compass for 犟针. The plate, needle and glass are
+A layered, photoreal compass for 问心. The plate, needle and glass are
 model-rendered; every letter and number is vector. The demo composes them in
 CSS and drives the glass reflection from the heading.
 

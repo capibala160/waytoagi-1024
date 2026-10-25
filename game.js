@@ -1,5 +1,5 @@
 /* ============================================================
-   问津 · 会场微定向
+   问心 · 会场微定向
    引擎只做四件事：读罗盘、走关卡、验码、出旅程卡。
    关卡内容全在 levels.js，不要改这里。
    ============================================================ */
@@ -17,7 +17,7 @@
 
   const CFG = Object.assign({
     venue: '会场',
-    event: '问津',
+    event: '问心',
     baseScore: 1000,
     timePenalty: 250,
     hintSeconds: 6
@@ -1607,7 +1607,7 @@
     x.textAlign = 'center';
     x.fillStyle = '#e8b04b';
     x.font = '700 84px "Songti SC","SimSun",serif';
-    x.fillText('犟 针', W / 2, 150);
+    x.fillText('问 心', W / 2, 150);
     x.fillStyle = '#8a8578';
     x.font = '400 26px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
     x.fillText('主 角 卡', W / 2, 198);
@@ -1645,7 +1645,7 @@
 
     x.fillStyle = '#565d66';
     x.font = '400 24px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
-    x.fillText('WaytoAGI 1024 · 游戏赛道 · 犟针', W / 2, 1270);
+    x.fillText('WaytoAGI 1024 · 游戏赛道 ·《问心·指南针》', W / 2, 1270);
 
     return cv.toDataURL('image/png');
   }
@@ -1796,7 +1796,7 @@
     x.textAlign = 'center';
     x.fillStyle = '#e8b04b';
     x.font = '700 110px "Songti SC","SimSun",serif';
-    x.fillText('犟 针', W / 2, 190);
+    x.fillText('问 心', W / 2, 190);
     x.fillStyle = '#8a8578';
     x.font = '400 30px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
     x.fillText('抵 达 证 明', W / 2, 248);
@@ -3959,7 +3959,7 @@
 
     x.fillStyle = '#e8b04b';
     x.font = '700 96px "Songti SC","SimSun",serif';
-    x.fillText('犟 针', W / 2, 190);
+    x.fillText('问 心', W / 2, 190);
 
     x.fillStyle = '#8a8578';
     x.font = '400 26px -apple-system,"PingFang SC","Microsoft YaHei",sans-serif';
@@ -4160,7 +4160,7 @@
     img.hidden = false;
     const a = document.createElement('a');
     a.href = url;
-    a.download = '犟针-主角卡.png';
+    a.download = '问心-主角卡.png';
     document.body.appendChild(a);
     a.click();
     a.remove();

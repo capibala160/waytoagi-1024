@@ -3,7 +3,7 @@
 # 更新：每完成一件事，把 status 改成 done，并在 docs/STATUS.md 写一行。
 
 project:
-  submission_app: "犟针 v2"
+  submission_app: "问心·指南针 v2"
   main_entry: "v2/（根路径 / 自动跳转；旧根应用在 /legacy.html）"
   rule: "产品真值是目的地优先：用户说一个地方，罗盘只指它。真实出行先保定位可信，5/3 站寻宝是游戏标签。"
   product_truth: "docs/PRODUCT-TRUTH.md"

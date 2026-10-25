@@ -1,4 +1,4 @@
-# Compass kit · 犟针
+# Compass kit · 问心
 
 A layered photoreal compass for the game. The plate, needle and glass are
 Draw Things renders; every dial character is vector, so N/E/S/W and the 30°
