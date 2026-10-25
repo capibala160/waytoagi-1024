@@ -1,4 +1,4 @@
-# 犟针 v2 · 高分辨率版
+# 问心·指南针 v2 · 高分辨率版
 
 This is the high-resolution visual pass. It is a separate folder; the root app is untouched.
 
