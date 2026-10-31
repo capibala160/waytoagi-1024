@@ -8,9 +8,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <link rel="icon" href="favicon.svg" type="image/svg+xml" />
 <title>问心·指南针 · 只指方向，不指路</title>
-<link rel="stylesheet" href="base.css?v=29" />
-<link rel="stylesheet" href="theme.css?v=29" />
-<link rel="stylesheet" href="game.css?v=29" />
+<link rel="stylesheet" href="base.css?v=30" />
+<link rel="stylesheet" href="theme.css?v=30" />
+<link rel="stylesheet" href="game.css?v=30" />
 </head>
 <body>
 
@@ -78,6 +78,10 @@
     </div>
 
     <div class="home-shortcuts">
+      <button id="btn-ai-pick" class="shortcut shortcut-wide">
+        <span class="shortcut-mark" aria-hidden="true">问</span>
+        <span class="shortcut-copy"><b>不知道去哪</b><small>阿针问一句，替你挑一个</small></span>
+      </button>
       <button id="btn-random" class="shortcut">
         <span class="shortcut-mark" aria-hidden="true">↝</span>
         <span class="shortcut-copy"><b>随便走走</b><small>从精选里挑一个</small></span>
@@ -106,6 +110,45 @@
       <p class="aside-line">只指方向，不指路</p>
       <p class="aside-sub">没有地图，没有路线，没有距离</p>
     </aside>
+  </section>
+
+  <!-- ============================================================
+       阿针帮你挑 · 按状态收敛成一个目的地
+       ============================================================ -->
+  <section id="screen-pick" class="screen">
+    <header class="topbar sub-topbar">
+      <button id="btn-pick-back" class="icon-btn" aria-label="返回">‹</button>
+      <span class="sub-title">阿针帮你挑</span>
+      <span class="topbar-spacer"></span>
+    </header>
+
+    <div class="page-head">
+      <p class="eyebrow">春熙 · 今天</p>
+      <h2 class="page-title">你现在想干什么？</h2>
+      <p class="page-sub">选一个，从今天走过的点里挑一个给你。不给地图。</p>
+    </div>
+
+    <div class="pick-moods" id="pick-moods">
+      <button class="pick-mood" data-mood="quiet">想安静坐会儿</button>
+      <button class="pick-mood" data-mood="food">想吃点东西</button>
+      <button class="pick-mood" data-mood="photo">想拍照</button>
+      <button class="pick-mood" data-mood="new">想逛新开的店</button>
+    </div>
+
+    <div id="pick-result" class="pick-result" hidden>
+      <div class="pick-card">
+        <p class="eyebrow">阿针挑的是</p>
+        <h3 id="pick-name" class="pick-name"></h3>
+        <p id="pick-blurb" class="pick-blurb"></p>
+        <ul id="pick-reasons" class="pick-reasons"></ul>
+      </div>
+      <div class="actions">
+        <button id="btn-pick-retry" class="btn ghost">换一个</button>
+        <button id="btn-pick-go" class="btn primary">就去这</button>
+      </div>
+    </div>
+
+    <p id="pick-empty" class="page-note" hidden>这个内容包里还没有能对上的点。</p>
   </section>
 
   <!-- ============================================================
@@ -401,7 +444,7 @@
       <div id="compass-layer" class="compass-layer" hidden>
         <div id="compass-rotor" class="compass-rotor">
           <img class="compass-plate" src="assets/compass/plate.webp" alt="" draggable="false" />
-          <img class="compass-markings" src="assets/compass/dial-markings.svg?v=29" alt="" draggable="false" />
+          <img class="compass-markings" src="assets/compass/dial-markings.svg?v=30" alt="" draggable="false" />
           <img id="compass-dial" class="compass-dial" alt="" hidden />
           <img id="compass-needle" class="compass-needle" src="assets/compass/needle.webp" alt="" draggable="false" />
         </div>
@@ -666,11 +709,12 @@
 
 </div>
 
-<script src="destinations.js?v=29"></script>
-<script src="destinations-city.js?v=29"></script>
-<script src="levels.js?v=29"></script>
-<script src="packs.js?v=29"></script>
-<script src="game.js?v=29"></script>
-<script src="companion.js?v=29"></script>
+<script src="destinations.js?v=30"></script>
+<script src="destinations-city.js?v=30"></script>
+<script src="destinations-chunxi.js?v=30"></script>
+<script src="levels.js?v=30"></script>
+<script src="packs.js?v=30"></script>
+<script src="game.js?v=30"></script>
+<script src="companion.js?v=30"></script>
 </body>
 </html>

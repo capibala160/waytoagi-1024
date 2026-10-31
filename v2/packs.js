@@ -8,9 +8,17 @@
 
 (() => {
   const params = new URLSearchParams(location.search);
-  const key = params.get('pack') === 'city' ? 'city' : 'venue';
+  const requested = params.get('pack');
+  // 锦创杯现场默认用「春熙」包；旧链接 ?pack=venue / ?pack=city 仍然可用
+  const key = requested === 'venue' || requested === 'city' ? requested : 'chunxi';
 
   const packs = {
+    chunxi: {
+      key: 'chunxi',
+      name: '春熙',
+      destinations: window.CHUNXI_DESTINATIONS || [],
+      levelSets: {}
+    },
     venue: {
       key: 'venue',
       name: '会场',

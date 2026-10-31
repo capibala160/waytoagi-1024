@@ -31,6 +31,7 @@
 
   const screens = {
     start: $('screen-start'),
+    pick: $('screen-pick'),
     modes: $('screen-modes'),
     brief: $('screen-brief'),
     confirm: $('screen-confirm'),
@@ -56,6 +57,8 @@
     dest: null,
     pendingDest: null,
     pendingGame: null,
+    pickMood: null,
+    pickDest: null,
     gps: null,
     gpsStatus: '',
     gpsAt: 0,
@@ -2523,6 +2526,72 @@
     return list[Math.floor(Math.random() * list.length)];
   }
 
+  /* ---------- 阿针帮你挑：一句话收敛成一个目的地 ----------
+     推荐口径：先按状态标签匹配（tags），同分随机；理由用点位自带的
+     reasons（走访后换成店主原话）。不调远端模型，现场没网也能跑。 */
+  const MOODS = {
+    quiet: { tags: ['quiet', 'shop'] },
+    food: { tags: ['food'] },
+    photo: { tags: ['photo'] },
+    new: { tags: ['new', 'shop'] }
+  };
+
+  function pickByMood(mood, exclude) {
+    const want = (MOODS[mood] || {}).tags || [];
+    let list = (window.DESTINATIONS || []).filter((d) => !exclude || d.id !== exclude.id);
+    if (!list.length) list = (window.DESTINATIONS || []).slice();
+    if (!list.length) return null;
+    const scored = list.map((d) => {
+      const own = Array.isArray(d.tags) ? d.tags : [];
+      return { d, score: want.reduce((n, t) => n + (own.indexOf(t) >= 0 ? 1 : 0), 0) };
+    });
+    const max = scored.reduce((m, s) => Math.max(m, s.score), -1);
+    const best = scored.filter((s) => s.score === max).map((s) => s.d);
+    return best[Math.floor(Math.random() * best.length)];
+  }
+
+  function paintPick(dest) {
+    const result = $('pick-result');
+    const empty = $('pick-empty');
+    if (!dest) {
+      result.hidden = true;
+      empty.hidden = false;
+      return;
+    }
+    empty.hidden = true;
+    result.hidden = false;
+    $('pick-name').textContent = dest.name;
+    $('pick-blurb').textContent = dest.blurb || '';
+    const ul = $('pick-reasons');
+    ul.textContent = '';
+    const reasons = (Array.isArray(dest.reasons) && dest.reasons.length)
+      ? dest.reasons
+      : [dest.blurb || '今天走过的一个点'];
+    reasons.slice(0, 3).forEach((r) => {
+      const li = document.createElement('li');
+      li.textContent = r;
+      ul.appendChild(li);
+    });
+  }
+
+  function openPick() {
+    state.pickMood = null;
+    state.pickDest = null;
+    $('pick-result').hidden = true;
+    $('pick-empty').hidden = true;
+    document.querySelectorAll('.pick-mood').forEach((b) => b.classList.remove('active'));
+    showScreen('pick');
+  }
+
+  function chooseMood(mood) {
+    state.pickMood = mood;
+    document.querySelectorAll('.pick-mood').forEach((b) => {
+      b.classList.toggle('active', b.dataset.mood === mood);
+    });
+    state.pickDest = pickByMood(mood, null);
+    paintPick(state.pickDest);
+  }
+
   function startFree(dest) {
     if (!dest) return;
     requestMotionPermission();
@@ -4614,9 +4683,25 @@
 
   $('btn-pack').addEventListener('click', () => {
     const p = new URLSearchParams(location.search);
-    const cur = window.ACTIVE_PACK ? window.ACTIVE_PACK.key : 'venue';
-    p.set('pack', cur === 'venue' ? 'city' : 'venue');
+    const order = ['chunxi', 'venue', 'city'];
+    const cur = window.ACTIVE_PACK ? window.ACTIVE_PACK.key : 'chunxi';
+    const i = order.indexOf(cur);
+    p.set('pack', order[(i + 1) % order.length]);
     location.search = p.toString();
+  });
+
+  $('btn-ai-pick').addEventListener('click', openPick);
+  $('btn-pick-back').addEventListener('click', () => showScreen('start'));
+  document.querySelectorAll('.pick-mood').forEach((b) => {
+    b.addEventListener('click', () => chooseMood(b.dataset.mood));
+  });
+  $('btn-pick-retry').addEventListener('click', () => {
+    if (!state.pickMood) return;
+    state.pickDest = pickByMood(state.pickMood, state.pickDest) || state.pickDest;
+    paintPick(state.pickDest);
+  });
+  $('btn-pick-go').addEventListener('click', () => {
+    if (state.pickDest) showConfirm(state.pickDest);
   });
 
   $('btn-char-save').addEventListener('click', () => {

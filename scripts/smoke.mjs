@@ -193,6 +193,24 @@ async function main() {
     const title = await page.evaluate('document.title');
     check('页面标题含「问心·指南针」', title.includes('问心·指南针'), title);
 
+    // 1b. 阿针帮你挑：选状态 → 推荐 → 换一个 → 就去这
+    await page.evaluate("document.getElementById('btn-ai-pick').click()");
+    await page.waitFor("document.getElementById('screen-pick').classList.contains('active')", '进入阿针挑点页');
+    await page.evaluate("document.querySelector('.pick-mood[data-mood=\"quiet\"]').click()");
+    await page.waitFor("!document.getElementById('pick-result').hidden", '出现推荐结果');
+    const pickName = await page.evaluate("document.getElementById('pick-name').textContent.trim()");
+    const pickReasons = await page.evaluate("document.querySelectorAll('#pick-reasons li').length");
+    check('阿针挑出一个点并给出三条理由', Boolean(pickName) && pickReasons === 3, `${pickName} · ${pickReasons} 条`);
+    await page.evaluate("document.getElementById('btn-pick-retry').click()");
+    await sleep(200);
+    const pickName2 = await page.evaluate("document.getElementById('pick-name').textContent.trim()");
+    check('「换一个」能换到另一个点', Boolean(pickName2) && pickName2 !== pickName, `${pickName} → ${pickName2}`);
+    await page.evaluate("document.getElementById('btn-pick-go').click()");
+    await page.waitFor("document.getElementById('screen-confirm').classList.contains('active')", '进入确认页（阿针推荐）');
+    const confirmPick = await page.evaluate("document.getElementById('confirm-name').textContent.trim()");
+    check('「就去这」带到确认页', confirmPick === pickName2, confirmPick);
+    await goto('/v2/');
+
     // 2. 搜索目的地
     await page.evaluate(`(() => {
       const input = document.getElementById('dest-input');

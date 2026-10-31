@@ -2284,3 +2284,79 @@ button, input, textarea, a { font-family: inherit; }
   border-color: rgba(232, 176, 75, .45);
 }
 .journey-item.partial em { color: var(--amber); }
+
+/* ---------------------------------------------------------- 阿针帮你挑 */
+.pick-moods {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 4px 0 18px;
+}
+
+.pick-mood {
+  min-height: var(--tap);
+  padding: 12px 14px;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-md);
+  background: var(--surface-1);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1.4;
+  text-align: left;
+  cursor: pointer;
+}
+.pick-mood:active { transform: scale(.985); }
+.pick-mood.active {
+  border-color: var(--amber);
+  background: var(--surface-3);
+  color: var(--amber-2);
+}
+
+.pick-result { margin-top: 6px; }
+
+.pick-card {
+  padding: 18px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface-1);
+  box-shadow: var(--shadow-1);
+}
+
+.pick-name {
+  margin: 4px 0 6px;
+  font-family: var(--serif);
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: .06em;
+}
+
+.pick-blurb {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.pick-reasons {
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line-soft);
+}
+.pick-reasons li {
+  position: relative;
+  padding: 11px 0 11px 18px;
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1.6;
+  border-bottom: 1px solid var(--line-soft);
+}
+.pick-reasons li::before {
+  content: '·';
+  position: absolute;
+  left: 4px;
+  color: var(--amber);
+  font-weight: 700;
+}
+.pick-reasons li:last-child { border-bottom: 0; }
